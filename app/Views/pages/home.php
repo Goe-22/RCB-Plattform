@@ -1,7 +1,37 @@
-<h1>Willkommen bei der RC Bande Zwickau</h1>
+<section class="hero">
 
-<p>
+    <div class="hero-content">
 
-Die neue Vereinsplattform befindet sich derzeit im Aufbau.
+        <h1>RC Bande Zwickau e.V.</h1>
 
-</p>
+        <p>
+
+            Herzlich willkommen auf der offiziellen Webseite unseres Vereins.
+
+            Hier findest du Informationen zu unseren Strecken,
+
+            Veranstaltungen und unserem Vereinsleben.
+
+        </p>
+
+        <a href="/verein" class="button">
+
+            Mehr über uns
+
+        </a>
+
+    </div>
+
+</section>
+
+<section class="content">
+
+    <h2>Unsere Strecken</h2>
+
+    <p>
+
+        Zwei Strecken – unzählige Möglichkeiten.
+
+    </p>
+
+</section>

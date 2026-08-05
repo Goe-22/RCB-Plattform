@@ -245,3 +245,107 @@ footer{
     margin-bottom:25px;
 
 }
+
+/* ------------------------------ */
+/* Nächster Termin                */
+/* ------------------------------ */
+
+.next-event{
+
+    padding:80px 30px;
+
+    text-align:center;
+
+}
+
+.event-box{
+
+    max-width:700px;
+
+    margin:auto;
+
+    background:white;
+
+    padding:40px;
+
+    border-radius:12px;
+
+    box-shadow:0 4px 12px rgba(0,0,0,.15);
+
+}
+
+/* ------------------------------ */
+/* News                           */
+/* ------------------------------ */
+
+.news{
+
+    padding:80px 30px;
+
+    background:#f7f7f7;
+
+    text-align:center;
+
+}
+
+.news-grid{
+
+    display:grid;
+
+    grid-template-columns:1fr;
+
+    max-width:800px;
+
+    margin:40px auto;
+
+}
+
+.news-card{
+
+    background:white;
+
+    padding:30px;
+
+    border-radius:12px;
+
+    box-shadow:0 4px 12px rgba(0,0,0,.15);
+
+}
+
+/* ------------------------------ */
+/* Sponsoren                      */
+/* ------------------------------ */
+
+.sponsors{
+
+    padding:80px 30px;
+
+    text-align:center;
+
+}
+
+.sponsor-grid{
+
+    margin-top:40px;
+
+    display:grid;
+
+    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+
+    gap:25px;
+
+}
+
+.sponsor{
+
+    background:white;
+
+    padding:40px;
+
+    border-radius:12px;
+
+    box-shadow:0 4px 12px rgba(0,0,0,.15);
+
+    font-weight:bold;
+
+}

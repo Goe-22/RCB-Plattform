@@ -4,7 +4,7 @@
 
     <p>
 
-        Willkommen auf unserer permanenten Onroad-Anlage.
+        Permanente Asphaltstrecke der RC Bande Zwickau e.V.
 
     </p>
 
@@ -14,31 +14,96 @@
 
     <img src="/assets/images/onroad.jpg"
          class="track-image"
-         alt="Onroad">
+         alt="Onroad Strecke">
 
-    <h2>Die Strecke</h2>
+</section>
+
+<section class="track-info">
+
+    <div class="track-details">
+
+        <h2>Die Strecke</h2>
+
+        <p>
+
+            Unsere permanente Onroad-Strecke bietet ideale Bedingungen
+            für Training und Rennveranstaltungen.
+
+        </p>
+
+    </div>
+
+    <div class="track-facts">
+
+        <h2>Streckendaten</h2>
+
+        <ul>
+
+            <li>📍 Ort: Zwickau</li>
+
+            <li>🏁 Belag: Asphalt</li>
+
+            <li>📏 Streckenlänge: folgt</li>
+
+            <li>↔️ Fahrtrichtung: beide Richtungen möglich</li>
+
+            <li>🚗 Klassen: Tourenwagen, Formel, F1, GT, M-Chassis</li>
+
+            <li>👥 Gastfahrer: Willkommen</li>
+
+            <li>⚡ Strom vorhanden</li>
+
+            <li>🚻 WC vorhanden</li>
+
+            <li>🏕 Fahrerlager vorhanden</li>
+
+        </ul>
+
+    </div>
+
+</section>
+
+<section class="page-content">
+
+    <h2>Training</h2>
 
     <p>
 
-        Unsere Onroad-Strecke bietet optimale Bedingungen
-        für Tourenwagen und weitere Glattbahnklassen.
+        Unsere offiziellen Trainingszeiten findest du unter dem Menüpunkt
+        <strong>Termine</strong>.
 
     </p>
 
-    <h2>Trainingsbetrieb</h2>
+</section>
+
+<section class="page-content">
+
+    <h2>Anfahrt</h2>
 
     <p>
 
-        Die aktuellen Trainingszeiten findest du unter Termine.
+        Die Anfahrt wird hier später über Google Maps dargestellt.
 
     </p>
 
-    <h2>Gastfahrer</h2>
+</section>
+
+<section class="social-box">
+
+    <h2>Weitere Bilder</h2>
 
     <p>
 
-        Gastfahrer sind nach vorheriger Absprache herzlich willkommen.
+        Viele weitere Bilder findest du auf unserer Facebook-Seite.
 
     </p>
+
+    <a href="https://www.facebook.com/"
+       target="_blank"
+       class="button">
+
+        Zu Facebook
+
+    </a>
 
 </section>

@@ -4,7 +4,7 @@
 
     <p>
 
-        Action, Sprünge und jede Menge Fahrspaß.
+        Unsere permanente Offroad-Strecke für Training und Rennveranstaltungen.
 
     </p>
 
@@ -14,31 +14,97 @@
 
     <img src="/assets/images/offroad.jpg"
          class="track-image"
-         alt="Offroad">
+         alt="Offroad Strecke">
 
-    <h2>Die Strecke</h2>
+</section>
+
+<section class="track-info">
+
+    <div class="track-details">
+
+        <h2>Die Strecke</h2>
+
+        <p>
+
+            Unsere Offroad-Strecke bietet abwechslungsreiche Sprünge,
+            unterschiedliche Bodenbeläge und eine anspruchsvolle
+            Streckenführung für Einsteiger und erfahrene Fahrer.
+
+        </p>
+
+    </div>
+
+    <div class="track-facts">
+
+        <h2>Streckendaten</h2>
+
+        <ul>
+
+            <li>📍 Ort: Zwickau</li>
+
+            <li>🏁 Belag: Lehm / Kunstrasen</li>
+
+            <li>📏 Streckenlänge: folgt</li>
+
+            <li>↔️ Fahrtrichtung: beide Richtungen möglich</li>
+
+            <li>🚗 Klassen: OR8, OR8E, Short Course, Truggy</li>
+
+            <li>👥 Gastfahrer: Willkommen</li>
+
+            <li>⚡ Strom vorhanden</li>
+
+            <li>🚻 WC vorhanden</li>
+
+            <li>🏕 Fahrerlager vorhanden</li>
+
+        </ul>
+
+    </div>
+
+</section>
+
+<section class="page-content">
+
+    <h2>Training</h2>
 
     <p>
 
-        Unsere Offroad-Strecke bietet abwechslungsreiche
-        Streckenführung für Einsteiger und erfahrene Fahrer.
+        Unsere offiziellen Trainingszeiten findest du unter dem Menüpunkt
+        <strong>Termine</strong>.
 
     </p>
 
-    <h2>Trainingsbetrieb</h2>
+</section>
+
+<section class="page-content">
+
+    <h2>Anfahrt</h2>
 
     <p>
 
-        Die aktuellen Trainingszeiten findest du unter Termine.
+        Hier wird später eine Google-Maps-Karte eingebunden.
 
     </p>
 
-    <h2>Gastfahrer</h2>
+</section>
+
+<section class="social-box">
+
+    <h2>Weitere Bilder</h2>
 
     <p>
 
-        Gastfahrer sind nach vorheriger Absprache herzlich willkommen.
+        Viele weitere Bilder und Videos findest du auf unserer Facebook-Seite.
 
     </p>
+
+    <a href="https://www.facebook.com/"
+       target="_blank"
+       class="button">
+
+        Zu Facebook
+
+    </a>
 
 </section>

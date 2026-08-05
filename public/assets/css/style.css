@@ -455,3 +455,59 @@ footer{
     margin-bottom:40px;
 
 }
+
+/* ------------------------------ */
+/* Streckendetails                */
+/* ------------------------------ */
+
+.track-info{
+
+    max-width:1200px;
+
+    margin:60px auto;
+
+    display:grid;
+
+    grid-template-columns:2fr 1fr;
+
+    gap:40px;
+
+    padding:0 30px;
+
+}
+
+.track-facts{
+
+    background:white;
+
+    padding:30px;
+
+    border-radius:12px;
+
+    box-shadow:0 4px 12px rgba(0,0,0,.15);
+
+}
+
+.track-facts ul{
+
+    list-style:none;
+
+    line-height:2;
+
+}
+
+.track-details{
+
+    line-height:1.8;
+
+}
+
+@media(max-width:900px){
+
+.track-info{
+
+grid-template-columns:1fr;
+
+}
+
+}

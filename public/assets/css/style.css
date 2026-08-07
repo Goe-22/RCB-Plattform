@@ -619,3 +619,41 @@ grid-template-columns:1fr;
     font-weight:bold;
 
 }
+
+/* ------------------------------ */
+/* Ergebnisse                     */
+/* ------------------------------ */
+
+.result-grid{
+
+    display:grid;
+
+    grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+
+    gap:30px;
+
+    margin-top:30px;
+
+}
+
+.result-card{
+
+    background:white;
+
+    padding:30px;
+
+    border-radius:12px;
+
+    box-shadow:0 4px 12px rgba(0,0,0,.15);
+
+    text-align:center;
+
+}
+
+.result-card h3{
+
+    color:#002f6c;
+
+    margin-bottom:20px;
+
+}

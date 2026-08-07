@@ -4,7 +4,7 @@
 
     <p>
 
-        Veranstaltungen, Rennen und Vereinsaktivitäten der RC Bande Zwickau.
+        Veranstaltungen, Rennen und Vereinsaktivitäten.
 
     </p>
 
@@ -21,14 +21,30 @@
 
         <div class="event-info">
 
-            <h3>Zurzeit keine Veranstaltung veröffentlicht</h3>
+            <span class="event-date">
+
+                01. Januar 2027
+
+            </span>
+
+            <h3>
+
+                Zurzeit keine Veranstaltung veröffentlicht
+
+            </h3>
 
             <p>
 
-                Sobald eine Veranstaltung freigegeben wurde,
-                erscheint sie automatisch an dieser Stelle.
+                Die nächste freigegebene Veranstaltung erscheint
+                automatisch an dieser Stelle.
 
             </p>
+
+            <a href="#" class="button">
+
+                Mehr erfahren
+
+            </a>
 
         </div>
 
@@ -40,13 +56,43 @@
 
     <h2>📅 Kommende Veranstaltungen</h2>
 
-    <div class="event-list">
+    <div class="event-grid">
 
-        <p>
+        <div class="event-card">
 
-            Aktuell sind keine weiteren Veranstaltungen veröffentlicht.
+            <img src="/assets/images/event-placeholder.jpg"
+                 alt="Event">
 
-        </p>
+            <div class="event-card-content">
+
+                <span class="event-date">
+
+                    Datum
+
+                </span>
+
+                <h3>
+
+                    Veranstaltungstitel
+
+                </h3>
+
+                <p>
+
+                    Kurze Beschreibung der Veranstaltung.
+
+                </p>
+
+                <a href="#"
+                   class="button">
+
+                    Details
+
+                </a>
+
+            </div>
+
+        </div>
 
     </div>
 
@@ -56,15 +102,11 @@
 
     <h2>📂 Vergangene Veranstaltungen</h2>
 
-    <div class="event-list">
+    <p>
 
-        <p>
+        Vergangene Veranstaltungen werden nach Abschluss
+        automatisch in das Archiv verschoben.
 
-            Ergebnisse und Berichte vergangener Veranstaltungen
-            erscheinen hier.
-
-        </p>
-
-    </div>
+    </p>
 
 </section>

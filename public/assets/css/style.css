@@ -511,3 +511,63 @@ grid-template-columns:1fr;
 }
 
 }
+
+/* ------------------------------ */
+/* Veranstaltungen                */
+/* ------------------------------ */
+
+.event-highlight{
+
+    display:grid;
+
+    grid-template-columns:300px 1fr;
+
+    gap:30px;
+
+    background:white;
+
+    border-radius:12px;
+
+    overflow:hidden;
+
+    box-shadow:0 4px 12px rgba(0,0,0,.15);
+
+}
+
+.event-highlight img{
+
+    width:100%;
+
+    height:100%;
+
+    object-fit:cover;
+
+}
+
+.event-info{
+
+    padding:30px;
+
+}
+
+.event-list{
+
+    background:white;
+
+    padding:30px;
+
+    border-radius:12px;
+
+    box-shadow:0 4px 12px rgba(0,0,0,.15);
+
+}
+
+@media(max-width:900px){
+
+.event-highlight{
+
+grid-template-columns:1fr;
+
+}
+
+}

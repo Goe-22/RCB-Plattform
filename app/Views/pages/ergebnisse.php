@@ -4,7 +4,7 @@
 
     <p>
 
-        Ergebnisse unserer Veranstaltungen nach Jahren.
+        Ergebnisse der Veranstaltung
 
     </p>
 
@@ -12,61 +12,113 @@
 
 <section class="page-content">
 
-    <h2>Aktuelle Saison</h2>
+    <img src="/assets/images/event-placeholder.jpg"
+         class="track-image"
+         alt="Veranstaltung">
 
-    <div class="result-card">
+    <h2>Veranstaltungstitel</h2>
 
-        <h3>Saison 2027</h3>
+    <p>
 
-        <p>
+        Datum: 01.01.2027
 
-            Alle veröffentlichten Ergebnisse der aktuellen Saison.
-
-        </p>
-
-        <a href="/ergebnisse/2027"
-           class="button">
-
-            Saison öffnen
-
-        </a>
-
-    </div>
+    </p>
 
 </section>
 
 <section class="page-content">
 
-    <h2>Archiv</h2>
+    <h2>Klasse Tourenwagen</h2>
 
-    <div class="result-grid">
+    <table class="result-table">
 
-        <div class="result-card">
+        <thead>
 
-            <h3>2026</h3>
+            <tr>
 
-            <a href="/ergebnisse/2026"
-               class="button">
+                <th>Platz</th>
 
-                Öffnen
+                <th>Fahrer</th>
 
-            </a>
+                <th>Fahrzeug</th>
 
-        </div>
+                <th>Runden</th>
 
-        <div class="result-card">
+                <th>Beste Runde</th>
 
-            <h3>2025</h3>
+            </tr>
 
-            <a href="/ergebnisse/2025"
-               class="button">
+        </thead>
 
-                Öffnen
+        <tbody>
 
-            </a>
+            <tr>
 
-        </div>
+                <td>1</td>
 
-    </div>
+                <td>Max Mustermann</td>
+
+                <td>Xray</td>
+
+                <td>35</td>
+
+                <td>12.345</td>
+
+            </tr>
+
+            <tr>
+
+                <td>2</td>
+
+                <td>Max Mustermann</td>
+
+                <td>Awesomatix</td>
+
+                <td>35</td>
+
+                <td>12.401</td>
+
+            </tr>
+
+        </tbody>
+
+    </table>
+
+</section>
+
+<section class="page-content">
+
+    <h2>Downloads</h2>
+
+    <a href="#"
+       class="button">
+
+        Ergebnisliste (PDF)
+
+    </a>
+
+</section>
+
+<section class="page-content">
+
+    <h2>Rennbericht</h2>
+
+    <p>
+
+        Hier erscheint später automatisch der Rennbericht.
+
+    </p>
+
+</section>
+
+<section class="page-content">
+
+    <h2>Bilder</h2>
+
+    <p>
+
+        Bilder der Veranstaltung erscheinen hier.
+
+    </p>
 
 </section>

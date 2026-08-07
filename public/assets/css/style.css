@@ -657,3 +657,49 @@ grid-template-columns:1fr;
     margin-bottom:20px;
 
 }
+
+/* ------------------------------ */
+/* Ergebnistabelle                */
+/* ------------------------------ */
+
+.result-table{
+
+    width:100%;
+
+    border-collapse:collapse;
+
+    margin-top:30px;
+
+}
+
+.result-table th{
+
+    background:#002f6c;
+
+    color:white;
+
+    padding:15px;
+
+}
+
+.result-table td{
+
+    padding:15px;
+
+    border-bottom:1px solid #ddd;
+
+}
+
+.result-table tr:nth-child(even){
+
+    background:#f8f8f8;
+
+}
+
+.result-table{
+
+    overflow-x:auto;
+
+    display:block;
+
+}

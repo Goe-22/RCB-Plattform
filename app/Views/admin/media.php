@@ -1,45 +1,49 @@
 <section class="admin-header">
 
-<h1>Medienverwaltung</h1>
+    <h1>Medienverwaltung</h1>
 
-<p>
-
-Bilder, Logos und PDF-Dateien verwalten.
-
-</p>
+    <p>
+        Bilder, Dokumente und Downloads zentral verwalten.
+    </p>
 
 </section>
 
 <section class="admin-dashboard">
 
-<a href="/admin/media/images" class="admin-card">
+    <a href="/admin/media/images" class="admin-card">
 
-🖼️
+        🖼️
 
-<h2>Bilder</h2>
+        <h2>Bilder</h2>
 
-<p>Alle Bilder verwalten.</p>
+        <p>
+            Vereinsbilder, Streckenbilder und Veranstaltungsbilder.
+        </p>
 
-</a>
+    </a>
 
-<a href="/admin/media/pdf" class="admin-card">
+    <a href="/admin/media/documents" class="admin-card">
 
-📄
+        📄
 
-<h2>PDF</h2>
+        <h2>Dokumente</h2>
 
-<p>Ausschreibungen und Dokumente.</p>
+        <p>
+            Ausschreibungen, Reglements und PDF-Dateien.
+        </p>
 
-</a>
+    </a>
 
-<a href="/admin/media/downloads" class="admin-card">
+    <a href="/admin/media/downloads" class="admin-card">
 
-⬇️
+        ⬇️
 
-<h2>Downloads</h2>
+        <h2>Downloads</h2>
 
-<p>Dateien verwalten.</p>
+        <p>
+            Öffentlich bereitgestellte Dateien.
+        </p>
 
-</a>
+    </a>
 
 </section>

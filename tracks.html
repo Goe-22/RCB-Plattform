@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Strecken – RC Bande Zwickau e.V.</title>
+
+    <meta
+        name="description"
+        content="Die Onroad- und Offroad-Strecken des RC Bande Zwickau e.V."
+    >
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --blue: #062b55;
+            --blue-light: #0b477f;
+            --blue-dark: #041d3a;
+            --white: #ffffff;
+            --light: #f3f6f9;
+            --text: #1d2733;
+            --muted: #657383;
+            --border: #dce3ea;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Arial,
+                sans-serif;
+
+            color: var(--text);
+            background: var(--white);
+            line-height: 1.6;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        /* =========================
+           HEADER
+        ========================= */
+
+        header {
+            background: var(--blue);
+            color: white;
+
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+
+            box-shadow:
+                0 2px 10px rgba(0,0,0,0.15);
+        }
+
+        .header-inner {
+            max-width: 1200px;
+            margin: auto;
+
+            padding: 14px 20px;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            gap: 20px;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-area img {
+            width: 52px;
+            height: 52px;
+
+            object-fit: contain;
+
+            border-radius: 8px;
+            background: white;
+        }
+
+        .club-name {
+            font-weight: 700;
+            font-size: 18px;
+            line-height: 1.2;
+        }
+
+        .club-name small {
+            display: block;
+
+            font-size: 12px;
+            font-weight: 400;
+
+            opacity: 0.85;
+            margin-top: 2px;
+        }
+
+        nav {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        nav a {
+            font-size: 14px;
+            font-weight: 600;
+            opacity: 0.95;
+        }
+
+        nav a:hover {
+            opacity: 0.65;
+        }
+
+        .menu-button {
+            display: none;
+
+            border: 0;
+            background: transparent;
+
+            color: white;
+
+            font-size: 28px;
+            cursor: pointer;
+        }
+
+        /* =========================
+           PAGE HERO
+        ========================= */
+
+        .page-hero {
+            background:
+                linear-gradient(
+                    rgba(4,29,58,0.72),
+                    rgba(4,29,58,0.88)
+                ),
+                url("hero.jpg") center center / cover no-repeat;
+
+            color: white;
+
+            padding: 80px 20px;
+
+            text-align: center;
+        }
+
+        .page-hero h1 {
+            font-size:
+                clamp(38px, 6vw, 60px);
+
+            line-height: 1.1;
+
+            margin-bottom: 15px;
+        }
+
+        .page-hero p {
+            font-size: 20px;
+            opacity: 0.9;
+        }
+
+        /* =========================
+           GENERAL
+        ========================= */
+
+        .section {
+            max-width: 1200px;
+            margin: auto;
+
+            padding: 70px 20px;
+        }
+
+        .section-light {
+            background: var(--light);
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 45px;
+        }
+
+        .section-title h2 {
+            color: var(--blue);
+
+            font-size:
+                clamp(28px, 4vw, 40px);
+
+            margin-bottom: 10px;
+        }
+
+        .section-title p {
+            color: var(--muted);
+        }
+
+        /* =========================
+           TRACK CARDS
+        ========================= */
+
+        .track-grid {
+            display: grid;
+
+            grid-template-columns:
+                repeat(2, 1fr);
+
+            gap: 35px;
+        }
+
+        .track-card {
+            background: white;
+
+            border:
+                1px solid var(--border);
+
+            border-radius: 16px;
+
+            overflow: hidden;
+
+            box-shadow:
+                0 7px 25px rgba(0,0,0,0.08);
+
+            transition:
+                transform 0.2s,
+                box-shadow 0.2s;
+        }
+
+        .track-card:hover {
+            transform: translateY(-4px);
+
+            box-shadow:
+                0 12px 30px rgba(0,0,0,0.12);
+        }
+
+        .track-image {
+            width: 100%;
+
+            aspect-ratio: 16 / 9;
+
+            object-fit: cover;
+
+            display: block;
+        }
+
+        .track-content {
+            padding: 30px;
+        }
+
+        .track-content h2 {
+            color: var(--blue);
+
+            font-size: 30px;
+
+            margin-bottom: 12px;
+        }
+
+        .track-content p {
+            color: var(--muted);
+
+            margin-bottom: 22px;
+        }
+
+        /* =========================
+           STATUS
+        ========================= */
+
+        .status {
+            display: flex;
+
+            align-items: center;
+
+            gap: 9px;
+
+            margin-bottom: 20px;
+
+            font-size: 14px;
+
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+
+            border-radius: 50%;
+
+            background: #888;
+        }
+
+        .status-text {
+            color: #777;
+        }
+
+        /* =========================
+           BUTTON
+        ========================= */
+
+        .button {
+            display: inline-block;
+
+            background: var(--blue);
+
+            color: white;
+
+            padding: 12px 24px;
+
+            border-radius: 8px;
+
+            font-weight: 700;
+
+            transition:
+                background 0.2s,
+                transform 0.2s;
+        }
+
+        .button:hover {
+            background: var(--blue-light);
+
+            transform:
+                translateY(-2px);
+        }
+
+        /* =========================
+           INFO
+        ========================= */
+
+        .info-box {
+            max-width: 900px;
+
+            margin: auto;
+
+            background: white;
+
+            border:
+                1px solid var(--border);
+
+            border-radius: 14px;
+
+            padding: 30px;
+
+            text-align: center;
+        }
+
+        .info-box h2 {
+            color: var(--blue);
+
+            margin-bottom: 12px;
+        }
+
+        .info-box p {
+            color: var(--muted);
+        }
+
+        /* =========================
+           FOOTER
+        ========================= */
+
+        footer {
+            background: var(--blue-dark);
+
+            color: white;
+
+            padding:
+                45px 20px 25px;
+        }
+
+        .footer-inner {
+            max-width: 1200px;
+            margin: auto;
+
+            display: grid;
+
+            grid-template-columns:
+                2fr 1fr 1fr;
+
+            gap: 40px;
+        }
+
+        footer h3 {
+            margin-bottom: 12px;
+        }
+
+        footer p,
+        footer a {
+            color: #c9d4df;
+
+            font-size: 14px;
+        }
+
+        footer a:hover {
+            color: white;
+        }
+
+        .footer-bottom {
+            max-width: 1200px;
+            margin:
+                35px auto 0;
+
+            padding-top: 20px;
+
+            border-top:
+                1px solid rgba(255,255,255,0.15);
+
+            text-align: center;
+
+            color: #aab8c6;
+
+            font-size: 13px;
+        }
+
+        /* =========================
+           MOBILE
+        ========================= */
+
+        @media (max-width: 800px) {
+
+            .header-inner {
+                padding:
+                    10px 15px;
+            }
+
+            nav {
+                display: none;
+
+                position: absolute;
+
+                left: 0;
+                right: 0;
+
+                top: 72px;
+
+                background:
+                    var(--blue);
+
+                flex-direction: column;
+
+                align-items:
+                    stretch;
+
+                padding:
+                    15px 20px;
+
+                box-shadow:
+                    0 8px 15px
+                    rgba(0,0,0,0.15);
+            }
+
+            nav.open {
+                display: flex;
+            }
+
+            nav a {
+                padding:
+                    10px 0;
+
+                border-bottom:
+                    1px solid
+                    rgba(255,255,255,0.12);
+            }
+
+            .menu-button {
+                display: block;
+            }
+
+            .track-grid {
+                grid-template-columns:
+                    1fr;
+            }
+
+            .footer-inner {
+                grid-template-columns:
+                    1fr;
+            }
+
+            .page-hero {
+                padding:
+                    65px 20px;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+
+<!-- =========================
+     HEADER
+========================= -->
+
+<header>
+
+    <div class="header-inner">
+
+        <a
+            href="index.html"
+            class="logo-area"
+        >
+
+            <img
+                src="logo.png"
+                alt="RC Bande Zwickau Logo"
+            >
+
+            <div class="club-name">
+
+                RC Bande Zwickau e.V.
+
+                <small>
+                    RC-Modellsport in Zwickau
+                </small>
+
+            </div>
+
+        </a>
+
+
+        <button
+            class="menu-button"
+            onclick="toggleMenu()"
+            aria-label="Menü öffnen"
+        >
+            ☰
+        </button>
+
+
+        <nav id="main-nav">
+
+            <a href="index.html">
+                Home
+            </a>
+
+            <a href="verein.html">
+                Verein
+            </a>
+
+            <a href="tracks.html">
+                Strecken
+            </a>
+
+            <a href="events.html">
+                Termine
+            </a>
+
+            <a href="regulations.html">
+                Reglement
+            </a>
+
+            <a href="results.html">
+                Ergebnisse
+            </a>
+
+            <a href="live.html">
+                Live
+            </a>
+
+            <a href="club.html">
+                Mitglied werden
+            </a>
+
+            <a href="contact.html">
+                Kontakt
+            </a>
+
+        </nav>
+
+    </div>
+
+</header>
+
+
+<!-- =========================
+     PAGE HERO
+========================= -->
+
+<section class="page-hero">
+
+    <h1>
+        Unsere Strecken
+    </h1>
+
+    <p>
+        Onroad und Offroad beim RC Bande Zwickau e.V.
+    </p>
+
+</section>
+
+
+<!-- =========================
+     STRECKEN
+========================= -->
+
+<section class="section">
+
+    <div class="section-title">
+
+        <h2>
+            Zwei Streckenbereiche
+        </h2>
+
+        <p>
+            Wähle den gewünschten Streckenbereich
+            für weitere Informationen.
+        </p>
+
+    </div>
+
+
+    <div class="track-grid">
+
+
+        <!-- =====================
+             ONROAD
+        ====================== -->
+
+        <article class="track-card">
+
+            <img
+                src="onroad.jpg"
+                alt="Onroad Strecke"
+                class="track-image"
+            >
+
+            <div class="track-content">
+
+                <h2>
+                    Onroad
+                </h2>
+
+                <div class="status">
+
+                    <span
+                        class="status-dot"
+                    ></span>
+
+                    <span class="status-text">
+                        Status derzeit nicht verfügbar
+                    </span>
+
+                </div>
+
+                <p>
+                    Informationen zur Onroad-Strecke,
+                    Fahrbahn, Ausstattung,
+                    Zeitnahme und Nutzung.
+                </p>
+
+                <a
+                    href="onroad.html"
+                    class="button"
+                >
+                    Zu Strecke →
+                </a>
+
+            </div>
+
+        </article>
+
+
+        <!-- =====================
+             OFFROAD
+        ====================== -->
+
+        <article class="track-card">
+
+            <img
+                src="offroad.jpg"
+                alt="Offroad Strecke"
+                class="track-image"
+            >
+
+            <div class="track-content">
+
+                <h2>
+                    Offroad
+                </h2>
+
+                <div class="status">
+
+                    <span
+                        class="status-dot"
+                    ></span>
+
+                    <span class="status-text">
+                        Status derzeit nicht verfügbar
+                    </span>
+
+                </div>
+
+                <p>
+                    Informationen zur Offroad-Strecke,
+                    Fahrbahn, Ausstattung,
+                    Zeitnahme und Nutzung.
+                </p>
+
+                <a
+                    href="offroad.html"
+                    class="button"
+                >
+                    Zu Strecke →
+                </a>
+
+            </div>
+
+        </article>
+
+
+    </div>
+
+</section>
+
+
+<!-- =========================
+     STATUS INFO
+========================= -->
+
+<section
+    class="section section-light"
+>
+
+    <div class="info-box">
+
+        <h2>
+            Streckenstatus
+        </h2>
+
+        <p>
+            Der aktuelle Streckenstatus wird später
+            automatisch aus der Zeitnahme übernommen.
+            Bis dahin bleibt die Anzeige neutral.
+        </p>
+
+    </div>
+
+</section>
+
+
+<!-- =========================
+     FOOTER
+========================= -->
+
+<footer>
+
+    <div class="footer-inner">
+
+
+        <div>
+
+            <h3>
+                RC Bande Zwickau e.V.
+            </h3>
+
+            <p>
+                RC-Modellsport in Zwickau.
+            </p>
+
+        </div>
+
+
+        <div>
+
+            <h3>
+                Webseite
+            </h3>
+
+            <p>
+                <a href="impressum.html">
+                    Impressum
+                </a>
+            </p>
+
+            <p>
+                <a href="datenschutz.html">
+                    Datenschutz
+                </a>
+            </p>
+
+            <p>
+                <a href="haftungsausschluss.html">
+                    Haftungsausschluss
+                </a>
+            </p>
+
+        </div>
+
+
+        <div>
+
+            <h3>
+                Kontakt
+            </h3>
+
+            <p>
+                <a href="contact.html">
+                    Kontaktseite
+                </a>
+            </p>
+
+        </div>
+
+
+    </div>
+
+
+    <div class="footer-bottom">
+
+        © RC Bande Zwickau e.V.
+
+    </div>
+
+</footer>
+
+
+<script>
+
+    function toggleMenu() {
+
+        const nav =
+            document.getElementById("main-nav");
+
+        nav.classList.toggle("open");
+
+    }
+
+</script>
+
+
+</body>
+
+</html>

@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Mitglied werden – RC Bande Zwickau e.V.</title>
+
+    <meta
+        name="description"
+        content="Mitglied beim RC Bande Zwickau e.V. werden."
+    >
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --blue: #062b55;
+            --blue-light: #0b477f;
+            --blue-dark: #041d3a;
+            --light: #f3f6f9;
+            --text: #1d2733;
+            --muted: #657383;
+            --border: #dce3ea;
+            --white: #ffffff;
+        }
+
+        body {
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Arial,
+                sans-serif;
+
+            color: var(--text);
+            line-height: 1.6;
+            background: white;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        header {
+            background: var(--blue);
+            color: white;
+
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+
+            box-shadow:
+                0 2px 10px rgba(0,0,0,.15);
+        }
+
+        .header-inner {
+            max-width: 1200px;
+            margin: auto;
+
+            padding: 14px 20px;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            gap: 20px;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-area img {
+            width: 52px;
+            height: 52px;
+
+            object-fit: contain;
+
+            background: white;
+            border-radius: 8px;
+        }
+
+        .club-name {
+            font-weight: 700;
+            font-size: 18px;
+            line-height: 1.2;
+        }
+
+        .club-name small {
+            display: block;
+
+            font-size: 12px;
+            font-weight: 400;
+
+            opacity: .85;
+        }
+
+        nav {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        nav a {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        nav a:hover {
+            opacity: .7;
+        }
+
+        .menu-button {
+            display: none;
+
+            border: 0;
+            background: transparent;
+            color: white;
+
+            font-size: 28px;
+            cursor: pointer;
+        }
+
+        .hero {
+            min-height: 330px;
+
+            background:
+                linear-gradient(
+                    rgba(4,29,58,.72),
+                    rgba(4,29,58,.88)
+                );
+
+            color: white;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            text-align: center;
+
+            padding: 50px 20px;
+        }
+
+        .hero h1 {
+            font-size:
+                clamp(40px, 7vw, 64px);
+
+            margin-bottom: 12px;
+        }
+
+        .hero p {
+            font-size: 20px;
+            opacity: .9;
+        }
+
+        .section {
+            max-width: 1100px;
+            margin: auto;
+
+            padding: 70px 20px;
+        }
+
+        .section-light {
+            background: var(--light);
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 45px;
+        }
+
+        .section-title h2 {
+            color: var(--blue);
+
+            font-size:
+                clamp(28px, 4vw, 40px);
+
+            margin-bottom: 10px;
+        }
+
+        .section-title p {
+            color: var(--muted);
+        }
+
+        .steps {
+            display: grid;
+
+            grid-template-columns:
+                repeat(3, 1fr);
+
+            gap: 22px;
+        }
+
+        .step {
+            background: white;
+
+            border:
+                1px solid var(--border);
+
+            border-radius: 14px;
+
+            padding: 28px;
+
+            box-shadow:
+                0 5px 18px rgba(0,0,0,.05);
+        }
+
+        .step-number {
+            width: 42px;
+            height: 42px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            background: var(--blue);
+            color: white;
+
+            border-radius: 50%;
+
+            font-weight: 700;
+
+            margin-bottom: 15px;
+        }
+
+        .step h3 {
+            color: var(--blue);
+
+            margin-bottom: 10px;
+        }
+
+        .step p {
+            color: var(--muted);
+        }
+
+        .info-box {
+            background: var(--blue);
+            color: white;
+
+            border-radius: 14px;
+
+            padding: 35px;
+        }
+
+        .info-box h2 {
+            margin-bottom: 15px;
+        }
+
+        .info-box p {
+            opacity: .92;
+            margin-bottom: 12px;
+        }
+
+        .button {
+            display: inline-block;
+
+            background: white;
+            color: var(--blue);
+
+            padding: 12px 22px;
+
+            border-radius: 8px;
+
+            font-weight: 700;
+
+            margin-top: 12px;
+        }
+
+        .button:hover {
+            background: #eef3f7;
+        }
+
+        .requirements {
+            display: grid;
+
+            grid-template-columns:
+                repeat(2, 1fr);
+
+            gap: 20px;
+        }
+
+        .requirement {
+            background: white;
+
+            border:
+                1px solid var(--border);
+
+            border-radius: 12px;
+
+            padding: 24px;
+        }
+
+        .requirement h3 {
+            color: var(--blue);
+
+            margin-bottom: 8px;
+        }
+
+        .requirement p {
+            color: var(--muted);
+        }
+
+        footer {
+            background: var(--blue-dark);
+            color: white;
+
+            padding:
+                45px 20px 25px;
+        }
+
+        .footer-inner {
+            max-width: 1200px;
+            margin: auto;
+
+            display: grid;
+
+            grid-template-columns:
+                2fr 1fr 1fr;
+
+            gap: 40px;
+        }
+
+        footer h3 {
+            margin-bottom: 12px;
+        }
+
+        footer p,
+        footer a {
+            color: #c9d4df;
+            font-size: 14px;
+        }
+
+        footer a:hover {
+            color: white;
+        }
+
+        .footer-bottom {
+            max-width: 1200px;
+            margin: 35px auto 0;
+
+            padding-top: 20px;
+
+            border-top:
+                1px solid
+                rgba(255,255,255,.15);
+
+            text-align: center;
+
+            color: #aab8c6;
+
+            font-size: 13px;
+        }
+
+        @media (max-width: 800px) {
+
+            nav {
+                display: none;
+
+                position: absolute;
+
+                left: 0;
+                right: 0;
+
+                top: 72px;
+
+                background: var(--blue);
+
+                flex-direction: column;
+
+                align-items: stretch;
+
+                padding: 15px 20px;
+            }
+
+            nav.open {
+                display: flex;
+            }
+
+            nav a {
+                padding: 10px 0;
+
+                border-bottom:
+                    1px solid
+                    rgba(255,255,255,.12);
+            }
+
+            .menu-button {
+                display: block;
+            }
+
+            .steps,
+            .requirements {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-inner {
+                grid-template-columns: 1fr;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+
+<header>
+
+    <div class="header-inner">
+
+        <a
+            href="index.html"
+            class="logo-area"
+        >
+
+            <img
+                src="logo.png"
+                alt="RC Bande Zwickau e.V."
+            >
+
+            <div class="club-name">
+
+                RC Bande Zwickau e.V.
+
+                <small>
+                    Modellautosport seit 2020
+                </small>
+
+            </div>
+
+        </a>
+
+
+        <button
+            class="menu-button"
+            onclick="toggleMenu()"
+            aria-label="Menü"
+        >
+            ☰
+        </button>
+
+
+        <nav id="main-nav">
+
+            <a href="index.html">
+                Home
+            </a>
+
+            <a href="verein.html">
+                Verein
+            </a>
+
+            <a href="tracks.html">
+                Strecken
+            </a>
+
+            <a href="termine.html">
+                Termine
+            </a>
+
+            <a href="reglement.html">
+                Reglement
+            </a>
+
+            <a href="ergebnisse.html">
+                Ergebnisse
+            </a>
+
+            <a href="mitglied-werden.html">
+                Mitglied werden
+            </a>
+
+            <a href="kontakt.html">
+                Kontakt
+            </a>
+
+        </nav>
+
+    </div>
+
+</header>
+
+
+<section class="hero">
+
+    <div>
+
+        <h1>
+            Mitglied werden
+        </h1>
+
+        <p>
+            Werde Teil der RC Bande Zwickau e.V.
+        </p>
+
+    </div>
+
+</section>
+
+
+<section class="section">
+
+    <div class="section-title">
+
+        <h2>
+            So wirst du Mitglied
+        </h2>
+
+        <p>
+            Du möchtest regelmäßig RC-Car fahren
+            und Teil unseres Vereins werden?
+        </p>
+
+    </div>
+
+
+    <div class="steps">
+
+
+        <div class="step">
+
+            <div class="step-number">
+                1
+            </div>
+
+            <h3>
+                Kontakt aufnehmen
+            </h3>
+
+            <p>
+                Sprich uns direkt auf der Strecke an
+                oder nimm über unsere Kontaktseite
+                Verbindung mit dem Verein auf.
+            </p>
+
+        </div>
+
+
+        <div class="step">
+
+            <div class="step-number">
+                2
+            </div>
+
+            <h3>
+                Kennenlernen
+            </h3>
+
+            <p>
+                Komm zu einem Training und lerne
+                den Verein, unsere Strecken und
+                andere Fahrer kennen.
+            </p>
+
+        </div>
+
+
+        <div class="step">
+
+            <div class="step-number">
+                3
+            </div>
+
+            <h3>
+                Mitglied werden
+            </h3>
+
+            <p>
+                Die weiteren Schritte für die
+                Aufnahme in den Verein werden
+                direkt mit dem Verein abgestimmt.
+            </p>
+
+        </div>
+
+
+    </div>
+
+</section>
+
+
+<section class="section section-light">
+
+    <div class="info-box">
+
+        <h2>
+            Interesse?
+        </h2>
+
+        <p>
+            Du musst nicht bereits Profi sein.
+            Bei uns treffen sich Fahrer mit
+            unterschiedlichen Erfahrungen.
+        </p>
+
+        <p>
+            Wenn du Interesse am RC-Modellsport
+            hast, kannst du uns einfach kontaktieren.
+        </p>
+
+        <a
+            href="kontakt.html"
+            class="button"
+        >
+            Kontakt aufnehmen
+        </a>
+
+    </div>
+
+</section>
+
+
+<section class="section">
+
+    <div class="section-title">
+
+        <h2>
+            Was dich erwartet
+        </h2>
+
+        <p>
+            Modellrennsport gemeinsam erleben.
+        </p>
+
+    </div>
+
+
+    <div class="requirements">
+
+
+        <div class="requirement">
+
+            <h3>
+                Onroad
+            </h3>
+
+            <p>
+                RC-Fahrzeuge für Asphalt und
+                befestigte Rennstrecken.
+            </p>
+
+        </div>
+
+
+        <div class="requirement">
+
+            <h3>
+                Offroad
+            </h3>
+
+            <p>
+                RC-Modellsport abseits der
+                klassischen Onroad-Strecke.
+            </p>
+
+        </div>
+
+
+        <div class="requirement">
+
+            <h3>
+                Training
+            </h3>
+
+            <p>
+                Gemeinsames Fahren und
+                Erfahrungsaustausch.
+            </p>
+
+        </div>
+
+
+        <div class="requirement">
+
+            <h3>
+                Veranstaltungen
+            </h3>
+
+            <p>
+                Vereinsrennen und weitere
+                Veranstaltungen rund um den
+                Modellrennsport.
+            </p>
+
+        </div>
+
+
+    </div>
+
+</section>
+
+
+<footer>
+
+    <div class="footer-inner">
+
+        <div>
+
+            <h3>
+                RC Bande Zwickau e.V.
+            </h3>
+
+            <p>
+                Modellautosport seit 2020.
+            </p>
+
+        </div>
+
+
+        <div>
+
+            <h3>
+                Navigation
+            </h3>
+
+            <p>
+                <a href="index.html">
+                    Home
+                </a>
+            </p>
+
+            <p>
+                <a href="verein.html">
+                    Verein
+                </a>
+            </p>
+
+            <p>
+                <a href="tracks.html">
+                    Strecken
+                </a>
+            </p>
+
+            <p>
+                <a href="termine.html">
+                    Termine
+                </a>
+            </p>
+
+            <p>
+                <a href="ergebnisse.html">
+                    Ergebnisse
+                </a>
+            </p>
+
+        </div>
+
+
+        <div>
+
+            <h3>
+                Informationen
+            </h3>
+
+            <p>
+                <a href="kontakt.html">
+                    Kontakt
+                </a>
+            </p>
+
+            <p>
+                <a href="impressum.html">
+                    Impressum
+                </a>
+            </p>
+
+            <p>
+                <a href="datenschutz.html">
+                    Datenschutz
+                </a>
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <div class="footer-bottom">
+
+        © 2026 RC Bande Zwickau e.V.
+        · Alle Rechte vorbehalten
+
+    </div>
+
+</footer>
+
+
+<script>
+
+    function toggleMenu() {
+
+        document
+            .getElementById("main-nav")
+            .classList
+            .toggle("open");
+
+    }
+
+</script>
+
+
+</body>
+
+</html>

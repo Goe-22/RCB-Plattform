@@ -10,11 +10,11 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Reglement – RC Bande Zwickau e.V.</title>
+    <title>Ergebnisse – RC Bande Zwickau e.V.</title>
 
     <meta
         name="description"
-        content="Reglement und Klassen des RC Bande Zwickau e.V."
+        content="Rennergebnisse des RC Bande Zwickau e.V."
     >
 
     <style>
@@ -111,17 +111,12 @@
 
         nav {
             display: flex;
-            align-items: center;
             gap: 20px;
         }
 
         nav a {
             font-size: 14px;
             font-weight: 600;
-        }
-
-        nav a:hover {
-            opacity: .7;
         }
 
         .menu-button {
@@ -168,7 +163,7 @@
         }
 
         .section {
-            max-width: 1200px;
+            max-width: 1100px;
             margin: auto;
 
             padding: 70px 20px;
@@ -178,12 +173,12 @@
             background: var(--light);
         }
 
-        .section-title {
+        .title {
             text-align: center;
             margin-bottom: 45px;
         }
 
-        .section-title h2 {
+        .title h2 {
             color: var(--blue);
 
             font-size:
@@ -192,20 +187,20 @@
             margin-bottom: 10px;
         }
 
-        .section-title p {
+        .title p {
             color: var(--muted);
         }
 
-        .class-grid {
+        .year-grid {
             display: grid;
 
             grid-template-columns:
-                repeat(2, 1fr);
+                repeat(3, 1fr);
 
             gap: 22px;
         }
 
-        .class-card {
+        .year-card {
             background: white;
 
             border:
@@ -213,7 +208,9 @@
 
             border-radius: 14px;
 
-            padding: 28px;
+            padding: 30px;
+
+            text-align: center;
 
             box-shadow:
                 0 5px 18px rgba(0,0,0,.05);
@@ -223,41 +220,25 @@
                 box-shadow .2s ease;
         }
 
-        .class-card:hover {
+        .year-card:hover {
             transform: translateY(-3px);
 
             box-shadow:
                 0 10px 25px rgba(0,0,0,.08);
         }
 
-        .class-number {
-            display: inline-block;
-
-            background: var(--blue);
-            color: white;
-
-            padding: 5px 10px;
-
-            border-radius: 6px;
-
-            font-size: 12px;
-            font-weight: 700;
-
-            margin-bottom: 12px;
-        }
-
-        .class-card h3 {
+        .year-card h3 {
             color: var(--blue);
 
-            font-size: 23px;
+            font-size: 34px;
 
             margin-bottom: 10px;
         }
 
-        .class-card p {
+        .year-card p {
             color: var(--muted);
 
-            margin-bottom: 18px;
+            margin-bottom: 20px;
         }
 
         .button {
@@ -266,12 +247,11 @@
             background: var(--blue);
             color: white;
 
-            padding: 10px 18px;
+            padding: 11px 20px;
 
             border-radius: 8px;
 
             font-weight: 700;
-            font-size: 14px;
         }
 
         .button:hover {
@@ -363,8 +343,6 @@
 
                 flex-direction: column;
 
-                align-items: stretch;
-
                 padding: 15px 20px;
             }
 
@@ -374,17 +352,13 @@
 
             nav a {
                 padding: 10px 0;
-
-                border-bottom:
-                    1px solid
-                    rgba(255,255,255,.12);
             }
 
             .menu-button {
                 display: block;
             }
 
-            .class-grid {
+            .year-grid {
                 grid-template-columns: 1fr;
             }
 
@@ -483,11 +457,11 @@
     <div>
 
         <h1>
-            Reglement
+            Ergebnisse
         </h1>
 
         <p>
-            Klassen und Regeln des RC Bande Zwickau e.V.
+            Rennergebnisse des RC Bande Zwickau e.V.
         </p>
 
     </div>
@@ -497,118 +471,78 @@
 
 <section class="section">
 
-    <div class="section-title">
+    <div class="title">
 
         <h2>
-            Unsere Klassen
+            Ergebnisse nach Jahr
         </h2>
 
         <p>
-            Die Reglements werden künftig direkt über
-            den Adminbereich gepflegt.
+            Vergangene Veranstaltungen und Ergebnisse
+            werden hier nach Jahren archiviert.
         </p>
 
     </div>
 
 
-    <div class="class-grid">
+    <div class="year-grid">
 
 
-        <div class="class-card">
-
-            <span class="class-number">
-                KLASSE 01
-            </span>
+        <div class="year-card">
 
             <h3>
-                Onroad
+                2026
             </h3>
 
             <p>
-                Reglement und technische Bestimmungen
-                für unsere Onroad-Klassen.
+                Aktuelle Ergebnisse der Saison 2026.
             </p>
 
             <a
-                href="reglement-onroad.html"
+                href="ergebnisse-2026.html"
                 class="button"
             >
-                Reglement öffnen
+                Ergebnisse 2026
             </a>
 
         </div>
 
 
-        <div class="class-card">
-
-            <span class="class-number">
-                KLASSE 02
-            </span>
+        <div class="year-card">
 
             <h3>
-                Offroad
+                2025
             </h3>
 
             <p>
-                Reglement und technische Bestimmungen
-                für unsere Offroad-Klassen.
+                Ergebnisse der Saison 2025.
             </p>
 
             <a
-                href="reglement-offroad.html"
+                href="ergebnisse-2025.html"
                 class="button"
             >
-                Reglement öffnen
+                Ergebnisse 2025
             </a>
 
         </div>
 
 
-        <div class="class-card">
-
-            <span class="class-number">
-                KLASSE 03
-            </span>
+        <div class="year-card">
 
             <h3>
-                Fun / Training
+                Archiv
             </h3>
 
             <p>
-                Informationen zu Trainingsbetrieb,
-                Fun-Klassen und vereinsinternen Regeln.
+                Ältere Veranstaltungen und Ergebnisse.
             </p>
 
             <a
-                href="reglement-fun.html"
+                href="ergebnisse-archiv.html"
                 class="button"
             >
-                Reglement öffnen
-            </a>
-
-        </div>
-
-
-        <div class="class-card">
-
-            <span class="class-number">
-                KLASSE 04
-            </span>
-
-            <h3>
-                Veranstaltungen
-            </h3>
-
-            <p>
-                Allgemeine Regeln für Rennen,
-                Veranstaltungen und Vereinsrennen.
-            </p>
-
-            <a
-                href="reglement-veranstaltungen.html"
-                class="button"
-            >
-                Reglement öffnen
+                Archiv öffnen
             </a>
 
         </div>
@@ -624,23 +558,20 @@
     <div class="info-box">
 
         <h2>
-            Hinweis zum Reglement
+            Automatische Ergebnisse
         </h2>
 
         <p>
-            Die hier dargestellten Inhalte sind derzeit
-            als Platzhalter vorbereitet.
+            Die Website ist bereits dafür vorbereitet,
+            Ergebnisse später automatisch aus dem
+            Zeitnahme-System zu übernehmen.
         </p>
 
         <p>
-            Die endgültigen Reglements können später
-            durch den Administrator direkt im
-            Verwaltungsbereich bearbeitet werden.
-        </p>
-
-        <p>
-            Dadurch müssen Änderungen nicht mehr
-            direkt im HTML vorgenommen werden.
+            Diese Funktion bleibt solange deaktiviert,
+            bis die Vereinszeitnahme und die
+            Datenübertragung vollständig eingerichtet
+            und freigegeben sind.
         </p>
 
     </div>
@@ -692,12 +623,6 @@
             <p>
                 <a href="termine.html">
                     Termine
-                </a>
-            </p>
-
-            <p>
-                <a href="ergebnisse.html">
-                    Ergebnisse
                 </a>
             </p>
 

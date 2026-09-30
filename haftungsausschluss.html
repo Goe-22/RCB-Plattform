@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Haftungsausschluss – RC Bande Zwickau e.V.</title>
+
+    <meta
+        name="description"
+        content="Haftungsausschluss des RC Bande Zwickau e.V."
+    >
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --blue: #062b55;
+            --blue-dark: #041d3a;
+            --light: #f3f6f9;
+            --text: #1d2733;
+            --muted: #657383;
+            --border: #dce3ea;
+        }
+
+        body {
+            font-family:
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Arial,
+                sans-serif;
+
+            color: var(--text);
+            line-height: 1.7;
+            background: white;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        header {
+            background: var(--blue);
+            color: white;
+
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+
+            box-shadow:
+                0 2px 10px rgba(0,0,0,.15);
+        }
+
+        .header-inner {
+            max-width: 1200px;
+            margin: auto;
+
+            padding: 14px 20px;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-area img {
+            width: 52px;
+            height: 52px;
+
+            object-fit: contain;
+
+            background: white;
+            border-radius: 8px;
+        }
+
+        .club-name {
+            font-weight: 700;
+            font-size: 18px;
+            line-height: 1.2;
+        }
+
+        .club-name small {
+            display: block;
+
+            font-size: 12px;
+            font-weight: 400;
+
+            opacity: .85;
+        }
+
+        nav {
+            display: flex;
+            gap: 20px;
+        }
+
+        nav a {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .menu-button {
+            display: none;
+
+            border: 0;
+            background: transparent;
+            color: white;
+
+            font-size: 28px;
+        }
+
+        .hero {
+            min-height: 280px;
+
+            background:
+                linear-gradient(
+                    rgba(4,29,58,.75),
+                    rgba(4,29,58,.90)
+                );
+
+            color: white;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            text-align: center;
+
+            padding: 50px 20px;
+        }
+
+        .hero h1 {
+            font-size:
+                clamp(38px, 7vw, 58px);
+
+            margin-bottom: 10px;
+        }
+
+        .hero p {
+            font-size: 19px;
+            opacity: .9;
+        }
+
+        .section {
+            max-width: 900px;
+            margin: auto;
+
+            padding: 70px 20px;
+        }
+
+        .legal-box {
+            border:
+                1px solid var(--border);
+
+            border-radius: 14px;
+
+            padding: 35px;
+
+            box-shadow:
+                0 5px 18px rgba(0,0,0,.05);
+        }
+
+        .legal-box h2 {
+            color: var(--blue);
+
+            margin-top: 35px;
+            margin-bottom: 12px;
+        }
+
+        .legal-box h2:first-child {
+            margin-top: 0;
+        }
+
+        .legal-box p {
+            margin-bottom: 15px;
+        }
+
+        .notice {
+            background: #fff7df;
+
+            border-left:
+                4px solid #d6a600;
+
+            padding: 18px;
+
+            margin-top: 25px;
+
+            border-radius: 5px;
+        }
+
+        footer {
+            background: var(--blue-dark);
+            color: white;
+
+            padding:
+                45px 20px 25px;
+        }
+
+        .footer-inner {
+            max-width: 1200px;
+            margin: auto;
+
+            display: grid;
+
+            grid-template-columns:
+                2fr 1fr 1fr;
+
+            gap: 40px;
+        }
+
+        footer h3 {
+            margin-bottom: 12px;
+        }
+
+        footer p,
+        footer a {
+            color: #c9d4df;
+            font-size: 14px;
+        }
+
+        .footer-bottom {
+            max-width: 1200px;
+            margin: 35px auto 0;
+
+            padding-top: 20px;
+
+            border-top:
+                1px solid
+                rgba(255,255,255,.15);
+
+            text-align: center;
+
+            color: #aab8c6;
+
+            font-size: 13px;
+        }
+
+        @media (max-width: 800px) {
+
+            nav {
+                display: none;
+
+                position: absolute;
+
+                left: 0;
+                right: 0;
+
+                top: 72px;
+
+                background: var(--blue);
+
+                flex-direction: column;
+
+                padding: 15px 20px;
+            }
+
+            nav.open {
+                display: flex;
+            }
+
+            nav a {
+                padding: 10px 0;
+            }
+
+            .menu-button {
+                display: block;
+            }
+
+            .footer-inner {
+                grid-template-columns: 1fr;
+            }
+
+            .legal-box {
+                padding: 25px;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+
+<header>
+
+    <div class="header-inner">
+
+        <a
+            href="index.html"
+            class="logo-area"
+        >
+
+            <img
+                src="logo.png"
+                alt="RC Bande Zwickau e.V."
+            >
+
+            <div class="club-name">
+
+                RC Bande Zwickau e.V.
+
+                <small>
+                    Modellautosport seit 2020
+                </small>
+
+            </div>
+
+        </a>
+
+
+        <button
+            class="menu-button"
+            onclick="toggleMenu()"
+            aria-label="Menü"
+        >
+            ☰
+        </button>
+
+
+        <nav id="main-nav">
+
+            <a href="index.html">
+                Home
+            </a>
+
+            <a href="verein.html">
+                Verein
+            </a>
+
+            <a href="tracks.html">
+                Strecken
+            </a>
+
+            <a href="termine.html">
+                Termine
+            </a>
+
+            <a href="reglement.html">
+                Reglement
+            </a>
+
+            <a href="ergebnisse.html">
+                Ergebnisse
+            </a>
+
+            <a href="mitglied-werden.html">
+                Mitglied werden
+            </a>
+
+            <a href="kontakt.html">
+                Kontakt
+            </a>
+
+        </nav>
+
+    </div>
+
+</header>
+
+
+<section class="hero">
+
+    <div>
+
+        <h1>
+            Haftungsausschluss
+        </h1>
+
+        <p>
+            Hinweise zur Nutzung dieser Website
+        </p>
+
+    </div>
+
+</section>
+
+
+<section class="section">
+
+    <div class="legal-box">
+
+
+        <h2>
+            Haftung für Inhalte
+        </h2>
+
+        <p>
+            Die Inhalte dieser Website werden mit
+            größtmöglicher Sorgfalt erstellt.
+        </p>
+
+        <p>
+            Der RC Bande Zwickau e.V. bemüht sich,
+            die bereitgestellten Informationen aktuell
+            und korrekt zu halten.
+        </p>
+
+        <p>
+            Eine Gewähr für Vollständigkeit,
+            Aktualität und Richtigkeit sämtlicher
+            Inhalte kann jedoch nicht jederzeit
+            übernommen werden.
+        </p>
+
+
+        <h2>
+            Haftung für externe Links
+        </h2>
+
+        <p>
+            Diese Website kann Links zu externen
+            Internetseiten enthalten.
+        </p>
+
+        <p>
+            Auf die Inhalte externer Seiten besteht
+            grundsätzlich kein Einfluss.
+        </p>
+
+        <p>
+            Für rechtswidrige oder nachträglich
+            veränderte Inhalte externer Seiten wird
+            keine Verantwortung übernommen, soweit
+            hierfür keine gesetzliche Verantwortlichkeit
+            besteht.
+        </p>
+
+
+        <h2>
+            Verfügbarkeit
+        </h2>
+
+        <p>
+            Es kann nicht garantiert werden, dass
+            diese Website jederzeit ohne Unterbrechung
+            erreichbar ist.
+        </p>
+
+        <p>
+            Technische Störungen, Wartungsarbeiten
+            oder Umstellungen können zu einer
+            vorübergehenden Nichtverfügbarkeit führen.
+        </p>
+
+
+        <h2>
+            Ergebnisse und Zeitnahme
+        </h2>
+
+        <p>
+            Rennergebnisse, Trainingsdaten,
+            Zeitnahmeinformationen und sonstige
+            automatisch übernommene Daten können
+            technische Übertragungs- oder
+            Erfassungsfehler enthalten.
+        </p>
+
+        <p>
+            Maßgeblich sind bei offiziellen
+            Veranstaltungen die vom Veranstalter
+            freigegebenen Ergebnisse.
+        </p>
+
+
+        <h2>
+            Urheberrecht
+        </h2>
+
+        <p>
+            Inhalte und Werke auf dieser Website
+            können dem Urheberrecht unterliegen.
+        </p>
+
+        <p>
+            Eine Verwendung, Vervielfältigung oder
+            Weiterverbreitung bedarf grundsätzlich
+            der Zustimmung des jeweiligen
+            Rechteinhabers, soweit keine gesetzliche
+            Ausnahme greift.
+        </p>
+
+
+        <div class="notice">
+
+            <strong>
+                Hinweis:
+            </strong>
+
+            <br><br>
+
+            Dieser Text ist als vorbereitende
+            Website-Fassung gedacht und sollte vor
+            dem endgültigen Onlinegang gemeinsam mit
+            dem Impressum und der Datenschutzerklärung
+            auf die tatsächlichen Gegebenheiten der
+            Website abgestimmt werden.
+
+        </div>
+
+
+    </div>
+
+</section>
+
+
+<footer>
+
+    <div class="footer-inner">
+
+        <div>
+
+            <h3>
+                RC Bande Zwickau e.V.
+            </h3>
+
+            <p>
+                Modellautosport seit 2020.
+            </p>
+
+        </div>
+
+
+        <div>
+
+            <h3>
+                Navigation
+            </h3>
+
+            <p>
+                <a href="index.html">
+                    Home
+                </a>
+            </p>
+
+            <p>
+                <a href="verein.html">
+                    Verein
+                </a>
+            </p>
+
+            <p>
+                <a href="termine.html">
+                    Termine
+                </a>
+            </p>
+
+            <p>
+                <a href="ergebnisse.html">
+                    Ergebnisse
+                </a>
+            </p>
+
+        </div>
+
+
+        <div>
+
+            <h3>
+                Rechtliches
+            </h3>
+
+            <p>
+                <a href="impressum.html">
+                    Impressum
+                </a>
+            </p>
+
+            <p>
+                <a href="datenschutz.html">
+                    Datenschutz
+                </a>
+            </p>
+
+            <p>
+                <a href="haftungsausschluss.html">
+                    Haftungsausschluss
+                </a>
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <div class="footer-bottom">
+
+        © 2026 RC Bande Zwickau e.V.
+        · Alle Rechte vorbehalten
+
+    </div>
+
+</footer>
+
+
+<script>
+
+    function toggleMenu() {
+
+        document
+            .getElementById("main-nav")
+            .classList
+            .toggle("open");
+
+    }
+
+</script>
+
+
+</body>
+
+</html>

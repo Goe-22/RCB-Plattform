@@ -1,53 +1,22 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>RC Bande Zwickau e.V.</title>
 
-    <meta
-        name="description"
-        content="RC Bande Zwickau e.V. – RC-Modellsport in Zwickau"
-    >
-
     <style>
-
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
         }
 
-        :root {
-            --blue: #062b55;
-            --blue-light: #0b477f;
-            --blue-dark: #041d3a;
-            --white: #ffffff;
-            --light: #f3f6f9;
-            --text: #1d2733;
-            --border: #dce3ea;
-        }
-
-        html {
-            scroll-behavior: smooth;
-        }
-
         body {
-            font-family:
-                -apple-system,
-                BlinkMacSystemFont,
-                "Segoe UI",
-                Arial,
-                sans-serif;
-
-            color: var(--text);
-            background: var(--white);
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f4f6f8;
+            color: #222;
             line-height: 1.6;
         }
 
@@ -61,76 +30,72 @@
         ========================= */
 
         header {
-            background: var(--blue);
-            color: var(--white);
+            background: #062b55;
+            color: white;
             position: sticky;
             top: 0;
             z-index: 1000;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         }
 
         .header-inner {
             max-width: 1200px;
             margin: auto;
-            padding: 14px 20px;
-
+            padding: 12px 20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 20px;
         }
 
-        .logo-area {
+        .logo {
             display: flex;
             align-items: center;
             gap: 12px;
         }
 
-        .logo-area img {
-            width: 52px;
-            height: 52px;
-            object-fit: contain;
-            border-radius: 8px;
-            background: white;
+        .logo img {
+            height: 55px;
+            width: auto;
+            display: block;
         }
 
-        .club-name {
-            font-weight: 700;
-            font-size: 18px;
+        .logo-text {
+            font-size: 20px;
+            font-weight: bold;
             line-height: 1.2;
         }
 
-        .club-name small {
+        .logo-text span {
             display: block;
-            font-size: 12px;
-            font-weight: 400;
+            font-size: 13px;
+            font-weight: normal;
             opacity: 0.85;
-            margin-top: 2px;
         }
 
-        nav {
+        nav ul {
+            list-style: none;
             display: flex;
+            gap: 4px;
             align-items: center;
-            gap: 20px;
         }
 
         nav a {
+            display: block;
+            padding: 10px 11px;
+            border-radius: 5px;
             font-size: 14px;
-            font-weight: 600;
-            opacity: 0.95;
-            transition: opacity 0.2s;
         }
 
         nav a:hover {
-            opacity: 0.65;
+            background: rgba(255,255,255,0.12);
         }
 
         .menu-button {
             display: none;
-            border: 0;
+            border: none;
             background: transparent;
             color: white;
-            font-size: 28px;
+            font-size: 30px;
             cursor: pointer;
         }
 
@@ -139,82 +104,89 @@
         ========================= */
 
         .hero {
-            min-height: 500px;
-
+            position: relative;
+            min-height: 430px;
             background:
                 linear-gradient(
-                    rgba(4,29,58,0.55),
-                    rgba(4,29,58,0.70)
+                    rgba(6,43,85,0.62),
+                    rgba(6,43,85,0.78)
                 ),
                 url("hero.jpg") center center / cover no-repeat;
 
             display: flex;
             align-items: center;
             justify-content: center;
-
             text-align: center;
             color: white;
-            padding: 60px 20px;
         }
 
         .hero-content {
             max-width: 850px;
+            padding: 50px 20px;
         }
 
         .hero h1 {
-            font-size: clamp(36px, 6vw, 68px);
-            line-height: 1.05;
-            margin-bottom: 20px;
-            font-weight: 800;
+            font-size: 48px;
+            margin-bottom: 18px;
         }
 
         .hero p {
-            font-size: clamp(18px, 2.5vw, 25px);
-            margin-bottom: 30px;
+            font-size: 21px;
+            max-width: 700px;
+            margin: auto;
+        }
+
+        .hero-buttons {
+            margin-top: 28px;
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
         }
 
         .button {
             display: inline-block;
+            padding: 12px 22px;
+            border-radius: 6px;
             background: white;
-            color: var(--blue);
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-weight: 700;
-            transition: transform 0.2s, opacity 0.2s;
+            color: #062b55;
+            font-weight: bold;
+            transition: 0.2s;
         }
 
         .button:hover {
             transform: translateY(-2px);
-            opacity: 0.9;
+        }
+
+        .button.dark {
+            background: #062b55;
+            color: white;
+            border: 1px solid white;
         }
 
         /* =========================
            GENERAL
         ========================= */
 
-        .section {
+        .container {
             max-width: 1200px;
             margin: auto;
-            padding: 70px 20px;
-        }
-
-        .section-light {
-            background: var(--light);
+            padding: 60px 20px;
         }
 
         .section-title {
             text-align: center;
-            margin-bottom: 45px;
+            margin-bottom: 35px;
         }
 
         .section-title h2 {
-            color: var(--blue);
-            font-size: clamp(28px, 4vw, 40px);
+            color: #062b55;
+            font-size: 32px;
             margin-bottom: 8px;
         }
 
         .section-title p {
-            color: #657383;
+            color: #666;
         }
 
         /* =========================
@@ -222,55 +194,45 @@
         ========================= */
 
         .next-event {
-            background: var(--blue);
-            color: white;
-            border-radius: 14px;
-            padding: 35px;
-            display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 30px;
-            align-items: center;
-        }
-
-        .next-event h3 {
-            font-size: 28px;
-            margin-bottom: 8px;
-        }
-
-        .event-info {
-            opacity: 0.9;
-        }
-
-        .event-button {
             background: white;
-            color: var(--blue);
-            padding: 12px 22px;
+            border-radius: 10px;
+            padding: 35px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+
+        .event-placeholder {
+            padding: 25px;
+            border: 2px dashed #ccd3da;
             border-radius: 8px;
-            font-weight: 700;
-            white-space: nowrap;
+            color: #666;
+        }
+
+        .event-placeholder h3 {
+            color: #062b55;
+            margin-bottom: 10px;
         }
 
         /* =========================
-           TRACKS
+           TRACK STATUS
         ========================= */
 
         .track-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 30px;
+            gap: 25px;
         }
 
         .track-card {
             background: white;
-            border-radius: 14px;
+            border-radius: 10px;
             overflow: hidden;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
-            border: 1px solid var(--border);
+            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
         }
 
-        .track-image {
+        .track-card img {
             width: 100%;
-            aspect-ratio: 16 / 9;
+            height: 230px;
             object-fit: cover;
             display: block;
         }
@@ -280,82 +242,59 @@
         }
 
         .track-content h3 {
-            color: var(--blue);
-            font-size: 25px;
+            color: #062b55;
+            font-size: 24px;
             margin-bottom: 12px;
         }
 
-        .track-content p {
-            color: #647180;
-            margin-bottom: 20px;
-        }
-
-        .track-link {
-            display: inline-block;
-            color: var(--blue-light);
-            font-weight: 700;
-        }
-
-        /* =========================
-           STATUS
-        ========================= */
-
         .track-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 18px;
-            font-weight: 600;
+            display: inline-block;
+            padding: 7px 13px;
+            border-radius: 5px;
+            background: #e9edf1;
+            color: #555;
+            font-weight: bold;
             font-size: 14px;
-        }
-
-        .status-dot {
-            width: 11px;
-            height: 11px;
-            border-radius: 50%;
-            background: #888;
-        }
-
-        .status-closed {
-            color: #777;
         }
 
         /* =========================
-           QUICK LINKS
+           CLUB
         ========================= */
 
-        .quick-grid {
-            display: grid;
-            grid-template-columns:
-                repeat(3, 1fr);
-
-            gap: 20px;
-        }
-
-        .quick-card {
-            background: white;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 25px;
+        .club-box {
+            background: #062b55;
+            color: white;
+            border-radius: 10px;
+            padding: 45px;
             text-align: center;
-            transition:
-                transform 0.2s,
-                box-shadow 0.2s;
         }
 
-        .quick-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 22px rgba(0,0,0,0.08);
+        .club-box h2 {
+            font-size: 32px;
+            margin-bottom: 15px;
         }
 
-        .quick-card h3 {
-            color: var(--blue);
-            margin-bottom: 8px;
+        .club-box p {
+            max-width: 800px;
+            margin: 0 auto 25px;
+            font-size: 17px;
         }
 
-        .quick-card p {
-            color: #657383;
-            font-size: 14px;
+        /* =========================
+           RESULTS
+        ========================= */
+
+        .results-box {
+            background: white;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+        }
+
+        .results-box h2 {
+            color: #062b55;
+            margin-bottom: 12px;
         }
 
         /* =========================
@@ -363,192 +302,166 @@
         ========================= */
 
         footer {
-            background: var(--blue-dark);
+            background: #041d3a;
             color: white;
-            padding: 45px 20px 25px;
+            margin-top: 30px;
         }
 
         .footer-inner {
             max-width: 1200px;
             margin: auto;
-
-            display: grid;
-            grid-template-columns:
-                2fr 1fr 1fr;
-
-            gap: 40px;
+            padding: 35px 20px;
+            text-align: center;
         }
 
-        footer h3 {
-            margin-bottom: 12px;
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
         }
 
-        footer p,
-        footer a {
-            color: #c9d4df;
+        .footer-links a {
+            color: white;
+            opacity: 0.85;
             font-size: 14px;
         }
 
-        footer a:hover {
-            color: white;
+        .footer-links a:hover {
+            opacity: 1;
+            text-decoration: underline;
         }
 
-        .footer-bottom {
-            max-width: 1200px;
-            margin: 35px auto 0;
-            padding-top: 20px;
-            border-top: 1px solid rgba(255,255,255,0.15);
-            text-align: center;
-            color: #aab8c6;
+        .copyright {
             font-size: 13px;
+            opacity: 0.7;
         }
 
         /* =========================
            MOBILE
         ========================= */
 
-        @media (max-width: 800px) {
-
-            .header-inner {
-                padding: 10px 15px;
-            }
-
-            nav {
-                display: none;
-                position: absolute;
-                left: 0;
-                right: 0;
-                top: 72px;
-
-                background: var(--blue);
-
-                flex-direction: column;
-                align-items: stretch;
-
-                padding: 15px 20px;
-
-                box-shadow:
-                    0 8px 15px rgba(0,0,0,0.15);
-            }
-
-            nav.open {
-                display: flex;
-            }
-
-            nav a {
-                padding: 10px 0;
-                border-bottom:
-                    1px solid rgba(255,255,255,0.12);
-            }
+        @media (max-width: 900px) {
 
             .menu-button {
                 display: block;
             }
 
-            .hero {
-                min-height: 430px;
+            nav {
+                display: none;
+                width: 100%;
             }
 
-            .next-event {
-                grid-template-columns: 1fr;
+            nav.active {
+                display: block;
+            }
+
+            .header-inner {
+                flex-wrap: wrap;
+            }
+
+            nav ul {
+                width: 100%;
+                flex-direction: column;
+                align-items: stretch;
+                padding-top: 10px;
+            }
+
+            nav a {
+                text-align: center;
+                padding: 12px;
+            }
+
+            .hero h1 {
+                font-size: 38px;
+            }
+
+            .hero p {
+                font-size: 18px;
             }
 
             .track-grid {
                 grid-template-columns: 1fr;
             }
-
-            .quick-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .footer-inner {
-                grid-template-columns: 1fr;
-            }
-
         }
 
-    </style>
+        @media (max-width: 600px) {
 
+            .logo img {
+                height: 45px;
+            }
+
+            .logo-text {
+                font-size: 17px;
+            }
+
+            .logo-text span {
+                font-size: 11px;
+            }
+
+            .hero {
+                min-height: 390px;
+            }
+
+            .hero h1 {
+                font-size: 31px;
+            }
+
+            .hero p {
+                font-size: 17px;
+            }
+
+            .container {
+                padding: 45px 15px;
+            }
+
+            .section-title h2 {
+                font-size: 27px;
+            }
+
+            .next-event,
+            .results-box,
+            .club-box {
+                padding: 25px;
+            }
+
+            .club-box h2 {
+                font-size: 27px;
+            }
+        }
+    </style>
 </head>
 
 <body>
-
-<!-- =========================
-     HEADER
-========================= -->
 
 <header>
 
     <div class="header-inner">
 
-        <a
-            href="index.html"
-            class="logo-area"
-        >
-
-            <img
-                src="logo.png"
-                alt="RC Bande Zwickau Logo"
-            >
-
-            <div class="club-name">
-
+        <a href="index.html" class="logo">
+            <img src="logo.png" alt="RC Bande Zwickau e.V.">
+            <div class="logo-text">
                 RC Bande Zwickau e.V.
-
-                <small>
-                    RC-Modellsport in Zwickau
-                </small>
-
+                <span>Modellsport in Zwickau</span>
             </div>
-
         </a>
 
-        <button
-            class="menu-button"
-            onclick="toggleMenu()"
-            aria-label="Menü öffnen"
-        >
+        <button class="menu-button" onclick="toggleMenu()" aria-label="Menü öffnen">
             ☰
         </button>
 
-        <nav id="main-nav">
-
-            <a href="index.html">
-                Home
-            </a>
-
-            <a href="verein.html">
-                Verein
-            </a>
-
-            <a href="tracks.html">
-                Strecken
-            </a>
-
-            <a href="events.html">
-                Termine
-            </a>
-
-            <a href="regulations.html">
-                Reglement
-            </a>
-
-            <a href="results.html">
-                Ergebnisse
-            </a>
-
-            <a href="live.html">
-                Live
-            </a>
-
-            <a href="club.html">
-                Mitglied werden
-            </a>
-
-            <a href="contact.html">
-                Kontakt
-            </a>
-
+        <nav id="mainNav">
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="verein.html">Verein</a></li>
+                <li><a href="tracks.html">Strecken</a></li>
+                <li><a href="termine.html">Termine</a></li>
+                <li><a href="reglement.html">Reglement</a></li>
+                <li><a href="ergebnisse.html">Ergebnisse</a></li>
+                <li><a href="mitglied-werden.html">Mitglied werden</a></li>
+                <li><a href="kontakt.html">Kontakt</a></li>
+            </ul>
         </nav>
 
     </div>
@@ -564,20 +477,24 @@
 
     <div class="hero-content">
 
-        <h1>
-            RC Bande Zwickau e.V.
-        </h1>
+        <h1>RC Bande Zwickau e.V.</h1>
 
         <p>
-            RC-Modellsport in Zwickau
+            Willkommen beim RC Modellbauverein in Zwickau.
+            Gemeinsam fahren, trainieren und Rennen erleben.
         </p>
 
-        <a
-            href="verein.html"
-            class="button"
-        >
-            Unser Verein
-        </a>
+        <div class="hero-buttons">
+
+            <a href="verein.html" class="button">
+                Unser Verein
+            </a>
+
+            <a href="tracks.html" class="button dark">
+                Unsere Strecken
+            </a>
+
+        </div>
 
     </div>
 
@@ -588,40 +505,35 @@
      NÄCHSTER TERMIN
 ========================= -->
 
-<section class="section">
+<section class="container">
 
     <div class="section-title">
 
-        <h2>
-            Nächster Termin
-        </h2>
+        <h2>Nächster Termin</h2>
 
         <p>
-            Die nächste Veranstaltung des RC Bande Zwickau e.V.
+            Alle freigegebenen Veranstaltungen findest du hier.
         </p>
 
     </div>
 
     <div class="next-event">
 
-        <div>
+        <div class="event-placeholder">
 
-            <h3>
-                Nächster Termin
-            </h3>
+            <h3>Aktuell ist kein Termin veröffentlicht.</h3>
 
-            <p class="event-info">
-                Der nächste Termin wird hier angezeigt,
-                sobald er veröffentlicht wurde.
+            <p>
+                Sobald ein Termin vom Verein freigegeben wurde,
+                wird er hier angezeigt.
             </p>
 
         </div>
 
-        <a
-            href="events.html"
-            class="event-button"
-        >
-            Veranstaltung ansehen
+        <br>
+
+        <a href="termine.html" class="button">
+            Zu den Terminen
         </a>
 
     </div>
@@ -630,66 +542,41 @@
 
 
 <!-- =========================
-     STRECKEN
+     STRECKENSTATUS
 ========================= -->
 
-<section
-    class="section section-light"
->
+<section class="container">
 
     <div class="section-title">
 
-        <h2>
-            Unsere Strecken
-        </h2>
+        <h2>Unsere Strecken</h2>
 
         <p>
-            Onroad und Offroad
+            Informationen und aktueller Status unserer Rennstrecken.
         </p>
 
     </div>
 
     <div class="track-grid">
 
-
         <!-- ONROAD -->
 
         <article class="track-card">
 
-            <img
-                src="onroad.jpg"
-                alt="Onroad Strecke"
-                class="track-image"
-            >
+            <img src="hero.jpg" alt="Onroad Strecke">
 
             <div class="track-content">
 
-                <h3>
-                    Onroad
-                </h3>
+                <h3>Onroad</h3>
 
-                <div class="track-status">
+                <span class="track-status">
+                    Status wird veröffentlicht
+                </span>
 
-                    <span
-                        class="status-dot"
-                    ></span>
+                <br><br>
 
-                    <span class="status-closed">
-                        Status derzeit nicht verfügbar
-                    </span>
-
-                </div>
-
-                <p>
-                    Informationen zur Onroad-Strecke,
-                    Ausstattung und Nutzung.
-                </p>
-
-                <a
-                    href="onroad.html"
-                    class="track-link"
-                >
-                    Zu Strecke →
+                <a href="onroad.html" class="button">
+                    Zur Onroad-Strecke
                 </a>
 
             </div>
@@ -701,40 +588,20 @@
 
         <article class="track-card">
 
-            <img
-                src="offroad.jpg"
-                alt="Offroad Strecke"
-                class="track-image"
-            >
+            <img src="hero.jpg" alt="Offroad Strecke">
 
             <div class="track-content">
 
-                <h3>
-                    Offroad
-                </h3>
+                <h3>Offroad</h3>
 
-                <div class="track-status">
+                <span class="track-status">
+                    Status wird veröffentlicht
+                </span>
 
-                    <span
-                        class="status-dot"
-                    ></span>
+                <br><br>
 
-                    <span class="status-closed">
-                        Status derzeit nicht verfügbar
-                    </span>
-
-                </div>
-
-                <p>
-                    Informationen zur Offroad-Strecke,
-                    Ausstattung und Nutzung.
-                </p>
-
-                <a
-                    href="offroad.html"
-                    class="track-link"
-                >
-                    Zu Strecke →
+                <a href="offroad.html" class="button">
+                    Zur Offroad-Strecke
                 </a>
 
             </div>
@@ -747,75 +614,63 @@
 
 
 <!-- =========================
-     SCHNELLZUGRIFF
+     VEREIN
 ========================= -->
 
-<section class="section">
+<section class="container">
+
+    <div class="club-box">
+
+        <h2>RC Bande Zwickau e.V.</h2>
+
+        <p>
+            Wir sind ein Modellbauverein für alle,
+            die Spaß am ferngesteuerten Motorsport haben.
+            Egal ob Anfänger, Hobbyfahrer oder Rennfahrer –
+            bei uns steht der gemeinsame Spaß am Modellbau
+            und am Fahren im Mittelpunkt.
+        </p>
+
+        <a href="verein.html" class="button">
+            Mehr über den Verein
+        </a>
+
+    </div>
+
+</section>
+
+
+<!-- =========================
+     ERGEBNISSE
+========================= -->
+
+<section class="container">
 
     <div class="section-title">
 
-        <h2>
-            RC Bande Zwickau
-        </h2>
+        <h2>Ergebnisse</h2>
 
         <p>
-            Die wichtigsten Bereiche direkt erreichbar.
+            Ergebnisse vergangener Veranstaltungen
+            findest du in unserem Archiv.
         </p>
 
     </div>
 
-    <div class="quick-grid">
+    <div class="results-box">
 
+        <h2>Rennen & Ergebnisse</h2>
 
-        <a
-            href="results.html"
-            class="quick-card"
-        >
+        <p>
+            Hier werden die veröffentlichten Rennergebnisse
+            nach Jahr und Veranstaltung übersichtlich archiviert.
+        </p>
 
-            <h3>
-                Ergebnisse
-            </h3>
+        <br>
 
-            <p>
-                Ergebnisse vergangener Veranstaltungen
-                und Rennserien.
-            </p>
-
+        <a href="ergebnisse.html" class="button">
+            Zu den Ergebnissen
         </a>
-
-
-        <a
-            href="regulations.html"
-            class="quick-card"
-        >
-
-            <h3>
-                Reglement
-            </h3>
-
-            <p>
-                Klassen und gültige Vereinsreglements.
-            </p>
-
-        </a>
-
-
-        <a
-            href="club.html"
-            class="quick-card"
-        >
-
-            <h3>
-                Mitglied werden
-            </h3>
-
-            <p>
-                Informationen für Interessenten
-                und neue Mitglieder.
-            </p>
-
-        </a>
-
 
     </div>
 
@@ -830,68 +685,25 @@
 
     <div class="footer-inner">
 
+        <div class="footer-links">
 
-        <div>
+            <a href="impressum.html">
+                Impressum
+            </a>
 
-            <h3>
-                RC Bande Zwickau e.V.
-            </h3>
+            <a href="datenschutz.html">
+                Datenschutz
+            </a>
 
-            <p>
-                RC-Modellsport in Zwickau.
-            </p>
-
-        </div>
-
-
-        <div>
-
-            <h3>
-                Webseite
-            </h3>
-
-            <p>
-                <a href="impressum.html">
-                    Impressum
-                </a>
-            </p>
-
-            <p>
-                <a href="datenschutz.html">
-                    Datenschutz
-                </a>
-            </p>
-
-            <p>
-                <a href="haftungsausschluss.html">
-                    Haftungsausschluss
-                </a>
-            </p>
+            <a href="haftungsausschluss.html">
+                Haftungsausschluss
+            </a>
 
         </div>
 
-
-        <div>
-
-            <h3>
-                Kontakt
-            </h3>
-
-            <p>
-                <a href="contact.html">
-                    Kontaktseite
-                </a>
-            </p>
-
+        <div class="copyright">
+            © 2026 RC Bande Zwickau e.V. · Alle Rechte vorbehalten
         </div>
-
-
-    </div>
-
-
-    <div class="footer-bottom">
-
-        © RC Bande Zwickau e.V.
 
     </div>
 
@@ -900,14 +712,13 @@
 
 <script>
 
-    function toggleMenu() {
+function toggleMenu() {
 
-        const nav =
-            document.getElementById("main-nav");
+    const nav = document.getElementById("mainNav");
 
-        nav.classList.toggle("open");
+    nav.classList.toggle("active");
 
-    }
+}
 
 </script>
 

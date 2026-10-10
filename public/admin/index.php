@@ -106,6 +106,12 @@ try {
         published INTEGER NOT NULL DEFAULT 0,
         uploaded_at TEXT DEFAULT CURRENT_TIMESTAMP
     )");
+    // Migration: ältere Plattform-Versionen nannten das MIME-Feld in media noch "type".
+    $mediaColumns = $db->query('PRAGMA table_info(media)')->fetchAll();
+    $mediaColumnNames = array_column($mediaColumns, 'name');
+    if (!in_array('mime_type', $mediaColumnNames, true)) {
+        $db->exec("ALTER TABLE media ADD COLUMN mime_type TEXT DEFAULT ''");
+    }
     $db->exec("CREATE TABLE IF NOT EXISTS results (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         event_id INTEGER,

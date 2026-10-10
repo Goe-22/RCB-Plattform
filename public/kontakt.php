@@ -3,7 +3,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/inc/bootstrap.php';
 $email = rcb_setting('contact_email');
 $phone = rcb_setting('contact_phone');
-rcb_header();
+rcb_header('contact');
 ?>
 <section class="rcb-hero"><div class="rcb-hero-inner"><h1>Kontakt</h1><p>Fragen zum Verein, zu unseren Strecken oder zu Veranstaltungen? Melde dich bei uns.</p></div></section>
 <section class="rcb-section"><div class="rcb-wrap"><div class="rcb-grid">

@@ -16,8 +16,9 @@ Enthaltene Funktionen:
 - CSRF-Token für Formularaktionen
 - Begrenzung wiederholter fehlgeschlagener Anmeldungen
 - Dashboard und Aktionsprotokoll
-- Anlegen, Bearbeiten und Löschen von Terminen, Strecken, Sponsoren und Inhaltsseiten
-- Seiteneinstellungen und Verwaltung weiterer Admin-Konten
+- Anlegen, Bearbeiten und Löschen von Terminen, Strecken, Sponsoren, Ergebnissen und Inhaltsseiten
+- Bilderverwaltung mit JPG-/PNG-/WebP-Upload bis 8 MB, Zuordnung zu Galerie, Titelbild, Logo, Onroad, Offroad oder Veranstaltung sowie Veröffentlichungsstatus
+- Seiteneinstellungen, Wartungsmodus, Live-Timing-Status und Verwaltung weiterer Admin-Konten
 - Datenbankinitialisierung über SQLite/PDO
 - Responsive Oberfläche für Desktop und Mobilgeräte
 
@@ -25,7 +26,8 @@ Enthaltene Funktionen:
 
 - PHP 8.3 oder neuer
 - PHP-Erweiterung PDO SQLite aktiviert
-- Schreibrechte für PHP auf das Verzeichnis `storage/`
+- PHP-Erweiterung `fileinfo` für sichere Bild-Uploads
+- Schreibrechte für PHP auf das Verzeichnis `storage/` und den Ordner `public/uploads/`
 - HTTPS für den produktiven Betrieb
 
 **Wichtig:** GitHub ist hier der Quellcode-Speicher. GitHub Pages führt PHP nicht aus. Der Adminbereich funktioniert deshalb erst auf einem PHP-fähigen Webhosting. Empfohlen ist, `public/` als DocumentRoot einzustellen, damit Quellcode, Konfiguration und `storage/` nicht öffentlich ausgeliefert werden.

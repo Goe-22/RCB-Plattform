@@ -16,9 +16,13 @@ Der Adminbereich bietet einen CSRF-geschützten SQL-Export der SQLite-Datenbank.
 ## Vor dem öffentlichen Vereinsbetrieb noch zu ergänzen
 - Offizielle Anschrift, Vertretungsberechtigte, Kontakt-E-Mail und Vereinsregisterdaten
 - Datenschutztext passend zum tatsächlich gewählten Hosting und allen eingesetzten Diensten
-- Bestätigte Streckenangaben, Trainingszeiten und Gastfahrer-Regeln
+- Verbindliche Streckenfreigabe, Trainingszeiten und Gastfahrer-Regeln vor einem Besuch prüfen
 - Freigegebene Fotos, Logo, Ausschreibungen und Ergebnisdateien
 - Anbindung und Test der eingesetzten Zeitnahme für Live-Timing
 - Browserprüfung auf der veröffentlichten GitHub-Pages-Adresse und Prüfung aller rechtlichen Angaben
 
 Die Seitenstruktur und Navigation sind vorbereitet; ein vollständiger Live-Test der veröffentlichten Website sowie der PHP-Plattform auf einem tatsächlichen Webhosting ist noch erforderlich.
+
+
+## Verifizierte öffentliche Vereinsinformationen
+Die aktuelle Kontaktseite verweist auf die öffentlich genannte Vereins-E-Mail und das Vereinsgelände. Streckenlängen und Beläge wurden anhand der bisherigen Vereinswebsite eingetragen. Vor dem Livebetrieb sollte der Vorstand diese Angaben bestätigen. Externe Termin- und Ergebnislinks bleiben als zusätzliche Referenz erhalten.

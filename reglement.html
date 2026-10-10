@@ -370,86 +370,13 @@
 
     </style>
 
+<link rel="stylesheet" href="public/assets/css/style.css">
 </head>
 
 <body>
 
 
-<header>
-
-    <div class="header-inner">
-
-        <a
-            href="index.html"
-            class="logo-area"
-        >
-
-            <img
-                src="logo.png"
-                alt="RC Bande Zwickau e.V."
-            >
-
-            <div class="club-name">
-
-                RC Bande Zwickau e.V.
-
-                <small>
-                    Modellautosport seit 2020
-                </small>
-
-            </div>
-
-        </a>
-
-
-        <button
-            class="menu-button"
-            onclick="toggleMenu()"
-            aria-label="Menü"
-        >
-            ☰
-        </button>
-
-
-        <nav id="main-nav">
-
-            <a href="index.html">
-                Home
-            </a>
-
-            <a href="verein.html">
-                Verein
-            </a>
-
-            <a href="tracks.html">
-                Strecken
-            </a>
-
-            <a href="termine.html">
-                Termine
-            </a>
-
-            <a href="reglement.html">
-                Reglement
-            </a>
-
-            <a href="ergebnisse.html">
-                Ergebnisse
-            </a>
-
-            <a href="mitglied-werden.html">
-                Mitglied werden
-            </a>
-
-            <a href="kontakt.html">
-                Kontakt
-            </a>
-
-        </nav>
-
-    </div>
-
-</header>
+<header class="site-header"><div class="header-inner"><a href="index.html" class="logo-area"><span class="brand-mark" aria-hidden="true">RCB</span><span class="club-name">RC Bande Zwickau e.V.<small>Modellsport in Zwickau</small></span></a><button class="menu-button" type="button" aria-controls="main-nav" aria-expanded="false" onclick="toggleMenu()" aria-label="Menü öffnen">☰</button><nav id="main-nav" aria-label="Hauptnavigation"><ul><li><a href="index.html">Home</a></li><li><a href="verein.html">Verein</a></li><li><a href="tracks.html">Strecken</a></li><li><a href="termine.html">Termine</a></li><li><a href="reglement.html">Reglement</a></li><li><a href="ergebnisse.html">Ergebnisse</a></li><li><a href="mitglied-werden.html">Mitglied werden</a></li><li><a href="kontakt.html">Kontakt</a></li></ul></nav></div></header>
 
 
 <section class="hero">
@@ -519,7 +446,7 @@
             </p>
 
             <a
-                href="ergebnisse-2025.html"
+                href="ergebnisse-archiv.html"
                 class="button"
             >
                 Ergebnisse 2025
@@ -579,111 +506,12 @@
 </section>
 
 
-<footer>
-
-    <div class="footer-inner">
-
-        <div>
-
-            <h3>
-                RC Bande Zwickau e.V.
-            </h3>
-
-            <p>
-                Modellautosport seit 2020.
-            </p>
-
-        </div>
-
-
-        <div>
-
-            <h3>
-                Navigation
-            </h3>
-
-            <p>
-                <a href="index.html">
-                    Home
-                </a>
-            </p>
-
-            <p>
-                <a href="verein.html">
-                    Verein
-                </a>
-            </p>
-
-            <p>
-                <a href="tracks.html">
-                    Strecken
-                </a>
-            </p>
-
-            <p>
-                <a href="termine.html">
-                    Termine
-                </a>
-            </p>
-
-        </div>
-
-
-        <div>
-
-            <h3>
-                Informationen
-            </h3>
-
-            <p>
-                <a href="mitglied-werden.html">
-                    Mitglied werden
-                </a>
-            </p>
-
-            <p>
-                <a href="kontakt.html">
-                    Kontakt
-                </a>
-            </p>
-
-            <p>
-                <a href="impressum.html">
-                    Impressum
-                </a>
-            </p>
-
-            <p>
-                <a href="datenschutz.html">
-                    Datenschutz
-                </a>
-            </p>
-
-        </div>
-
-    </div>
-
-
-    <div class="footer-bottom">
-
-        © 2026 RC Bande Zwickau e.V.
-        · Alle Rechte vorbehalten
-
-    </div>
-
-</footer>
+<footer class="site-footer"><div class="footer-inner"><div class="footer-brand"><h3>RC Bande Zwickau e.V.</h3><p>Modellautosport seit 2020.</p></div><div class="footer-navigation"><h3>Navigation</h3><div class="footer-links"><a href="index.html">Home</a><a href="verein.html">Verein</a><a href="tracks.html">Strecken</a><a href="termine.html">Termine</a><a href="reglement.html">Reglement</a><a href="ergebnisse.html">Ergebnisse</a><a href="mitglied-werden.html">Mitglied werden</a><a href="kontakt.html">Kontakt</a></div></div><div class="footer-legal"><h3>Rechtliches</h3><div class="footer-links"><a href="impressum.html">Impressum</a><a href="datenschutz.html">Datenschutz</a><a href="haftungsausschluss.html">Haftungsausschluss</a></div></div></div><div class="footer-bottom">© 2026 RC Bande Zwickau e.V. · Alle Rechte vorbehalten</div></footer>
 
 
 <script>
 
-    function toggleMenu() {
-
-        document
-            .getElementById("main-nav")
-            .classList
-            .toggle("open");
-
-    }
+    function toggleMenu() { const nav=document.getElementById("main-nav"); const button=document.querySelector(".menu-button"); if(!nav||!button)return; const isOpen=nav.classList.toggle("open"); button.setAttribute("aria-expanded",String(isOpen)); button.setAttribute("aria-label",isOpen?"Menü schließen":"Menü öffnen"); }
 
 </script>
 

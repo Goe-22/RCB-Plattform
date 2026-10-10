@@ -106,6 +106,14 @@ try {
         published INTEGER NOT NULL DEFAULT 0,
         uploaded_at TEXT DEFAULT CURRENT_TIMESTAMP
     )");
+    $db->exec("CREATE TABLE IF NOT EXISTS results (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_id INTEGER,
+        title TEXT NOT NULL,
+        content TEXT DEFAULT '',
+        published INTEGER NOT NULL DEFAULT 0,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )");
     $db->exec("CREATE TABLE IF NOT EXISTS logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
@@ -386,6 +394,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 redirect_to('media', 'Bild gelöscht');
             }
+            if ($action === 'save_result') {
+                $id = (int)($_POST['id'] ?? 0);
+                $title = post_string('title', 180);
+                $content = post_string('content', 12000);
+                $eventId = (int)($_POST['event_id'] ?? 0);
+                $published = isset($_POST['published']) ? 1 : 0;
+                if ($title === '') { throw new RuntimeException('Bitte einen Titel für das Ergebnis eingeben.'); }
+                if ($eventId > 0) {
+                    $check = $db->prepare('SELECT COUNT(*) FROM events WHERE id=?');
+                    $check->execute([$eventId]);
+                    if ((int)$check->fetchColumn() === 0) { $eventId = 0; }
+                }
+                if ($id > 0) {
+                    $db->prepare('UPDATE results SET event_id=?, title=?, content=?, published=?, updated_at=CURRENT_TIMESTAMP WHERE id=?')->execute([$eventId ?: null,$title,$content,$published,$id]);
+                } else {
+                    $db->prepare('INSERT INTO results (event_id,title,content,published) VALUES (?,?,?,?)')->execute([$eventId ?: null,$title,$content,$published]);
+                }
+                log_action($db, $uid, 'result_saved', $title);
+                redirect_to('results', 'Ergebnis gespeichert');
+            }
+            if ($action === 'delete_result') {
+                $id = (int)($_POST['id'] ?? 0);
+                $db->prepare('DELETE FROM results WHERE id=?')->execute([$id]);
+                log_action($db, $uid, 'result_deleted', 'Ergebnis-ID ' . $id);
+                redirect_to('results', 'Ergebnis gelöscht');
+            }
             if ($action === 'save_settings') {
                 $allowed = ['site_name','site_description','contact_email','contact_phone','site_enabled'];
                 $stmt = $db->prepare('INSERT INTO settings (setting_key,setting_value) VALUES (?,?) ON CONFLICT(setting_key) DO UPDATE SET setting_value=excluded.setting_value, updated_at=CURRENT_TIMESTAMP');
@@ -460,12 +494,12 @@ function fetch_one(PDO $db, string $table, int $id): ?array {
 $editId = (int)($_GET['edit'] ?? 0);
 $editItem = null;
 if ($loggedIn && $editId > 0) {
-    $tableForEdit = ['events'=>'events','tracks'=>'tracks','sponsors'=>'sponsors','pages'=>'pages'][$page] ?? '';
+    $tableForEdit = ['events'=>'events','tracks'=>'tracks','sponsors'=>'sponsors','pages'=>'pages','results'=>'results'][$page] ?? '';
     if ($tableForEdit !== '') $editItem = fetch_one($db, $tableForEdit, $editId);
 }
 $counts = [];
 if ($loggedIn) {
-    foreach (['events'=>'Termine','tracks'=>'Strecken','sponsors'=>'Sponsoren','pages'=>'Seiten','users'=>'Benutzer','media'=>'Bilder'] as $table=>$label) {
+    foreach (['events'=>'Termine','tracks'=>'Strecken','sponsors'=>'Sponsoren','pages'=>'Seiten','users'=>'Benutzer','media'=>'Bilder','results'=>'Ergebnisse'] as $table=>$label) {
         $counts[$table] = (int)$db->query("SELECT COUNT(*) FROM {$table}")->fetchColumn();
     }
 }
@@ -512,7 +546,7 @@ if ($loggedIn) {
 <?php else: ?>
 <header class="admin-top"><div class="brand"><div class="brand-mark">RCB</div><div>RCB <span class="muted">/ Admin</span></div></div><div class="top-actions"><span class="user-label muted"><?= h($currentUser['username']) ?></span><form method="post" action="<?= h($script) ?>"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="logout"><button class="secondary" type="submit">Abmelden</button></form></div></header>
 <div class="shell"><aside class="sidebar"><div class="nav-label">Verwaltung</div><nav class="nav">
-<?php foreach (['dashboard'=>'▦ Übersicht','events'=>'▣ Termine','tracks'=>'⌁ Strecken','pages'=>'▤ Seiten','sponsors'=>'♧ Sponsoren','media'=>'▧ Bilder','settings'=>'⚙ Einstellungen','users'=>'♙ Benutzer','logs'=>'☷ Protokoll'] as $key=>$label): ?><a class="<?= $page === $key ? 'active' : '' ?>" href="<?= h($script) ?>?page=<?= h($key) ?>"><?= h($label) ?></a><?php endforeach; ?>
+<?php foreach (['dashboard'=>'▦ Übersicht','events'=>'▣ Termine','tracks'=>'⌁ Strecken','pages'=>'▤ Seiten','sponsors'=>'♧ Sponsoren','media'=>'▧ Bilder','results'=>'🏁 Ergebnisse','settings'=>'⚙ Einstellungen','users'=>'♙ Benutzer','logs'=>'☷ Protokoll'] as $key=>$label): ?><a class="<?= $page === $key ? 'active' : '' ?>" href="<?= h($script) ?>?page=<?= h($key) ?>"><?= h($label) ?></a><?php endforeach; ?>
 </nav><div class="footer">RCB Plattform<br>Verwaltungsbereich</div></aside>
 <main class="content">
 <?php if ($error !== ''): ?><div class="alert" role="alert"><?= h($error) ?></div><?php endif; ?>
@@ -536,6 +570,10 @@ if ($loggedIn) {
 <?php elseif ($page === 'pages'): ?>
 <?php $item=$editItem ?: ['id'=>0,'slug'=>'','title'=>'','content'=>'','published'=>0]; $rows=$db->query('SELECT * FROM pages ORDER BY title')->fetchAll(); ?>
 <div class="page-head"><div><p class="eyebrow">Verwaltung</p><h1>Seiteninhalte</h1><p>Texte als Entwurf speichern oder als veröffentlicht markieren. Inhalte werden sicher als Text gespeichert.</p></div></div><div class="columns"><section class="card"><h2><?= $editItem?'Seite bearbeiten':'Seite anlegen' ?></h2><form class="stack" method="post"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="save_page"><input type="hidden" name="id" value="<?= (int)$item['id'] ?>"><label for="title">Seitentitel *</label><input id="title" name="title" required maxlength="180" value="<?= h($item['title']) ?>"><label for="slug">Seitenkennung *</label><input id="slug" name="slug" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" maxlength="80" placeholder="z. B. verein" value="<?= h($item['slug']) ?>"><label for="content">Textinhalt</label><textarea id="content" name="content" maxlength="20000"><?= h($item['content']) ?></textarea><p class="hint">HTML wird aus Sicherheitsgründen nicht ausgeführt. Veröffentlichte Seiteninhalte können öffentlich über /seite.php?slug=SEITENKENNUNG aufgerufen werden.</p><label class="check"><input type="checkbox" name="published" value="1"<?= checked($item['published']) ?>> Veröffentlicht markieren</label><div class="form-actions"><button type="submit">Speichern</button><?php if($editItem): ?><a class="button secondary" href="<?= h($script) ?>?page=pages">Abbrechen</a><?php endif; ?></div></form></section><section class="card"><h2>Angelegte Seiten</h2><div class="table-wrap"><table class="table"><thead><tr><th>Seite</th><th>Status</th><th>Aktion</th></tr></thead><tbody><?php foreach($rows as $row): ?><tr><td><strong><?= h($row['title']) ?></strong><br><span class="muted">/<?= h($row['slug']) ?></span></td><td><span class="badge <?= $row['published']?'yes':'no' ?>"><?= $row['published']?'Veröffentlicht':'Entwurf' ?></span></td><td class="actions"><a class="button secondary" href="<?= h($script) ?>?page=pages&amp;edit=<?= (int)$row['id'] ?>">Bearbeiten</a><form method="post" onsubmit="return confirm('Diese Seite wirklich löschen?')"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="delete_page"><input type="hidden" name="id" value="<?= (int)$row['id'] ?>"><button class="danger" type="submit">Löschen</button></form></td></tr><?php endforeach; ?><?php if(!$rows): ?><tr><td colspan="3" class="empty">Noch keine Seiten angelegt.</td></tr><?php endif; ?></tbody></table></div></section></div>
+<?php elseif ($page === 'results'): ?>
+<?php $item=$editItem ?: ['id'=>0,'event_id'=>0,'title'=>'','content'=>'','published'=>0]; $rows=$db->query('SELECT r.*, e.title AS event_title FROM results r LEFT JOIN events e ON e.id=r.event_id ORDER BY r.updated_at DESC, r.id DESC')->fetchAll(); $eventOptions=$db->query('SELECT id,title,event_date FROM events ORDER BY event_date DESC,id DESC')->fetchAll(); ?>
+<div class="page-head"><div><p class="eyebrow">Rennbetrieb</p><h1>Ergebnisse</h1><p>Ergebnislisten und Rennberichte veröffentlichen. Platzierungen können als Text eingefügt werden.</p></div></div>
+<div class="columns"><section class="card"><h2><?= $editItem?'Ergebnis bearbeiten':'Ergebnis anlegen' ?></h2><form class="stack" method="post"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="save_result"><input type="hidden" name="id" value="<?= (int)$item['id'] ?>"><label for="title">Titel *</label><input id="title" name="title" required maxlength="180" value="<?= h($item['title']) ?>"><label for="event_id">Veranstaltung (optional)</label><select id="event_id" name="event_id"><option value="0">Keine Veranstaltung verknüpfen</option><?php foreach($eventOptions as $ev): ?><option value="<?= (int)$ev['id'] ?>"<?= (int)$item['event_id']===(int)$ev['id']?' selected':'' ?>><?= h($ev['title']) ?><?= $ev['event_date'] ? ' – '.h($ev['event_date']) : '' ?></option><?php endforeach; ?></select><label for="content">Ergebnis / Rennbericht</label><textarea id="content" name="content" maxlength="12000" rows="10" placeholder="Zum Beispiel: Platzierung, Fahrer, Runden oder Rennbericht"><?= h($item['content']) ?></textarea><p class="hint">Text wird sicher als Text ausgegeben. HTML oder Tabellen-Markup werden nicht ausgeführt.</p><label class="check"><input type="checkbox" name="published" value="1"<?= checked($item['published']) ?>> Veröffentlichen</label><div class="form-actions"><button type="submit">Ergebnis speichern</button><?php if($editItem): ?><a class="button secondary" href="<?= h($script) ?>?page=results">Abbrechen</a><?php endif; ?></div></form></section><section class="card"><h2>Gespeicherte Ergebnisse</h2><div class="table-wrap"><table class="table"><thead><tr><th>Ergebnis</th><th>Status</th><th>Aktion</th></tr></thead><tbody><?php foreach($rows as $row): ?><tr><td><strong><?= h($row['title']) ?></strong><br><span class="muted"><?= h($row['event_title'] ?: 'Ohne Veranstaltung') ?></span></td><td><span class="badge <?= $row['published']?'yes':'no' ?>"><?= $row['published']?'Veröffentlicht':'Entwurf' ?></span></td><td class="actions"><a class="button secondary" href="<?= h($script) ?>?page=results&amp;edit=<?= (int)$row['id'] ?>">Bearbeiten</a><form method="post" onsubmit="return confirm('Dieses Ergebnis löschen?')"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="delete_result"><input type="hidden" name="id" value="<?= (int)$row['id'] ?>"><button class="danger" type="submit">Löschen</button></form></td></tr><?php endforeach; ?><?php if(!$rows): ?><tr><td colspan="3" class="empty">Noch keine Ergebnisse angelegt.</td></tr><?php endif; ?></tbody></table></div></section></div>
 <?php elseif ($page === 'media'): ?>
 <?php $rows=$db->query('SELECT * FROM media ORDER BY uploaded_at DESC, id DESC')->fetchAll(); ?>
 <div class="page-head"><div><p class="eyebrow">Medien</p><h1>Bilderverwaltung</h1><p>Bilder für Galerie und spätere Einbindung in die Vereinsseiten hochladen.</p></div></div>

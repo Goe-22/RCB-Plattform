@@ -243,6 +243,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } elseif (!empty($_SESSION['admin_user_id'])) {
         $uid = (int)$_SESSION['admin_user_id'];
+        if ($action === 'backup_export') {
+            // Authenticated, CSRF-protected SQL export. Restore only into a fresh database.
+            log_action($db, $uid, 'database_backup_downloaded', 'SQL-Datenbankexport heruntergeladen');
+            $tables = $db->query("SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND sql IS NOT NULL ORDER BY name")->fetchAll();
+            $dump = "-- RC Bande Zwickau Datenbank-Backup\n-- Erstellt: " . date(DATE_ATOM) . "\n-- Import nur in eine frische/leere SQLite-Datenbank.\n";
+            $dump .= "PRAGMA foreign_keys=OFF;\nBEGIN TRANSACTION;\n";
+            foreach ($tables as $table) {
+                $tableName = (string)$table['name'];
+                $quotedTable = '"' . str_replace('"', '""', $tableName) . '"';
+                $dump .= "\n" . rtrim((string)$table['sql'], ';') . ";\n";
+                $columns = $db->query('PRAGMA table_info(' . $quotedTable . ')')->fetchAll();
+                $columnNames = array_column($columns, 'name');
+                if (!$columnNames) { continue; }
+                $quotedColumns = array_map(static fn($name) => '"' . str_replace('"', '""', (string)$name) . '"', $columnNames);
+                $rows = $db->query('SELECT * FROM ' . $quotedTable);
+                while ($row = $rows->fetch(PDO::FETCH_NUM)) {
+                    $values = array_map(static fn($value) => $value === null ? 'NULL' : $db->quote((string)$value), $row);
+                    $dump .= 'INSERT INTO ' . $quotedTable . ' (' . implode(', ', $quotedColumns) . ') VALUES (' . implode(', ', $values) . ");\n";
+                }
+            }
+            $dump .= "\nCOMMIT;\nPRAGMA foreign_keys=ON;\n";
+            header('Content-Type: application/sql; charset=UTF-8');
+            header('Content-Disposition: attachment; filename="rcb-backup-' . date('Ymd-His') . '.sql"');
+            header('Content-Length: ' . strlen($dump));
+            echo $dump;
+            exit;
+        }
         if ($action === 'logout') {
             log_action($db, $uid, 'logout', 'Abmeldung');
             $_SESSION = [];
@@ -559,7 +586,7 @@ if ($loggedIn) {
 <?php else: ?>
 <header class="admin-top"><div class="brand"><div class="brand-mark">RCB</div><div>RCB <span class="muted">/ Admin</span></div></div><div class="top-actions"><span class="user-label muted"><?= h($currentUser['username']) ?></span><form method="post" action="<?= h($script) ?>"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="logout"><button class="secondary" type="submit">Abmelden</button></form></div></header>
 <div class="shell"><aside class="sidebar"><div class="nav-label">Verwaltung</div><nav class="nav">
-<?php foreach (['dashboard'=>'▦ Übersicht','events'=>'▣ Termine','tracks'=>'⌁ Strecken','pages'=>'▤ Seiten','sponsors'=>'♧ Sponsoren','media'=>'▧ Bilder','results'=>'🏁 Ergebnisse','settings'=>'⚙ Einstellungen','users'=>'♙ Benutzer','logs'=>'☷ Protokoll'] as $key=>$label): ?><a class="<?= $page === $key ? 'active' : '' ?>" href="<?= h($script) ?>?page=<?= h($key) ?>"><?= h($label) ?></a><?php endforeach; ?>
+<?php foreach (['dashboard'=>'▦ Übersicht','events'=>'▣ Termine','tracks'=>'⌁ Strecken','pages'=>'▤ Seiten','sponsors'=>'♧ Sponsoren','media'=>'▧ Bilder','results'=>'🏁 Ergebnisse','backup'=>'⬇ Datenbank-Backup','settings'=>'⚙ Einstellungen','users'=>'♙ Benutzer','logs'=>'☷ Protokoll'] as $key=>$label): ?><a class="<?= $page === $key ? 'active' : '' ?>" href="<?= h($script) ?>?page=<?= h($key) ?>"><?= h($label) ?></a><?php endforeach; ?>
 </nav><div class="footer">RCB Plattform<br>Verwaltungsbereich</div></aside>
 <main class="content">
 <?php if ($error !== ''): ?><div class="alert" role="alert"><?= h($error) ?></div><?php endif; ?>
@@ -567,7 +594,10 @@ if ($loggedIn) {
 <?php if ($page === 'dashboard'): ?>
 <div class="page-head"><div><p class="eyebrow">Übersicht</p><h1>Willkommen, <?= h($currentUser['username']) ?>!</h1><p>Hier verwaltest du die Inhalte der RC Bande Zwickau.</p></div></div>
 <div class="grid"><?php foreach (['events'=>'Termine','tracks'=>'Strecken','pages'=>'Seiten','sponsors'=>'Sponsoren','users'=>'Benutzer'] as $key=>$label): ?><a class="card" href="<?= h($script) ?>?page=<?= h($key) ?>"><div class="stat"><?= (int)$counts[$key] ?></div><div class="stat-label"><?= h($label) ?> angelegt</div></a><?php endforeach; ?></div>
-<div class="tiles"><?php foreach (['events'=>['📅','Termine','Veranstaltungen anlegen und bearbeiten.'],'tracks'=>['🏁','Strecken','Onroad- und Offroad-Strecken pflegen.'],'results'=>['🏆','Ergebnisse','Rennberichte veröffentlichen.'],'media'=>['🖼️','Bilder','Bilder hochladen und für die Galerie freigeben.'],'pages'=>['📄','Vereinsseiten','Texte und Veröffentlichungsstatus verwalten.'],'sponsors'=>['🤝','Sponsoren','Sponsoren und Weblinks eintragen.'],'settings'=>['⚙️','Einstellungen','Name, Kontakt, Wartungsmodus und Live-Anzeige.'],'users'=>['🔐','Benutzer','Adminzugänge verwalten.']] as $key=>$tile): ?><a class="tile" href="<?= h($script) ?>?page=<?= h($key) ?>"><div class="tile-icon"><?= $tile[0] ?></div><h2><?= h($tile[1]) ?></h2><p><?= h($tile[2]) ?></p></a><?php endforeach; ?></div>
+<div class="tiles"><?php foreach (['events'=>['📅','Termine','Veranstaltungen anlegen und bearbeiten.'],'tracks'=>['🏁','Strecken','Onroad- und Offroad-Strecken pflegen.'],'results'=>['🏆','Ergebnisse','Rennberichte veröffentlichen.'],'media'=>['🖼️','Bilder','Bilder hochladen und für die Galerie freigeben.'],'pages'=>['📄','Vereinsseiten','Texte und Veröffentlichungsstatus verwalten.'],'sponsors'=>['🤝','Sponsoren','Sponsoren und Weblinks eintragen.'],'settings'=>['⚙️','Einstellungen','Name, Kontakt, Wartungsmodus und Live-Anzeige.'],'users'=>['🔐','Benutzer','Adminzugänge verwalten.'],'backup'=>['⬇️','Datenbank-Backup','SQL-Export der Plattformdaten herunterladen.']] as $key=>$tile): ?><a class="tile" href="<?= h($script) ?>?page=<?= h($key) ?>"><div class="tile-icon"><?= $tile[0] ?></div><h2><?= h($tile[1]) ?></h2><p><?= h($tile[2]) ?></p></a><?php endforeach; ?></div>
+<?php elseif ($page === 'backup'): ?>
+<div class="page-head"><div><p class="eyebrow">Datensicherung</p><h1>Datenbank-Backup</h1><p>Erstelle einen SQL-Export deiner Vereinsplattform.</p></div></div>
+<section class="card"><h2>Backup herunterladen</h2><p>Der Export enthält Tabellenstruktur und gespeicherte Daten der SQLite-Datenbank. Die Datei wird direkt erzeugt und nicht öffentlich auf dem Webserver abgelegt.</p><div class="notice">Wichtig: Bewahre die Datei sicher auf, da sie personenbezogene Verwaltungsdaten und Zugangsdaten-Hashes enthalten kann. Ein Import ist nur in eine frische/leere SQLite-Datenbank vorgesehen. Die Wiederherstellung erfolgt über den Hosting-Anbieter oder eine lokale SQLite-Umgebung; es gibt bewusst keinen öffentlich erreichbaren Restore-Upload.</div><form method="post" class="stack" style="margin-top:18px"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="backup_export"><button type="submit">SQL-Backup herunterladen</button></form></section>
 <?php elseif ($page === 'events'): ?>
 <?php $item = $editItem ?: ['id'=>0,'title'=>'','description'=>'','event_date'=>'','start_time'=>'','location'=>'','published'=>0]; $rows=$db->query('SELECT * FROM events ORDER BY event_date DESC, id DESC')->fetchAll(); ?>
 <div class="page-head"><div><p class="eyebrow">Verwaltung</p><h1>Termine</h1><p>Veranstaltungen und Renntermine verwalten.</p></div></div>

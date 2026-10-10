@@ -11,7 +11,7 @@ Interne Links sind relativ aufgebaut, damit die Website auch unter dem GitHub-Pa
 ## PHP-Plattform / Adminbereich
 Der PHP-Adminbereich liegt unter `public/admin/index.php`. Er benötigt PHP 8.3+, PDO SQLite, fileinfo und Schreibrechte für `storage/` sowie `public/uploads/`. **GitHub Pages führt PHP nicht aus.** Der Adminbereich ist daher nicht auf der GitHub-Pages-Adresse nutzbar. Für den vollständigen Betrieb der dynamischen Plattform ist ein PHP-fähiges Hosting mit `public/` als DocumentRoot erforderlich.
 
-Die statische GitHub-Pages-Website und die PHP-Plattform sind derzeit getrennte Auslieferungswege. Änderungen, die im PHP-Adminbereich gespeichert werden, aktualisieren die statischen HTML-Seiten auf GitHub Pages nicht automatisch.
+Der Adminbereich bietet einen CSRF-geschützten SQL-Export der SQLite-Datenbank. Backups enthalten vertrauliche Daten und müssen sicher aufbewahrt werden; ein Web-Upload zur Wiederherstellung ist bewusst nicht vorgesehen.\n\nDie statische GitHub-Pages-Website und die PHP-Plattform sind derzeit getrennte Auslieferungswege. Änderungen, die im PHP-Adminbereich gespeichert werden, aktualisieren die statischen HTML-Seiten auf GitHub Pages nicht automatisch.
 
 ## Vor dem öffentlichen Vereinsbetrieb noch zu ergänzen
 - Offizielle Anschrift, Vertretungsberechtigte, Kontakt-E-Mail und Vereinsregisterdaten

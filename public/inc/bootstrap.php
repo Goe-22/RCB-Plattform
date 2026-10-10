@@ -80,7 +80,7 @@ function rcb_header(string $active = 'home'): void
     echo '<meta name="description" content="' . rcb_h(rcb_setting('site_description', 'RC-Modellsport in Zwickau')) . '">';
     echo '<link rel="stylesheet" href="/assets/css/style.css">';
     echo '<style>
-    .rcb-wrap{width:min(100% - 32px,1200px);margin:0 auto}
+    main{padding:0}.rcb-wrap{width:min(100% - 32px,1200px);margin:0 auto}
     .rcb-hero{padding:clamp(64px,10vw,130px) 20px;background:linear-gradient(125deg,#041d3a,#0d4777);color:#fff;text-align:center}
     .rcb-hero-inner{max-width:850px;margin:auto}.rcb-hero h1{font-size:clamp(2.1rem,5vw,4rem);line-height:1.12;margin:0 0 20px}
     .rcb-hero p{font-size:clamp(1rem,2vw,1.25rem);line-height:1.7}

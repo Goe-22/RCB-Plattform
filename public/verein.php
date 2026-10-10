@@ -2,7 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/inc/bootstrap.php';
 $custom = rcb_rows("SELECT title, content FROM pages WHERE slug = 'verein' AND published = 1 LIMIT 1");
-rcb_header();
+rcb_header('club');
 ?>
 <section class="rcb-hero"><div class="rcb-hero-inner"><h1>Unser Verein</h1><p>Gemeinsam fahren, gemeinsam lernen und die Begeisterung für RC-Modellsport in Zwickau teilen.</p></div></section>
 <section class="rcb-section"><div class="rcb-wrap">

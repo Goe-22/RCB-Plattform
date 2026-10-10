@@ -68,6 +68,12 @@ function rcb_date(?string $date, bool $withYear = true): string
 function rcb_header(string $active = 'home'): void
 {
     $siteName = rcb_setting('site_name', 'RC Bande Zwickau e.V.');
+    if (rcb_setting('site_enabled', '1') === '0') {
+        http_response_code(503);
+        header('Retry-After: 3600');
+        echo '<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Wartungsarbeiten · ' . rcb_h($siteName) . '</title><style>body{font:16px/1.6 Arial,sans-serif;background:#f3f6f9;color:#1d2733;display:grid;min-height:100vh;place-items:center;margin:0;padding:20px}.box{max-width:620px;background:white;border-radius:14px;padding:clamp(24px,6vw,48px);box-shadow:0 8px 35px #062b5518}h1{color:#062b55}</style></head><body><main class="box"><h1>Wir sind gleich zurück.</h1><p>Die Webseite wird gerade gewartet. Bitte versuche es später erneut.</p><p><strong>' . rcb_h($siteName) . '</strong></p></main></body></html>';
+        exit;
+    }
     $links = [
         'home' => ['Startseite', '/'],
         'club' => ['Verein', '/verein.php'],

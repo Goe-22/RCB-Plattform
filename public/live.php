@@ -2,7 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/inc/bootstrap.php';
 $enabled = rcb_setting('live_enabled', '0') === '1';
-rcb_header();
+rcb_header('live');
 ?>
 <section class="rcb-hero"><div class="rcb-hero-inner"><h1>Live-Timing</h1><p>Rundenzeiten und Rennstände – direkt von der Zeitnahme, sobald die Schnittstelle eingerichtet ist.</p></div></section>
 <section class="rcb-section"><div class="rcb-wrap">

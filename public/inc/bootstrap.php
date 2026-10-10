@@ -135,6 +135,6 @@ function rcb_footer(): void
     if ($phone !== '') {
         echo '<p>Telefon: ' . rcb_h($phone) . '</p>';
     }
-    echo '<p><a href="/impressum.php">Impressum</a> · <a href="/datenschutz.php">Datenschutz</a></p>';
+    echo '<p><a href="/impressum.php">Impressum</a> · <a href="/datenschutz.php">Datenschutz</a> · <a href="/haftungsausschluss.php">Haftungsausschluss</a> · <a href="/downloads.php">Downloads</a></p>';
     echo '</footer></body></html>';
 }

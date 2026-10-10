@@ -70,8 +70,14 @@ function rcb_header(string $active = 'home'): void
     $siteName = rcb_setting('site_name', 'RC Bande Zwickau e.V.');
     $links = [
         'home' => ['Startseite', '/'],
+        'club' => ['Verein', '/verein.php'],
         'tracks' => ['Strecken', '/strecken.php'],
         'events' => ['Termine', '/termine.php'],
+        'rules' => ['Reglement', '/reglement.php'],
+        'results' => ['Ergebnisse', '/ergebnisse.php'],
+        'live' => ['Live-Timing', '/live.php'],
+        'join' => ['Mitglied werden', '/mitglied-werden.php'],
+        'contact' => ['Kontakt', '/kontakt.php'],
     ];
     echo '<!doctype html><html lang="de"><head><meta charset="utf-8">';
     echo '<meta name="viewport" content="width=device-width, initial-scale=1">';
@@ -110,10 +116,14 @@ function rcb_header(string $active = 'home'): void
 function rcb_footer(): void
 {
     $email = rcb_setting('contact_email');
+    $phone = rcb_setting('contact_phone');
     echo '</main><footer class="rcb-footer"><p><strong>' . rcb_h(rcb_setting('site_name', 'RC Bande Zwickau e.V.')) . '</strong></p>';
     if ($email !== '') {
         echo '<p><a href="mailto:' . rcb_h($email) . '">' . rcb_h($email) . '</a></p>';
     }
-    echo '<p><a href="/impressum.html">Impressum</a> · <a href="/datenschutz.html">Datenschutz</a></p>';
+    if ($phone !== '') {
+        echo '<p>Telefon: ' . rcb_h($phone) . '</p>';
+    }
+    echo '<p><a href="/impressum.php">Impressum</a> · <a href="/datenschutz.php">Datenschutz</a></p>';
     echo '</footer></body></html>';
 }

@@ -96,6 +96,16 @@ try {
         published INTEGER NOT NULL DEFAULT 0,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP
     )");
+    $db->exec("CREATE TABLE IF NOT EXISTS media (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        filename TEXT NOT NULL,
+        title TEXT DEFAULT '',
+        description TEXT DEFAULT '',
+        category TEXT DEFAULT 'gallery',
+        mime_type TEXT DEFAULT '',
+        published INTEGER NOT NULL DEFAULT 0,
+        uploaded_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )");
     $db->exec("CREATE TABLE IF NOT EXISTS logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
@@ -316,6 +326,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 log_action($db, $uid, 'page_deleted', 'Seiten-ID ' . $id);
                 redirect_to('pages', 'Seite gelöscht');
             }
+            if ($action === 'upload_media') {
+                if (!isset($_FILES['media_file']) || !is_array($_FILES['media_file'])) {
+                    throw new RuntimeException('Bitte eine Bilddatei auswählen.');
+                }
+                $file = $_FILES['media_file'];
+                if ((int)($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+                    throw new RuntimeException('Der Upload ist fehlgeschlagen. Bitte Datei und maximale Uploadgröße prüfen.');
+                }
+                if ((int)($file['size'] ?? 0) < 1 || (int)$file['size'] > 8 * 1024 * 1024) {
+                    throw new RuntimeException('Das Bild darf maximal 8 MB groß sein.');
+                }
+                if (!is_uploaded_file((string)$file['tmp_name'])) {
+                    throw new RuntimeException('Die hochgeladene Datei wurde nicht akzeptiert.');
+                }
+                $finfo = new finfo(FILEINFO_MIME_TYPE);
+                $mime = (string)$finfo->file((string)$file['tmp_name']);
+                $extensions = ['image/jpeg'=>'jpg', 'image/png'=>'png', 'image/webp'=>'webp'];
+                if (!isset($extensions[$mime])) {
+                    throw new RuntimeException('Erlaubt sind nur JPG-, PNG- und WebP-Bilder.');
+                }
+                $imageInfo = @getimagesize((string)$file['tmp_name']);
+                if (!$imageInfo || (int)$imageInfo[0] < 1 || (int)$imageInfo[1] < 1) {
+                    throw new RuntimeException('Die Datei enthält kein gültiges Bild.');
+                }
+                $uploads = $root . '/public/uploads';
+                if (!is_dir($uploads) && !mkdir($uploads, 0755, true) && !is_dir($uploads)) {
+                    throw new RuntimeException('Der Upload-Ordner konnte nicht angelegt werden.');
+                }
+                $filename = bin2hex(random_bytes(16)) . '.' . $extensions[$mime];
+                if (!move_uploaded_file((string)$file['tmp_name'], $uploads . '/' . $filename)) {
+                    throw new RuntimeException('Das Bild konnte nicht gespeichert werden.');
+                }
+                $title = post_string('title', 180);
+                $description = post_string('description', 1000);
+                $published = isset($_POST['published']) ? 1 : 0;
+                try {
+                    $db->prepare('INSERT INTO media (filename,title,description,category,mime_type,published) VALUES (?,?,?,?,?,?)')
+                       ->execute([$filename, $title, $description, 'gallery', $mime, $published]);
+                } catch (Throwable $e) {
+                    @unlink($uploads . '/' . $filename);
+                    throw $e;
+                }
+                log_action($db, $uid, 'media_uploaded', $filename);
+                redirect_to('media', 'Bild hochgeladen');
+            }
+            if ($action === 'delete_media') {
+                $id = (int)($_POST['id'] ?? 0);
+                $stmt = $db->prepare('SELECT filename FROM media WHERE id=?');
+                $stmt->execute([$id]);
+                $file = $stmt->fetch();
+                if ($file) {
+                    $filename = basename((string)$file['filename']);
+                    if (preg_match('/^[a-f0-9]{32}\\.(jpg|png|webp)$/', $filename)) {
+                        @unlink($root . '/public/uploads/' . $filename);
+                    }
+                    $db->prepare('DELETE FROM media WHERE id=?')->execute([$id]);
+                    log_action($db, $uid, 'media_deleted', $filename);
+                }
+                redirect_to('media', 'Bild gelöscht');
+            }
             if ($action === 'save_settings') {
                 $allowed = ['site_name','site_description','contact_email','contact_phone','site_enabled'];
                 $stmt = $db->prepare('INSERT INTO settings (setting_key,setting_value) VALUES (?,?) ON CONFLICT(setting_key) DO UPDATE SET setting_value=excluded.setting_value, updated_at=CURRENT_TIMESTAMP');
@@ -395,7 +465,7 @@ if ($loggedIn && $editId > 0) {
 }
 $counts = [];
 if ($loggedIn) {
-    foreach (['events'=>'Termine','tracks'=>'Strecken','sponsors'=>'Sponsoren','pages'=>'Seiten','users'=>'Benutzer'] as $table=>$label) {
+    foreach (['events'=>'Termine','tracks'=>'Strecken','sponsors'=>'Sponsoren','pages'=>'Seiten','users'=>'Benutzer','media'=>'Bilder'] as $table=>$label) {
         $counts[$table] = (int)$db->query("SELECT COUNT(*) FROM {$table}")->fetchColumn();
     }
 }
@@ -407,6 +477,7 @@ if ($loggedIn) {
 <meta name="robots" content="noindex,nofollow">
 <title><?= $loggedIn ? 'Admin – ' . h($currentUser['username']) : 'Admin-Anmeldung' ?> | RC Bande Zwickau</title>
 <style>
+.media-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}.media-item{overflow:hidden;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}.media-item img{display:block;width:100%;height:160px;object-fit:cover;background:#111}.media-item-body{padding:12px}.media-item-body form{margin-top:10px}.media-item-body .hint{overflow-wrap:anywhere}
 :root{color-scheme:dark;--bg:#101114;--panel:#191b20;--panel2:#202229;--text:#f4f4f5;--muted:#a1a1aa;--line:#34363d;--red:#d71920;--red2:#b8141a;--green:#78dba9;--amber:#f6c76b}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}a{color:#ff8c91;text-decoration:none}a:hover{text-decoration:underline}button,input,textarea,select{font:inherit}button,.button{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 15px;border:0;border-radius:9px;background:var(--red);color:white;font-weight:750;cursor:pointer;text-decoration:none}button:hover,.button:hover{background:var(--red2);text-decoration:none}.button.secondary,button.secondary{background:#30323a;color:var(--text)}.button.danger,button.danger{background:#702126}.wrap{width:min(1400px,100%);margin:auto;padding:24px}.login-wrap{min-height:100vh;display:grid;place-items:center;padding:22px;background:radial-gradient(ellipse at top,rgba(215,25,32,.18),transparent 48%),var(--bg)}.login-card{width:min(100%,480px);padding:clamp(24px,5vw,42px);background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 24px 70px #0006}.brand-mark{display:grid;place-items:center;width:58px;height:58px;margin-bottom:20px;border-radius:14px;background:var(--red);font-weight:950;font-size:20px}.eyebrow{margin:0 0 6px;color:#ff8c91;font-size:12px;font-weight:850;letter-spacing:.14em;text-transform:uppercase}h1,h2,h3{line-height:1.2}h1{font-size:clamp(27px,4vw,36px);margin:0 0 10px}h2{font-size:20px;margin:0 0 12px}h3{font-size:16px;margin:0 0 10px}.muted,.intro{color:var(--muted)}.intro{margin:0 0 25px}form.stack{display:grid;gap:10px}label{display:block;font-size:13px;font-weight:750;margin:8px 0 5px}input,textarea,select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:9px;background:#101114;color:var(--text);outline:none}textarea{min-height:140px;resize:vertical}input:focus,textarea:focus,select:focus{border-color:var(--red);box-shadow:0 0 0 3px #d7192030}.check{display:flex;align-items:center;gap:9px;margin:12px 0;color:#dedee2}.check input{width:auto}.alert{margin:0 0 18px;padding:12px 14px;border:1px solid #7c3439;border-radius:9px;background:#381b1e;color:#ffdadd}.notice{margin:0 0 18px;padding:12px 14px;border:1px solid #286746;border-radius:9px;background:#142a20;color:#baf3d2}.admin-top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 24px;border-bottom:1px solid var(--line);background:#15161a;position:sticky;top:0;z-index:5}.brand{display:flex;align-items:center;gap:12px;font-weight:850}.brand .brand-mark{width:42px;height:42px;margin:0;border-radius:10px;font-size:15px}.top-actions{display:flex;align-items:center;gap:12px}.shell{display:grid;grid-template-columns:240px minmax(0,1fr);min-height:calc(100vh - 75px)}.sidebar{padding:20px 14px;border-right:1px solid var(--line);background:#15161a}.nav-label{padding:10px 12px;color:#777983;font-size:11px;letter-spacing:.12em;font-weight:850;text-transform:uppercase}.nav{display:grid;gap:4px}.nav a{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:9px;color:#d4d4d8}.nav a.active,.nav a:hover{background:#2a1a1d;color:#fff;text-decoration:none}.nav a.active{box-shadow:inset 3px 0 var(--red)}main.content{min-width:0;padding:clamp(18px,3vw,36px)}.page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:24px}.page-head p{margin:0;color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.card{min-width:0;padding:19px;border:1px solid var(--line);border-radius:13px;background:var(--panel)}.stat{font-size:30px;font-weight:850;letter-spacing:-.04em}.stat-label{color:var(--muted);font-size:13px}.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:20px}.tile{display:block;padding:20px;border:1px solid var(--line);border-radius:13px;background:var(--panel);color:var(--text)}.tile:hover{background:var(--panel2);border-color:#565963;text-decoration:none}.tile-icon{font-size:25px}.tile p{margin:5px 0 0;color:var(--muted);font-size:13px}.columns{display:grid;grid-template-columns:minmax(280px,.8fr) minmax(0,1.2fr);gap:18px;align-items:start}.table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse;font-size:14px}.table th,.table td{padding:11px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}.table th{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.05em}.table td.actions{white-space:nowrap}.table form{display:inline}.table .button,.table button{padding:6px 9px;font-size:12px}.badge{display:inline-block;padding:3px 8px;border-radius:20px;background:#30323a;color:#ddd;font-size:12px}.badge.yes{background:#183c2a;color:#a8f0c5}.badge.no{background:#3c2828;color:#f3b1b1}.form-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}.empty{padding:22px;color:var(--muted);text-align:center}.hint{color:var(--muted);font-size:12px}.footer{padding:20px 0;color:#777983;font-size:12px}@media(max-width:1000px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.columns{grid-template-columns:1fr}}@media(max-width:720px){.admin-top{padding:12px 15px}.top-actions .user-label{display:none}.shell{grid-template-columns:1fr}.sidebar{padding:10px;border-right:0;border-bottom:1px solid var(--line);overflow:auto}.nav{display:flex;gap:5px;width:max-content}.nav-label{display:none}.nav a{white-space:nowrap;padding:8px 10px;font-size:13px}.wrap{padding:14px}main.content{padding:20px 14px}.tiles{grid-template-columns:1fr 1fr}.page-head{display:block}.page-head .button{margin-top:14px}}@media(max-width:440px){.grid,.tiles{grid-template-columns:1fr}.login-card{padding:24px}}
 </style>
@@ -441,7 +512,7 @@ if ($loggedIn) {
 <?php else: ?>
 <header class="admin-top"><div class="brand"><div class="brand-mark">RCB</div><div>RCB <span class="muted">/ Admin</span></div></div><div class="top-actions"><span class="user-label muted"><?= h($currentUser['username']) ?></span><form method="post" action="<?= h($script) ?>"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="logout"><button class="secondary" type="submit">Abmelden</button></form></div></header>
 <div class="shell"><aside class="sidebar"><div class="nav-label">Verwaltung</div><nav class="nav">
-<?php foreach (['dashboard'=>'▦ Übersicht','events'=>'▣ Termine','tracks'=>'⌁ Strecken','pages'=>'▤ Seiten','sponsors'=>'♧ Sponsoren','settings'=>'⚙ Einstellungen','users'=>'♙ Benutzer','logs'=>'☷ Protokoll'] as $key=>$label): ?><a class="<?= $page === $key ? 'active' : '' ?>" href="<?= h($script) ?>?page=<?= h($key) ?>"><?= h($label) ?></a><?php endforeach; ?>
+<?php foreach (['dashboard'=>'▦ Übersicht','events'=>'▣ Termine','tracks'=>'⌁ Strecken','pages'=>'▤ Seiten','sponsors'=>'♧ Sponsoren','media'=>'▧ Bilder','settings'=>'⚙ Einstellungen','users'=>'♙ Benutzer','logs'=>'☷ Protokoll'] as $key=>$label): ?><a class="<?= $page === $key ? 'active' : '' ?>" href="<?= h($script) ?>?page=<?= h($key) ?>"><?= h($label) ?></a><?php endforeach; ?>
 </nav><div class="footer">RCB Plattform<br>Verwaltungsbereich</div></aside>
 <main class="content">
 <?php if ($error !== ''): ?><div class="alert" role="alert"><?= h($error) ?></div><?php endif; ?>
@@ -465,6 +536,11 @@ if ($loggedIn) {
 <?php elseif ($page === 'pages'): ?>
 <?php $item=$editItem ?: ['id'=>0,'slug'=>'','title'=>'','content'=>'','published'=>0]; $rows=$db->query('SELECT * FROM pages ORDER BY title')->fetchAll(); ?>
 <div class="page-head"><div><p class="eyebrow">Verwaltung</p><h1>Seiteninhalte</h1><p>Texte als Entwurf speichern oder als veröffentlicht markieren. Inhalte werden sicher als Text gespeichert.</p></div></div><div class="columns"><section class="card"><h2><?= $editItem?'Seite bearbeiten':'Seite anlegen' ?></h2><form class="stack" method="post"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="save_page"><input type="hidden" name="id" value="<?= (int)$item['id'] ?>"><label for="title">Seitentitel *</label><input id="title" name="title" required maxlength="180" value="<?= h($item['title']) ?>"><label for="slug">Seitenkennung *</label><input id="slug" name="slug" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" maxlength="80" placeholder="z. B. verein" value="<?= h($item['slug']) ?>"><label for="content">Textinhalt</label><textarea id="content" name="content" maxlength="20000"><?= h($item['content']) ?></textarea><p class="hint">HTML wird aus Sicherheitsgründen nicht ausgeführt. Veröffentlichte Seiteninhalte können öffentlich über /seite.php?slug=SEITENKENNUNG aufgerufen werden.</p><label class="check"><input type="checkbox" name="published" value="1"<?= checked($item['published']) ?>> Veröffentlicht markieren</label><div class="form-actions"><button type="submit">Speichern</button><?php if($editItem): ?><a class="button secondary" href="<?= h($script) ?>?page=pages">Abbrechen</a><?php endif; ?></div></form></section><section class="card"><h2>Angelegte Seiten</h2><div class="table-wrap"><table class="table"><thead><tr><th>Seite</th><th>Status</th><th>Aktion</th></tr></thead><tbody><?php foreach($rows as $row): ?><tr><td><strong><?= h($row['title']) ?></strong><br><span class="muted">/<?= h($row['slug']) ?></span></td><td><span class="badge <?= $row['published']?'yes':'no' ?>"><?= $row['published']?'Veröffentlicht':'Entwurf' ?></span></td><td class="actions"><a class="button secondary" href="<?= h($script) ?>?page=pages&amp;edit=<?= (int)$row['id'] ?>">Bearbeiten</a><form method="post" onsubmit="return confirm('Diese Seite wirklich löschen?')"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="delete_page"><input type="hidden" name="id" value="<?= (int)$row['id'] ?>"><button class="danger" type="submit">Löschen</button></form></td></tr><?php endforeach; ?><?php if(!$rows): ?><tr><td colspan="3" class="empty">Noch keine Seiten angelegt.</td></tr><?php endif; ?></tbody></table></div></section></div>
+<?php elseif ($page === 'media'): ?>
+<?php $rows=$db->query('SELECT * FROM media ORDER BY uploaded_at DESC, id DESC')->fetchAll(); ?>
+<div class="page-head"><div><p class="eyebrow">Medien</p><h1>Bilderverwaltung</h1><p>Bilder für Galerie und spätere Einbindung in die Vereinsseiten hochladen.</p></div></div>
+<div class="columns"><section class="card"><h2>Bild hochladen</h2><form class="stack" method="post" enctype="multipart/form-data"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="upload_media"><label for="media_file">Bilddatei *</label><input id="media_file" name="media_file" type="file" accept="image/jpeg,image/png,image/webp" required><p class="hint">JPG, PNG oder WebP · maximal 8 MB. Bilder werden vor dem Speichern geprüft.</p><label for="title">Bildtitel</label><input id="title" name="title" maxlength="180" placeholder="z. B. Onroad-Strecke"><label for="description">Beschreibung / Alternativtext</label><textarea id="description" name="description" maxlength="1000" placeholder="Kurze Beschreibung des Bildes"></textarea><label class="check"><input type="checkbox" name="published" value="1"> In der öffentlichen Galerie veröffentlichen</label><div class="form-actions"><button type="submit">Bild hochladen</button></div></form></section>
+<section class="card"><h2>Vorhandene Bilder</h2><?php if ($rows): ?><div class="media-grid"><?php foreach($rows as $row): ?><article class="media-item"><img src="/uploads/<?= h(rawurlencode($row['filename'])) ?>" alt="<?= h($row['description'] ?: $row['title']) ?>"><div class="media-item-body"><strong><?= h($row['title'] ?: $row['filename']) ?></strong><p class="muted"><?= h($row['description']) ?></p><span class="badge <?= $row['published']?'yes':'no' ?>"><?= $row['published']?'Veröffentlicht':'Entwurf' ?></span><p class="hint">/uploads/<?= h($row['filename']) ?></p><form method="post" onsubmit="return confirm('Dieses Bild und den Dateieintrag löschen?')"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="delete_media"><input type="hidden" name="id" value="<?= (int)$row['id'] ?>"><button class="danger" type="submit">Löschen</button></form></div></article><?php endforeach; ?></div><?php else: ?><p class="empty">Noch keine Bilder hochgeladen.</p><?php endif; ?></section></div>
 <?php elseif ($page === 'settings'): ?>
 <?php $settingRows=$db->query('SELECT setting_key,setting_value FROM settings')->fetchAll(); $settings=[]; foreach($settingRows as $sr){$settings[$sr['setting_key']]=$sr['setting_value'];} ?>
 <div class="page-head"><div><p class="eyebrow">System</p><h1>Einstellungen</h1><p>Grundlegende Angaben für die Plattform.</p></div></div><section class="card" style="max-width:760px"><form class="stack" method="post"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="save_settings"><label for="site_name">Name der Webseite</label><input id="site_name" name="site_name" maxlength="190" value="<?= h($settings['site_name']??'RC Bande Zwickau e.V.') ?>"><label for="site_description">Kurzbeschreibung</label><textarea id="site_description" name="site_description" maxlength="1000"><?= h($settings['site_description']??'') ?></textarea><label for="contact_email">Kontakt-E-Mail</label><input id="contact_email" name="contact_email" type="email" maxlength="190" value="<?= h($settings['contact_email']??'') ?>"><label for="contact_phone">Telefon</label><input id="contact_phone" name="contact_phone" maxlength="190" value="<?= h($settings['contact_phone']??'') ?>"><label class="check"><input type="checkbox" name="site_enabled" value="1"<?= checked($settings['site_enabled']??1) ?>> Webseite aktiv</label><div class="form-actions"><button type="submit">Einstellungen speichern</button></div></form><p class="hint">Name, Beschreibung und Kontaktangaben werden von den öffentlichen PHP-Seiten verwendet. Die Option „Webseite aktiv“ wird aktuell noch nicht als Wartungssperre erzwungen.</p></section>

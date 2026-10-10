@@ -348,6 +348,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!is_uploaded_file((string)$file['tmp_name'])) {
                     throw new RuntimeException('Die hochgeladene Datei wurde nicht akzeptiert.');
                 }
+                if (!class_exists('finfo')) {
+                    throw new RuntimeException('Für sichere Bild-Uploads muss die PHP-Erweiterung fileinfo aktiviert sein.');
+                }
                 $finfo = new finfo(FILEINFO_MIME_TYPE);
                 $mime = (string)$finfo->file((string)$file['tmp_name']);
                 $extensions = ['image/jpeg'=>'jpg', 'image/png'=>'png', 'image/webp'=>'webp'];

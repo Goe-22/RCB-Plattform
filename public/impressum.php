@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/inc/bootstrap.php';
-$custom = rcb_rows("SELECT title, content FROM pages WHERE slug = 'impressum' AND published = 1 LIMIT 1);
+$custom = rcb_rows("SELECT title, content FROM pages WHERE slug = 'impressum' AND published = 1 LIMIT 1");
 rcb_header();
 ?>
 <section class="rcb-section"><div class="rcb-wrap">

@@ -110,8 +110,7 @@
                 linear-gradient(
                     rgba(6,43,85,0.62),
                     rgba(6,43,85,0.78)
-                ),
-                url("public/assets/images/hero.jpg") center center / cover no-repeat;
+                ), #062b55;
 
             display: flex;
             align-items: center;
@@ -353,9 +352,7 @@
                 width: 100%;
             }
 
-            nav.active {
-                display: block;
-            }
+            
 
             .header-inner {
                 flex-wrap: wrap;
@@ -436,7 +433,7 @@
 
 <body>
 
-<header class="site-header"><div class="header-inner"><a href="index.html" class="logo-area"><span class="brand-mark" aria-hidden="true">RCB</span><span class="club-name">RC Bande Zwickau e.V.<small>Modellsport in Zwickau</small></span></a><button class="menu-button" type="button" aria-controls="main-nav" aria-expanded="false" onclick="toggleMenu()" aria-label="Menü öffnen">☰</button><nav id="main-nav" aria-label="Hauptnavigation"><ul><li><a href="index.html">Home</a></li><li><a href="verein.html">Verein</a></li><li><a href="tracks.html">Strecken</a></li><li><a href="termine.html">Termine</a></li><li><a href="reglement.html">Reglement</a></li><li><a href="ergebnisse.html">Ergebnisse</a></li><li><a href="mitglied-werden.html">Mitglied werden</a></li><li><a href="kontakt.html">Kontakt</a></li></ul></nav></div></header>
+<header class="site-header"><div class="header-inner"><a href="index.html" class="logo-area"><span class="brand-mark" aria-hidden="true">RCB</span><span class="club-name">RC Bande Zwickau e.V.<small>Modellsport in Zwickau</small></span></a><button class="menu-button" type="button" aria-controls="main-nav" aria-expanded="false" onclick="toggleMenu()" aria-label="Menü öffnen">☰</button><nav id="main-nav" aria-label="Hauptnavigation"><ul><li><a href="index.html" aria-current="page">Home</a></li><li><a href="verein.html">Verein</a></li><li><a href="tracks.html">Strecken</a></li><li><a href="termine.html">Termine</a></li><li><a href="reglement.html">Reglement</a></li><li><a href="ergebnisse.html">Ergebnisse</a></li><li><a href="mitglied-werden.html">Mitglied werden</a></li><li><a href="kontakt.html">Kontakt</a></li></ul></nav></div></header>
 
 
 <!-- =========================
@@ -533,7 +530,7 @@
 
         <article class="track-card">
 
-            <img src="public/assets/images/hero.jpg" alt="Onroad Strecke">
+            <div class="image-placeholder" role="img" aria-label="Onroad Strecke"><span>Onroad-Foto folgt</span></div>
 
             <div class="track-content">
 
@@ -558,7 +555,7 @@
 
         <article class="track-card">
 
-            <img src="public/assets/images/hero.jpg" alt="Offroad Strecke">
+            <div class="image-placeholder" role="img" aria-label="Offroad Strecke"><span>Offroad-Foto folgt</span></div>
 
             <div class="track-content">
 

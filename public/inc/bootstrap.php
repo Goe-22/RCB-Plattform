@@ -96,6 +96,7 @@ function rcb_header(string $active = 'home'): void
     echo '<title>' . rcb_h($siteName) . '</title>';
     echo '<meta name="description" content="' . rcb_h(rcb_setting('site_description', 'RC-Modellsport in Zwickau')) . '">';
     echo '<link rel="stylesheet" href="/assets/css/style.css">';
+    echo '<script src="/assets/js/site.js" defer></script>';
     echo '<style>
     main{padding:0}.rcb-wrap{width:min(100% - 32px,1200px);margin:0 auto}
     .rcb-hero{padding:clamp(64px,10vw,130px) 20px;background:linear-gradient(125deg,#041d3a,#0d4777);color:#fff;text-align:center}
@@ -112,11 +113,13 @@ function rcb_header(string $active = 'home'): void
     .rcb-content{white-space:normal;overflow-wrap:anywhere;line-height:1.8}
     .rcb-footer{padding:26px 16px;background:#041d3a;color:#dce5ee;text-align:center}
     .rcb-footer a{color:#fff}.rcb-nav{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}.rcb-nav nav ul{flex-wrap:wrap;justify-content:flex-end}
-    @media(max-width:650px){.rcb-nav{align-items:flex-start}.rcb-nav nav ul{gap:8px;flex-wrap:wrap;justify-content:flex-end}.rcb-nav nav a{padding:6px 8px}}
+    .rcb-menu-button{display:none;border:1px solid rgba(255,255,255,.55);border-radius:7px;background:transparent;color:#fff;font-size:25px;line-height:1;padding:8px 11px;cursor:pointer}
+    @media(max-width:900px){.rcb-nav{align-items:center}.rcb-menu-button{display:block;margin-left:auto}.rcb-nav nav{display:none;flex-basis:100%;width:100%}.rcb-nav nav.open{display:block}.rcb-nav nav ul{display:flex;flex-direction:column;align-items:stretch;gap:2px}.rcb-nav nav a{padding:10px 12px}.rcb-nav nav a[aria-current="page"]{background:rgba(255,255,255,.14)}}
     </style></head><body>';
     echo '<header class="site-header"><div class="header-inner rcb-nav">';
     echo '<a class="logo-area" href="/" aria-label="Zur Startseite"><span class="brand-mark">' . $logoMarkup . '</span><span class="club-name">' . rcb_h($siteName) . '<small>RC-Modellsport in Zwickau</small></span></a>';
-    echo '<nav aria-label="Hauptnavigation"><ul>';
+    echo '<button class="rcb-menu-button" type="button" aria-controls="rcb-main-nav" aria-expanded="false" aria-label="Menü öffnen">☰</button>';
+    echo '<nav id="rcb-main-nav" aria-label="Hauptnavigation"><ul>';
     foreach ($links as $key => [$label, $url]) {
         $aria = $active === $key ? ' aria-current="page"' : '';
         echo '<li><a href="' . rcb_h($url) . '"' . $aria . '>' . rcb_h($label) . '</a></li>';

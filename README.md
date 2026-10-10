@@ -45,7 +45,9 @@ Es gibt kein fest eingebautes Standardpasswort. Zugangsdaten nicht in Git eintra
 
 ## Aktuelle Grenzen
 
-Die Admin-Daten werden in SQLite gespeichert. Die öffentlichen HTML-Seiten sind noch nicht vollständig mit diesen Daten verbunden; veröffentlichte Inhalte aus dem Adminbereich erscheinen daher nicht automatisch auf der öffentlichen Webseite. Medien-Upload, Datenbank-Backup/Restore und öffentliche Inhalte-Anbindung müssen vor einem produktiven Vereinsbetrieb noch ergänzt und getestet werden.
+Die Admin-Daten werden in SQLite gespeichert. Die öffentliche PHP-Startseite (`public/index.php`) liest veröffentlichte Termine, Strecken und Sponsoren aus derselben SQLite-Datenbank wie der Adminbereich. Unter `public/termine.php` werden kommende und vergangene veröffentlichte Veranstaltungen angezeigt, `public/strecken.php` zeigt freigegebene Strecken. Veröffentlichte Textseiten sind über `public/seite.php?slug=SEITENKENNUNG` erreichbar. Seitentexte werden als Klartext ausgegeben; HTML wird nicht ausgeführt. Name, Kurzbeschreibung und Kontakt-E-Mail aus den Einstellungen werden auf den öffentlichen PHP-Seiten verwendet.
+
+Noch offen vor einem produktiven Vereinsbetrieb: Medien-Upload und -Verwaltung, Datenbank-Backup/Restore, Durchsetzung der Wartungssperre für „Webseite aktiv“, Verknüpfung weiterer bestehender statischer HTML-Seiten sowie ein vollständiger Live-Test auf dem tatsächlichen PHP-Webhosting. Die Startseite nutzt derzeit bewusst eine textbasierte Hero-Fläche; echte Vereinsbilder und das Vereinslogo werden später ergänzt.
 
 ## Projektziele
 

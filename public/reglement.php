@@ -2,7 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/inc/bootstrap.php';
 $pages = rcb_rows("SELECT title, content FROM pages WHERE published = 1 AND slug IN ('reglement','reglement-onroad','reglement-offroad','reglement-veranstaltung') ORDER BY CASE slug WHEN 'reglement' THEN 0 WHEN 'reglement-onroad' THEN 1 WHEN 'reglement-offroad' THEN 2 ELSE 3 END");
-rcb_header();
+rcb_header('rules');
 ?>
 <section class="rcb-hero"><div class="rcb-hero-inner"><h1>Reglement & Hinweise</h1><p>Regeln dienen der Sicherheit, Fairness und einem guten Miteinander auf der Strecke.</p></div></section>
 <section class="rcb-section"><div class="rcb-wrap">

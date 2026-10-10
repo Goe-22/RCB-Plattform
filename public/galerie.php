@@ -2,7 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/inc/bootstrap.php';
 $images = rcb_rows("SELECT filename,title,description,uploaded_at FROM media WHERE published = 1 ORDER BY uploaded_at DESC, id DESC");
-rcb_header();
+rcb_header('gallery');
 ?>
 <section class="rcb-hero"><div class="rcb-hero-inner"><h1>Bildergalerie</h1><p>Einblicke in Strecken, Fahrzeuge und das Vereinsleben.</p></div></section>
 <section class="rcb-section"><div class="rcb-wrap">

@@ -512,12 +512,12 @@
 <script>
 
     function toggleMenu() {
-
-        document
-            .getElementById("main-nav")
-            .classList
-            .toggle("open");
-
+        const nav = document.getElementById("main-nav");
+        const button = document.querySelector(".menu-button");
+        if (!nav || !button) return;
+        const isOpen = nav.classList.toggle("open");
+        button.setAttribute("aria-expanded", String(isOpen));
+        button.setAttribute("aria-label", isOpen ? "Menü schließen" : "Menü öffnen");
     }
 
 </script>

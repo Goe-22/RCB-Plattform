@@ -32,7 +32,7 @@ Enthaltene Funktionen:
 
 **Wichtig:** GitHub ist hier der Quellcode-Speicher. GitHub Pages führt PHP nicht aus. Der Adminbereich funktioniert deshalb erst auf einem PHP-fähigen Webhosting. Empfohlen ist, `public/` als DocumentRoot einzustellen, damit Quellcode, Konfiguration und `storage/` nicht öffentlich ausgeliefert werden.
 
-Bei Hosting mit `public/` als DocumentRoot ist der Adminbereich unter `/admin/` erreichbar. Die alternative Datei `admin/index.php` ist nur für Hosting gedacht, bei dem das Repository-Hauptverzeichnis als DocumentRoot eingerichtet wurde. Vor einem Livebetrieb sollte ausschließlich HTTPS zugelassen werden.
+Bei Hosting mit `public/` als DocumentRoot ist der Adminbereich unter `/admin/` erreichbar. Für den vollständigen Betrieb der neuen Webseite muss `public/` der DocumentRoot sein; die Datei `admin/index.php` allein macht das Repository-Hauptverzeichnis nicht zu einer unterstützten vollständigen Installation. Vor einem Livebetrieb sollte ausschließlich HTTPS zugelassen werden.
 
 ## Ersteinrichtung
 

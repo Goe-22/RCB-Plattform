@@ -111,7 +111,7 @@ function rcb_header(string $active = 'home'): void
     .rcb-facts{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.rcb-facts span{padding:6px 10px;background:#f1f5f8;border-radius:6px;font-size:.9rem}
     .rcb-content{white-space:normal;overflow-wrap:anywhere;line-height:1.8}
     .rcb-footer{padding:26px 16px;background:#041d3a;color:#dce5ee;text-align:center}
-    .rcb-footer a{color:#fff}.rcb-nav{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}
+    .rcb-footer a{color:#fff}.rcb-nav{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}.rcb-nav nav ul{flex-wrap:wrap;justify-content:flex-end}
     @media(max-width:650px){.rcb-nav{align-items:flex-start}.rcb-nav nav ul{gap:8px;flex-wrap:wrap;justify-content:flex-end}.rcb-nav nav a{padding:6px 8px}}
     </style></head><body>';
     echo '<header class="site-header"><div class="header-inner rcb-nav">';

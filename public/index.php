@@ -6,9 +6,19 @@ $events = rcb_rows("SELECT * FROM events WHERE published = 1 AND (event_date IS 
 $tracks = rcb_rows("SELECT * FROM tracks WHERE published = 1 ORDER BY name ASC");
 $sponsors = rcb_rows("SELECT * FROM sponsors WHERE published = 1 ORDER BY name ASC");
 $intro = rcb_rows("SELECT title, content FROM pages WHERE slug = 'startseite' AND published = 1 LIMIT 1");
+$siteImages = rcb_rows("SELECT category, filename FROM media WHERE published = 1 AND category IN ('hero','onroad','offroad') ORDER BY uploaded_at DESC, id DESC");
+$mediaByCategory = [];
+foreach ($siteImages as $siteImage) {
+    if (!isset($mediaByCategory[$siteImage['category']])) {
+        $mediaByCategory[$siteImage['category']] = (string)$siteImage['filename'];
+    }
+}
+$heroStyle = isset($mediaByCategory['hero'])
+    ? "background-image:linear-gradient(125deg,rgba(4,29,58,.82),rgba(13,71,119,.70)),url('/uploads/" . rcb_h(rawurlencode($mediaByCategory['hero'])) . "');background-size:cover;background-position:center"
+    : '';
 rcb_header('home');
 ?>
-<section class="rcb-hero"><div class="rcb-hero-inner">
+<section class="rcb-hero"<?= $heroStyle !== '' ? ' style="' . rcb_h($heroStyle) . '"' : '' ?>><div class="rcb-hero-inner">
     <p class="rcb-pill">RC-Modellsport in Zwickau</p>
     <h1><?= rcb_h(rcb_setting('site_name', 'RC Bande Zwickau e.V.')) ?></h1>
     <p><?= rcb_h(rcb_setting('site_description', 'Herzlich willkommen bei der RC Bande Zwickau. Entdecke unsere Strecken, Veranstaltungen und das Vereinsleben.')) ?></p>
@@ -27,7 +37,8 @@ rcb_header('home');
     <p class="rcb-muted">Alle veröffentlichten Streckeninformationen auf einen Blick.</p>
     <?php if ($tracks): ?><div class="rcb-grid">
         <?php foreach ($tracks as $track): ?>
-        <article class="rcb-card"><div class="rcb-card-body">
+        <?php $trackCategory = stripos((string)$track['name'], 'onroad') !== false ? 'onroad' : (stripos((string)$track['name'], 'offroad') !== false ? 'offroad' : ''); $trackImage = $trackCategory !== '' ? ($mediaByCategory[$trackCategory] ?? '') : ''; ?>
+        <article class="rcb-card"><?php if ($trackImage !== ''): ?><img src="/uploads/<?= rcb_h(rawurlencode($trackImage)) ?>" alt="<?= rcb_h($track['name']) ?>" loading="lazy" style="display:block;width:100%;height:200px;object-fit:cover"><?php endif; ?><div class="rcb-card-body">
             <span class="rcb-pill"><?= rcb_h($track['surface'] ?: 'RC-Strecke') ?></span>
             <h3><?= rcb_h($track['name']) ?></h3>
             <?php if ($track['description'] !== ''): ?><p><?= nl2br(rcb_h($track['description'])) ?></p><?php endif; ?>

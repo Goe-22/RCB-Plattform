@@ -3,7 +3,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/inc/bootstrap.php';
 $email = rcb_setting('contact_email');
 $phone = rcb_setting('contact_phone');
-rcb_header();
+rcb_header('join');
 ?>
 <section class="rcb-hero"><div class="rcb-hero-inner"><h1>Mitglied werden</h1><p>Du möchtest regelmäßig fahren, den Verein kennenlernen oder dich im Vereinsleben einbringen? Wir freuen uns auf deine Anfrage.</p></div></section>
 <section class="rcb-section"><div class="rcb-wrap">

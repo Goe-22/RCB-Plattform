@@ -74,6 +74,10 @@ function rcb_header(string $active = 'home'): void
         echo '<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Wartungsarbeiten · ' . rcb_h($siteName) . '</title><style>body{font:16px/1.6 Arial,sans-serif;background:#f3f6f9;color:#1d2733;display:grid;min-height:100vh;place-items:center;margin:0;padding:20px}.box{max-width:620px;background:white;border-radius:14px;padding:clamp(24px,6vw,48px);box-shadow:0 8px 35px #062b5518}h1{color:#062b55}</style></head><body><main class="box"><h1>Wir sind gleich zurück.</h1><p>Die Webseite wird gerade gewartet. Bitte versuche es später erneut.</p><p><strong>' . rcb_h($siteName) . '</strong></p></main></body></html>';
         exit;
     }
+    $logoRows = rcb_rows("SELECT filename FROM media WHERE published = 1 AND category = 'logo' ORDER BY id DESC LIMIT 1");
+    $logoMarkup = !empty($logoRows[0]['filename'])
+        ? '<img src="/uploads/' . rcb_h(rawurlencode((string)$logoRows[0]['filename'])) . '" alt="Vereinslogo" style="width:48px;height:48px;object-fit:contain">'
+        : 'RCB';
     $links = [
         'home' => ['Startseite', '/'],
         'club' => ['Verein', '/verein.php'],
@@ -108,10 +112,10 @@ function rcb_header(string $active = 'home'): void
     .rcb-content{white-space:normal;overflow-wrap:anywhere;line-height:1.8}
     .rcb-footer{padding:26px 16px;background:#041d3a;color:#dce5ee;text-align:center}
     .rcb-footer a{color:#fff}.rcb-nav{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}
-    @media(max-width:650px){.rcb-nav{align-items:flex-start}.rcb-nav nav ul{gap:8px;flex-wrap:wrap}.rcb-nav nav a{padding:6px 8px}}
+    @media(max-width:650px){.rcb-nav{align-items:flex-start}.rcb-nav nav ul{gap:8px;flex-wrap:wrap;justify-content:flex-end}.rcb-nav nav a{padding:6px 8px}}
     </style></head><body>';
     echo '<header class="site-header"><div class="header-inner rcb-nav">';
-    echo '<a class="logo-area" href="/" aria-label="Zur Startseite"><span class="brand-mark">RCB</span><span class="club-name">' . rcb_h($siteName) . '<small>RC-Modellsport in Zwickau</small></span></a>';
+    echo '<a class="logo-area" href="/" aria-label="Zur Startseite"><span class="brand-mark">' . $logoMarkup . '</span><span class="club-name">' . rcb_h($siteName) . '<small>RC-Modellsport in Zwickau</small></span></a>';
     echo '<nav aria-label="Hauptnavigation"><ul>';
     foreach ($links as $key => [$label, $url]) {
         $aria = $active === $key ? ' aria-current="page"' : '';

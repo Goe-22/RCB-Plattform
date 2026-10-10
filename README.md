@@ -1,66 +1,24 @@
-# RC Bande Zwickau Plattform
+# RC Bande Zwickau e.V. – Website und Plattform
 
-## Entwicklungsstand
+## Öffentliche Website (GitHub Pages)
+Die statische Website liegt im Repository-Hauptverzeichnis und verwendet ein gemeinsames responsives Designsystem:
+- `assets/css/site.css` – Layout, Komponenten und mobile Darstellung
+- `assets/js/site.js` – zugängliche mobile Navigation
+- HTML-Seiten für Verein, Strecken, Termine, Ergebnisse, Reglement, Galerie, Downloads, Live-Timing, Kontakt und Rechtliches
 
-Die Plattform wird schrittweise von einer statischen Vereinswebseite zu einer PHP-Anwendung ausgebaut.
+Interne Links sind relativ aufgebaut, damit die Website auch unter dem GitHub-Pages-Projektpfad `/RCB-Plattform/` funktioniert. Die Website zeigt keine erfundenen Veranstaltungstermine oder Ergebnisse an. Bereiche ohne freigegebene Vereinsdaten sind entsprechend gekennzeichnet.
 
-## Adminbereich
+## PHP-Plattform / Adminbereich
+Der PHP-Adminbereich liegt unter `public/admin/index.php`. Er benötigt PHP 8.3+, PDO SQLite, fileinfo und Schreibrechte für `storage/` sowie `public/uploads/`. **GitHub Pages führt PHP nicht aus.** Der Adminbereich ist daher nicht auf der GitHub-Pages-Adresse nutzbar. Für den vollständigen Betrieb der dynamischen Plattform ist ein PHP-fähiges Hosting mit `public/` als DocumentRoot erforderlich.
 
-Der neue Adminbereich liegt unter `public/admin/index.php`. Bei Hosting mit dem Repository-Hauptverzeichnis als DocumentRoot kann alternativ `/admin/index.php` verwendet werden.
+Die statische GitHub-Pages-Website und die PHP-Plattform sind derzeit getrennte Auslieferungswege. Änderungen, die im PHP-Adminbereich gespeichert werden, aktualisieren die statischen HTML-Seiten auf GitHub Pages nicht automatisch.
 
-Enthaltene Funktionen:
+## Vor dem öffentlichen Vereinsbetrieb noch zu ergänzen
+- Offizielle Anschrift, Vertretungsberechtigte, Kontakt-E-Mail und Vereinsregisterdaten
+- Datenschutztext passend zum tatsächlich gewählten Hosting und allen eingesetzten Diensten
+- Bestätigte Streckenangaben, Trainingszeiten und Gastfahrer-Regeln
+- Freigegebene Fotos, Logo, Ausschreibungen und Ergebnisdateien
+- Anbindung und Test der eingesetzten Zeitnahme für Live-Timing
+- Browserprüfung auf der veröffentlichten GitHub-Pages-Adresse und Prüfung aller rechtlichen Angaben
 
-- Ersteinrichtung des ersten Administratorkontos mit selbst gewähltem Passwort
-- Anmeldung und Abmeldung mit regenerierter Session-ID
-- Passwort-Hashing über PHP `password_hash()` / Prüfung über `password_verify()`
-- CSRF-Token für Formularaktionen
-- Begrenzung wiederholter fehlgeschlagener Anmeldungen
-- Dashboard und Aktionsprotokoll
-- Anlegen, Bearbeiten und Löschen von Terminen, Strecken, Sponsoren, Ergebnissen und Inhaltsseiten
-- Bilderverwaltung mit JPG-/PNG-/WebP-Upload bis 8 MB, Zuordnung zu Galerie, Titelbild, Logo, Onroad, Offroad oder Veranstaltung sowie Veröffentlichungsstatus
-- Seiteneinstellungen, Wartungsmodus, Live-Timing-Status und Verwaltung weiterer Admin-Konten
-- Datenbankinitialisierung über SQLite/PDO
-- Responsive Oberfläche für Desktop und Mobilgeräte
-
-## Voraussetzungen für den Betrieb
-
-- PHP 8.3 oder neuer
-- PHP-Erweiterung PDO SQLite aktiviert
-- PHP-Erweiterung `fileinfo` für sichere Bild-Uploads
-- Schreibrechte für PHP auf das Verzeichnis `storage/` und den Ordner `public/uploads/`
-- HTTPS für den produktiven Betrieb
-
-**Wichtig:** GitHub ist hier der Quellcode-Speicher. GitHub Pages führt PHP nicht aus. Der Adminbereich funktioniert deshalb erst auf einem PHP-fähigen Webhosting. Empfohlen ist, `public/` als DocumentRoot einzustellen, damit Quellcode, Konfiguration und `storage/` nicht öffentlich ausgeliefert werden.
-
-Bei Hosting mit `public/` als DocumentRoot ist der Adminbereich unter `/admin/` erreichbar. Für den vollständigen Betrieb der neuen Webseite muss `public/` der DocumentRoot sein; die Datei `admin/index.php` allein macht das Repository-Hauptverzeichnis nicht zu einer unterstützten vollständigen Installation. Vor einem Livebetrieb sollte ausschließlich HTTPS zugelassen werden.
-
-## Ersteinrichtung
-
-1. Repository auf einen PHP-fähigen Webserver übertragen.
-2. DocumentRoot auf den Ordner `public/` setzen.
-3. PHP 8.3+ und PDO SQLite aktivieren.
-4. Schreibrechte für `storage/` einrichten; das Verzeichnis darf nicht öffentlich erreichbar sein.
-5. `https://DEINE-DOMAIN/admin/` öffnen.
-6. Beim ersten Aufruf einen Benutzernamen und ein einzigartiges Passwort mit mindestens 12 Zeichen festlegen.
-
-Es gibt kein fest eingebautes Standardpasswort. Zugangsdaten nicht in Git eintragen.
-
-## Aktuelle Grenzen
-
-Die Admin-Daten werden in SQLite gespeichert. Die öffentliche PHP-Startseite (`public/index.php`) liest veröffentlichte Termine, Strecken und Sponsoren aus derselben SQLite-Datenbank wie der Adminbereich. Unter `public/termine.php` werden kommende und vergangene veröffentlichte Veranstaltungen angezeigt, `public/strecken.php` zeigt freigegebene Strecken. Veröffentlichte Textseiten sind über `public/seite.php?slug=SEITENKENNUNG` erreichbar. Seitentexte werden als Klartext ausgegeben; HTML wird nicht ausgeführt. Name, Kurzbeschreibung und Kontakt-E-Mail aus den Einstellungen werden auf den öffentlichen PHP-Seiten verwendet.
-
-Der öffentliche Bereich enthält außerdem Vereinsinformationen, Reglement, Kontakt, Mitglied werden, Galerie, Live-Timing-Status, Ergebnisübersicht sowie Impressum und Datenschutzhinweise. Die Adminverwaltung bietet eine Ergebnisverwaltung und eine Medienverwaltung mit Bild-Upload (JPG, PNG, WebP bis 8 MB), Dateitypprüfung, zufälligen Dateinamen und Veröffentlichungsstatus. Freigegebene Bilder erscheinen in der öffentlichen Galerie. Der Schalter „Webseite aktiv“ aktiviert den Wartungsbildschirm für öffentliche PHP-Seiten; die Live-Timing-Einstellung steuert derzeit nur den angezeigten Status und stellt noch keine Zeitnahmeverbindung her.
-
-Noch offen vor einem produktiven Vereinsbetrieb: Datenbank-Backup/Restore, verbindliche Vereinsdaten und rechtlich geprüfte Texte für Impressum/Datenschutz, vollständige Integration der RCM-Ultimate-Zeitnahme sowie ein vollständiger Live-Test auf dem tatsächlichen PHP-Webhosting. Die Startseite nutzt derzeit bewusst eine textbasierte Hero-Fläche; echtes Vereinslogo und Streckenbilder können später im Adminbereich hochgeladen und in die Gestaltung eingebunden werden.
-
-## Projektziele
-
-- Vereinsseiten und Streckeninformationen
-- Veranstaltungen und Ergebnisse
-- Mediathek und Downloads
-- Live-Timing
-- Zeitnahmeprogramm und mobile Erweiterungen
-
-## Entwickler
-
-RC Bande Zwickau e.V.
+Die Seitenstruktur und Navigation sind vorbereitet; ein vollständiger Live-Test der veröffentlichten Website sowie der PHP-Plattform auf einem tatsächlichen Webhosting ist noch erforderlich.

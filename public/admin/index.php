@@ -133,7 +133,7 @@ function verify_csrf(): void {
 }
 function log_action(PDO $db, ?int $userId, string $action, string $details = ''): void {
     $stmt = $db->prepare('INSERT INTO logs (user_id, action, details) VALUES (?, ?, ?)');
-    $stmt->execute([$userId, $action, mb_substr($details, 0, 500)]);
+    $stmt->execute([$userId, $action, (function_exists('mb_substr') ? mb_substr($details, 0, 500) : substr($details, 0, 500))]);
 }
 function redirect_to(string $page = 'dashboard', string $notice = 'Gespeichert'): never {
     $script = (string)($_SERVER['SCRIPT_NAME'] ?? '/admin/index.php');
@@ -142,7 +142,7 @@ function redirect_to(string $page = 'dashboard', string $notice = 'Gespeichert')
 }
 function post_string(string $key, int $max = 5000): string {
     $value = trim((string)($_POST[$key] ?? ''));
-    return mb_substr($value, 0, $max);
+    return function_exists('mb_substr') ? mb_substr($value, 0, $max) : substr($value, 0, $max);
 }
 function checked(int|string|bool $value): string {
     return (int)$value === 1 ? ' checked' : '';

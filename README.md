@@ -4,7 +4,7 @@
 Die statische Website liegt im Repository-Hauptverzeichnis und verwendet ein gemeinsames responsives Designsystem:
 - `assets/css/site.css` – Layout, Komponenten und mobile Darstellung
 - `assets/js/site.js` – zugängliche mobile Navigation
-- HTML-Seiten für Verein, Strecken, Termine, Ergebnisse, Reglement, Galerie, Downloads, Live-Timing, Kontakt und Rechtliches
+- HTML-Seiten für Verein, Strecken, Termine, Ergebnisse, Reglement, Downloads, Live-Timing, Kontakt und Rechtliches
 
 Interne Links sind relativ aufgebaut, damit die Website auch unter dem GitHub-Pages-Projektpfad `/RCB-Plattform/` funktioniert. Die Website zeigt keine erfundenen Veranstaltungstermine oder Ergebnisse an. Bereiche ohne freigegebene Vereinsdaten sind entsprechend gekennzeichnet.
 

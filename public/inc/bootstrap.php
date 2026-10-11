@@ -83,7 +83,6 @@ function rcb_header(string $active = 'home'): void
         'club' => ['Verein', '/verein.php'],
         'tracks' => ['Strecken', '/strecken.php'],
         'events' => ['Termine', '/termine.php'],
-        'gallery' => ['Galerie', '/galerie.php'],
         'rules' => ['Reglement', '/reglement.php'],
         'results' => ['Ergebnisse', '/ergebnisse.php'],
         'live' => ['Live-Timing', '/live.php'],

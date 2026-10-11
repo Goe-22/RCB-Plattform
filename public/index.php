@@ -15,7 +15,7 @@ foreach ($siteImages as $siteImage) {
 }
 $heroStyle = isset($mediaByCategory['hero'])
     ? "background-image:linear-gradient(125deg,rgba(4,29,58,.82),rgba(13,71,119,.70)),url('/uploads/" . rcb_h(rawurlencode($mediaByCategory['hero'])) . "');background-size:cover;background-position:center"
-    : '';
+    : "background-image:linear-gradient(125deg,rgba(4,29,58,.72),rgba(13,71,119,.48)),url('/assets/images/startseite.jpg');background-size:cover;background-position:center";
 rcb_header('home');
 ?>
 <section class="rcb-hero"<?= $heroStyle !== '' ? ' style="' . rcb_h($heroStyle) . '"' : '' ?>><div class="rcb-hero-inner">
@@ -37,8 +37,8 @@ rcb_header('home');
     <p class="rcb-muted">Alle veröffentlichten Streckeninformationen auf einen Blick.</p>
     <?php if ($tracks): ?><div class="rcb-grid">
         <?php foreach ($tracks as $track): ?>
-        <?php $trackCategory = stripos((string)$track['name'], 'onroad') !== false ? 'onroad' : (stripos((string)$track['name'], 'offroad') !== false ? 'offroad' : ''); $trackImage = $trackCategory !== '' ? ($mediaByCategory[$trackCategory] ?? '') : ''; ?>
-        <article class="rcb-card"><?php if ($trackImage !== ''): ?><img src="/uploads/<?= rcb_h(rawurlencode($trackImage)) ?>" alt="<?= rcb_h($track['name']) ?>" loading="lazy" style="display:block;width:100%;height:200px;object-fit:cover"><?php endif; ?><div class="rcb-card-body">
+        <?php $trackCategory = stripos((string)$track['name'], 'onroad') !== false ? 'onroad' : (stripos((string)$track['name'], 'offroad') !== false ? 'offroad' : ''); $trackImage = $trackCategory !== '' ? ($mediaByCategory[$trackCategory] ?? '') : ''; $trackImageUrl = $trackImage !== '' ? '/uploads/' . rawurlencode($trackImage) : ($trackCategory !== '' ? '/assets/images/' . $trackCategory . '.jpg' : ''); ?>
+        <article class="rcb-card"><?php if ($trackImageUrl !== ''): ?><img class="rcb-card-image" src="<?= rcb_h($trackImageUrl) ?>" alt="<?= rcb_h($track['name']) ?>" loading="lazy"><?php endif; ?><div class="rcb-card-body">
             <span class="rcb-pill"><?= rcb_h($track['surface'] ?: 'RC-Strecke') ?></span>
             <h3><?= rcb_h($track['name']) ?></h3>
             <?php if ($track['description'] !== ''): ?><p><?= nl2br(rcb_h($track['description'])) ?></p><?php endif; ?>

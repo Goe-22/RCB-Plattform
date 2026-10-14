@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/inc/bootstrap.php';
 
+$news = rcb_rows("SELECT * FROM news WHERE published = 1 ORDER BY created_at DESC, id DESC LIMIT 3");
 $events = rcb_rows("SELECT * FROM events WHERE published = 1 AND (event_date IS NULL OR event_date = '' OR event_date >= date('now','localtime')) ORDER BY CASE WHEN event_date IS NULL OR event_date = '' THEN 1 ELSE 0 END, event_date ASC, start_time ASC LIMIT 3");
 $tracks = rcb_rows("SELECT * FROM tracks WHERE published = 1 ORDER BY name ASC");
 $sponsors = rcb_rows("SELECT * FROM sponsors WHERE published = 1 ORDER BY name ASC");
@@ -31,6 +32,22 @@ rcb_header('home');
     <div class="rcb-content"><?= nl2br(rcb_h($intro[0]['content'])) ?></div>
 </div></section>
 <?php endif; ?>
+
+<section class="rcb-section"><div class="rcb-wrap">
+    <h2>Neuigkeiten</h2>
+    <p class="rcb-muted">Aktuelle Informationen aus dem Verein.</p>
+    <?php if ($news): ?><div class="rcb-grid">
+        <?php foreach ($news as $item): ?>
+        <article class="rcb-card"><?php if ($item['image_url'] !== ''): ?><img class="rcb-card-image" src="<?= rcb_h($item['image_url']) ?>" alt="<?= rcb_h($item['title']) ?>" loading="lazy"><?php endif; ?><div class="rcb-card-body">
+            <span class="rcb-pill"><?= rcb_h(rcb_date(substr((string)$item['created_at'], 0, 10))) ?></span>
+            <h3><?= rcb_h($item['title']) ?></h3>
+            <?php if ($item['summary'] !== ''): ?><p><?= nl2br(rcb_h($item['summary'])) ?></p><?php endif; ?>
+            <a class="rcb-btn" href="/neuigkeiten.php?id=<?= (int)$item['id'] ?>">Weiterlesen</a>
+        </div></article>
+        <?php endforeach; ?>
+    </div><?php else: ?><div class="rcb-empty">Es gibt noch keine veröffentlichten Neuigkeiten.</div><?php endif; ?>
+    <a class="rcb-btn" href="/neuigkeiten.php">Alle Neuigkeiten</a>
+</div></section>
 
 <section class="rcb-section"><div class="rcb-wrap">
     <h2>Unsere Strecken</h2>

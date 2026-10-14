@@ -136,6 +136,16 @@ try {
         published INTEGER NOT NULL DEFAULT 0,
         updated_at TEXT DEFAULT CURRENT_TIMESTAMP
     )");
+    $db->exec("CREATE TABLE IF NOT EXISTS news (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        summary TEXT DEFAULT '',
+        content TEXT DEFAULT '',
+        image_url TEXT DEFAULT '',
+        published INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )");
     $db->exec("CREATE TABLE IF NOT EXISTS logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER,
@@ -189,7 +199,7 @@ function checked(int|string|bool $value): string {
 }
 function admin_permissions(array $user): array {
     $decoded = json_decode((string)($user['permissions'] ?? '[]'), true);
-    return is_array($decoded) ? array_values(array_intersect($decoded, ['events','tracks','pages','sponsors','media','results'])) : [];
+    return is_array($decoded) ? array_values(array_intersect($decoded, ['events','tracks','pages','sponsors','media','results','news'])) : [];
 }
 function admin_can(array $user, string $area): bool {
     if (($user['role'] ?? '') === 'superadmin') { return true; }
@@ -197,10 +207,10 @@ function admin_can(array $user, string $area): bool {
     return in_array($area, admin_permissions($user), true);
 }
 function admin_area_for_page(string $page): string {
-    return in_array($page, ['events','tracks','pages','sponsors','media','results'], true) ? $page : $page;
+    return in_array($page, ['events','tracks','pages','sponsors','media','results','news'], true) ? $page : $page;
 }
 function admin_area_for_action(string $action): string {
-    $map = ['save_event'=>'events','delete_event'=>'events','save_track'=>'tracks','delete_track'=>'tracks','save_page'=>'pages','delete_page'=>'pages','save_sponsor'=>'sponsors','delete_sponsor'=>'sponsors','upload_media'=>'media','delete_media'=>'media','save_result'=>'results','delete_result'=>'results','save_settings'=>'settings','create_user'=>'users','toggle_user'=>'users','delete_user'=>'users','backup_export'=>'backup'];
+    $map = ['save_event'=>'events','delete_event'=>'events','save_track'=>'tracks','delete_track'=>'tracks','save_page'=>'pages','delete_page'=>'pages','save_sponsor'=>'sponsors','delete_sponsor'=>'sponsors','upload_media'=>'media','delete_media'=>'media','save_result'=>'results','delete_result'=>'results','save_news'=>'news','delete_news'=>'news','save_settings'=>'settings','create_user'=>'users','toggle_user'=>'users','delete_user'=>'users','backup_export'=>'backup'];
     return $map[$action] ?? 'dashboard';
 }
 
@@ -472,6 +482,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 redirect_to('media', 'Bild gelöscht');
             }
+            if ($action === 'save_news') {
+                $id = (int)($_POST['id'] ?? 0);
+                $title = post_string('title', 180);
+                $summary = post_string('summary', 500);
+                $content = post_string('content', 30000);
+                $imageUrl = post_string('image_url', 1000);
+                $published = isset($_POST['published']) ? 1 : 0;
+                if ($title === '') { throw new RuntimeException('Bitte einen Titel für die Neuigkeit eingeben.'); }
+                if ($imageUrl !== '') {
+                    $scheme = strtolower((string)parse_url($imageUrl, PHP_URL_SCHEME));
+                    if (!filter_var($imageUrl, FILTER_VALIDATE_URL) || !in_array($scheme, ['http','https'], true)) {
+                        throw new RuntimeException('Bitte eine gültige Bildadresse mit http oder https eingeben.');
+                    }
+                }
+                if ($id > 0) {
+                    $db->prepare('UPDATE news SET title=?, summary=?, content=?, image_url=?, published=?, updated_at=CURRENT_TIMESTAMP WHERE id=?')->execute([$title,$summary,$content,$imageUrl,$published,$id]);
+                } else {
+                    $db->prepare('INSERT INTO news (title,summary,content,image_url,published) VALUES (?,?,?,?,?)')->execute([$title,$summary,$content,$imageUrl,$published]);
+                }
+                log_action($db, $uid, 'news_saved', $title);
+                redirect_to('news', 'Neuigkeit gespeichert');
+            }
+            if ($action === 'delete_news') {
+                $id = (int)($_POST['id'] ?? 0);
+                $db->prepare('DELETE FROM news WHERE id=?')->execute([$id]);
+                log_action($db, $uid, 'news_deleted', 'Neuigkeit-ID ' . $id);
+                redirect_to('news', 'Neuigkeit gelöscht');
+            }
             if ($action === 'save_result') {
                 $id = (int)($_POST['id'] ?? 0);
                 $title = post_string('title', 180);
@@ -514,7 +552,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $username = post_string('username', 60);
                 $email = post_string('email', 190);
                 $password = (string)($_POST['password'] ?? '');
-                $permissions = array_values(array_intersect((array)($_POST['permissions'] ?? []), ['events','tracks','pages','sponsors','media','results']));
+                $permissions = array_values(array_intersect((array)($_POST['permissions'] ?? []), ['events','tracks','pages','sponsors','media','results','news']));
                 if (!preg_match('/^[a-zA-Z0-9._-]{3,60}$/', $username)) { throw new RuntimeException('Der Benutzername muss 3–60 Zeichen haben.'); }
                 if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) { throw new RuntimeException('Bitte eine gültige E-Mail-Adresse eingeben.'); }
                 if (strlen($password) < 12) { throw new RuntimeException('Das Passwort muss mindestens 12 Zeichen lang sein.'); }
@@ -569,7 +607,7 @@ if ($loggedIn) {
     }
 }
 function fetch_one(PDO $db, string $table, int $id): ?array {
-    $allowed = ['events','tracks','sponsors','pages'];
+    $allowed = ['events','tracks','sponsors','pages','news'];
     if (!in_array($table, $allowed, true) || $id < 1) return null;
     $stmt = $db->prepare("SELECT * FROM {$table} WHERE id=?");
     $stmt->execute([$id]);
@@ -579,12 +617,12 @@ function fetch_one(PDO $db, string $table, int $id): ?array {
 $editId = (int)($_GET['edit'] ?? 0);
 $editItem = null;
 if ($loggedIn && $editId > 0) {
-    $tableForEdit = ['events'=>'events','tracks'=>'tracks','sponsors'=>'sponsors','pages'=>'pages','results'=>'results'][$page] ?? '';
+    $tableForEdit = ['events'=>'events','tracks'=>'tracks','sponsors'=>'sponsors','pages'=>'pages','results'=>'results','news'=>'news'][$page] ?? '';
     if ($tableForEdit !== '') $editItem = fetch_one($db, $tableForEdit, $editId);
 }
 $counts = [];
 if ($loggedIn) {
-    foreach (['events'=>'Termine','tracks'=>'Strecken','sponsors'=>'Sponsoren','pages'=>'Seiten','users'=>'Benutzer','media'=>'Bilder','results'=>'Ergebnisse'] as $table=>$label) {
+    foreach (['events'=>'Termine','tracks'=>'Strecken','sponsors'=>'Sponsoren','pages'=>'Seiten','users'=>'Benutzer','media'=>'Bilder','results'=>'Ergebnisse','news'=>'Neuigkeiten'] as $table=>$label) {
         $counts[$table] = (int)$db->query("SELECT COUNT(*) FROM {$table}")->fetchColumn();
     }
 }
@@ -631,14 +669,14 @@ if ($loggedIn) {
 <?php else: ?>
 <header class="admin-top"><div class="brand"><div class="brand-mark">RCB</div><div>RCB <span class="muted">/ Admin</span></div></div><div class="top-actions"><span class="user-label muted"><?= h($currentUser['username']) ?></span><form method="post" action="<?= h($script) ?>"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="logout"><button class="secondary" type="submit">Abmelden</button></form></div></header>
 <div class="shell"><aside class="sidebar"><div class="nav-label">Verwaltung</div><nav class="nav">
-<?php foreach (['dashboard'=>'▦ Übersicht','events'=>'▣ Termine','tracks'=>'⌁ Strecken','pages'=>'▤ Seiten','sponsors'=>'♧ Sponsoren','media'=>'▧ Bilder','results'=>'🏁 Ergebnisse','backup'=>'⬇ Datenbank-Backup','settings'=>'⚙ Einstellungen','users'=>'♙ Benutzer','logs'=>'☷ Protokoll'] as $key=>$label): ?><?php if (admin_can($currentUser, admin_area_for_page($key))): ?><a class="<?= $page === $key ? 'active' : '' ?>" href="<?= h($script) ?>?page=<?= h($key) ?>"><?= h($label) ?></a><?php endif; ?><?php endforeach; ?>
+<?php foreach (['dashboard'=>'▦ Übersicht','events'=>'▣ Termine','tracks'=>'⌁ Strecken','pages'=>'▤ Seiten','sponsors'=>'♧ Sponsoren','media'=>'▧ Bilder','results'=>'🏁 Ergebnisse','news'=>'📰 Neuigkeiten','backup'=>'⬇ Datenbank-Backup','settings'=>'⚙ Einstellungen','users'=>'♙ Benutzer','logs'=>'☷ Protokoll'] as $key=>$label): ?><?php if (admin_can($currentUser, admin_area_for_page($key))): ?><a class="<?= $page === $key ? 'active' : '' ?>" href="<?= h($script) ?>?page=<?= h($key) ?>"><?= h($label) ?></a><?php endif; ?><?php endforeach; ?>
 </nav><div class="footer">RCB Plattform<br>Verwaltungsbereich</div></aside>
 <main class="content">
 <?php if ($error !== ''): ?><div class="alert" role="alert"><?= h($error) ?></div><?php endif; ?>
 <?php if ($notice !== ''): ?><div class="notice" role="status"><?= h($notice) ?></div><?php endif; ?>
 <?php if ($page === 'dashboard'): ?>
 <div class="page-head"><div><p class="eyebrow">Übersicht</p><h1>Willkommen, <?= h($currentUser['username']) ?>!</h1><p>Hier verwaltest du die Inhalte der RC Bande Zwickau.</p></div></div>
-<div class="grid"><?php foreach (['events'=>'Termine','tracks'=>'Strecken','pages'=>'Seiten','sponsors'=>'Sponsoren','users'=>'Benutzer'] as $key=>$label): ?><a class="card" href="<?= h($script) ?>?page=<?= h($key) ?>"><div class="stat"><?= (int)$counts[$key] ?></div><div class="stat-label"><?= h($label) ?> angelegt</div></a><?php endforeach; ?></div>
+<div class="grid"><?php foreach (['events'=>'Termine','tracks'=>'Strecken','pages'=>'Seiten','sponsors'=>'Sponsoren','news'=>'Neuigkeiten','users'=>'Benutzer'] as $key=>$label): ?><a class="card" href="<?= h($script) ?>?page=<?= h($key) ?>"><div class="stat"><?= (int)$counts[$key] ?></div><div class="stat-label"><?= h($label) ?> angelegt</div></a><?php endforeach; ?></div>
 <div class="tiles"><?php foreach (['events'=>['📅','Termine','Veranstaltungen anlegen und bearbeiten.'],'tracks'=>['🏁','Strecken','Onroad- und Offroad-Strecken pflegen.'],'results'=>['🏆','Ergebnisse','Rennberichte veröffentlichen.'],'media'=>['🖼️','Bilder','Streckenspezifische Bilder und Vereinslogo verwalten.'],'pages'=>['📄','Vereinsseiten','Texte und Veröffentlichungsstatus verwalten.'],'sponsors'=>['🤝','Sponsoren','Sponsoren und Weblinks eintragen.'],'settings'=>['⚙️','Einstellungen','Name, Kontakt, Wartungsmodus und Live-Anzeige.'],'users'=>['🔐','Benutzer','Adminzugänge verwalten.'],'backup'=>['⬇️','Datenbank-Backup','SQL-Export der Plattformdaten herunterladen.']] as $key=>$tile): ?><a class="tile" href="<?= h($script) ?>?page=<?= h($key) ?>"><div class="tile-icon"><?= $tile[0] ?></div><h2><?= h($tile[1]) ?></h2><p><?= h($tile[2]) ?></p></a><?php endforeach; ?></div>
 <?php elseif ($page === 'backup'): ?>
 <div class="page-head"><div><p class="eyebrow">Datensicherung</p><h1>Datenbank-Backup</h1><p>Erstelle einen SQL-Export deiner Vereinsplattform.</p></div></div>
@@ -658,6 +696,11 @@ if ($loggedIn) {
 <?php elseif ($page === 'pages'): ?>
 <?php $item=$editItem ?: ['id'=>0,'slug'=>'','title'=>'','content'=>'','published'=>0]; $rows=$db->query('SELECT * FROM pages ORDER BY title')->fetchAll(); ?>
 <div class="page-head"><div><p class="eyebrow">Verwaltung</p><h1>Seiteninhalte</h1><p>Texte als Entwurf speichern oder als veröffentlicht markieren. Inhalte werden sicher als Text gespeichert.</p></div></div><div class="columns"><section class="card"><h2><?= $editItem?'Seite bearbeiten':'Seite anlegen' ?></h2><form class="stack" method="post"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="save_page"><input type="hidden" name="id" value="<?= (int)$item['id'] ?>"><label for="title">Seitentitel *</label><input id="title" name="title" required maxlength="180" value="<?= h($item['title']) ?>"><label for="slug">Seitenkennung *</label><input id="slug" name="slug" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" maxlength="80" placeholder="z. B. verein" value="<?= h($item['slug']) ?>"><label for="content">Textinhalt</label><textarea id="content" name="content" maxlength="20000"><?= h($item['content']) ?></textarea><p class="hint">HTML wird aus Sicherheitsgründen nicht ausgeführt. Veröffentlichte Seiteninhalte können öffentlich über /seite.php?slug=SEITENKENNUNG aufgerufen werden.</p><label class="check"><input type="checkbox" name="published" value="1"<?= checked($item['published']) ?>> Veröffentlicht markieren</label><div class="form-actions"><button type="submit">Speichern</button><?php if($editItem): ?><a class="button secondary" href="<?= h($script) ?>?page=pages">Abbrechen</a><?php endif; ?></div></form></section><section class="card"><h2>Angelegte Seiten</h2><div class="table-wrap"><table class="table"><thead><tr><th>Seite</th><th>Status</th><th>Aktion</th></tr></thead><tbody><?php foreach($rows as $row): ?><tr><td><strong><?= h($row['title']) ?></strong><br><span class="muted">/<?= h($row['slug']) ?></span></td><td><span class="badge <?= $row['published']?'yes':'no' ?>"><?= $row['published']?'Veröffentlicht':'Entwurf' ?></span></td><td class="actions"><a class="button secondary" href="<?= h($script) ?>?page=pages&amp;edit=<?= (int)$row['id'] ?>">Bearbeiten</a><form method="post" onsubmit="return confirm('Diese Seite wirklich löschen?')"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="delete_page"><input type="hidden" name="id" value="<?= (int)$row['id'] ?>"><button class="danger" type="submit">Löschen</button></form></td></tr><?php endforeach; ?><?php if(!$rows): ?><tr><td colspan="4" class="empty">Noch keine Seiten angelegt.</td></tr><?php endif; ?></tbody></table></div></section></div>
+<?php elseif ($page === 'news'): ?>
+<?php $item=$editItem ?: ['id'=>0,'title'=>'','summary'=>'','content'=>'','image_url'=>'','published'=>0]; $rows=$db->query('SELECT * FROM news ORDER BY created_at DESC, id DESC')->fetchAll(); ?>
+<div class="page-head"><div><p class="eyebrow">Verwaltung</p><h1>Neuigkeiten</h1><p>Vereinsinformationen und aktuelle Meldungen veröffentlichen.</p></div></div>
+<div class="columns"><section class="card"><h2><?= $editItem?'Neuigkeit bearbeiten':'Neuigkeit anlegen' ?></h2><form class="stack" method="post"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="save_news"><input type="hidden" name="id" value="<?= (int)$item['id'] ?>"><label for="title">Titel *</label><input id="title" name="title" required maxlength="180" value="<?= h($item['title']) ?>"><label for="summary">Kurztext</label><textarea id="summary" name="summary" maxlength="500" rows="3"><?= h($item['summary']) ?></textarea><label for="content">Meldung</label><textarea id="content" name="content" maxlength="30000" rows="10"><?= h($item['content']) ?></textarea><label for="image_url">Bildadresse (optional)</label><input id="image_url" name="image_url" type="url" maxlength="1000" placeholder="https://…" value="<?= h($item['image_url']) ?>"><label class="check"><input type="checkbox" name="published" value="1"<?= checked($item['published']) ?>> Veröffentlicht</label><div class="form-actions"><button type="submit">Speichern</button><?php if($editItem): ?><a class="button secondary" href="<?= h($script) ?>?page=news">Abbrechen</a><?php endif; ?></div></form></section>
+<section class="card"><h2>Angelegte Neuigkeiten</h2><div class="table-wrap"><table class="table"><thead><tr><th>Meldung</th><th>Status</th><th>Aktion</th></tr></thead><tbody><?php foreach($rows as $row): ?><tr><td><strong><?= h($row['title']) ?></strong><br><span class="muted"><?= h($row['created_at']) ?></span></td><td><span class="badge <?= $row['published']?'yes':'no' ?>"><?= $row['published']?'Veröffentlicht':'Entwurf' ?></span></td><td class="actions"><a class="button secondary" href="<?= h($script) ?>?page=news&amp;edit=<?= (int)$row['id'] ?>">Bearbeiten</a><form method="post" onsubmit="return confirm('Diese Neuigkeit wirklich löschen?')"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="delete_news"><input type="hidden" name="id" value="<?= (int)$row['id'] ?>"><button class="danger" type="submit">Löschen</button></form></td></tr><?php endforeach; ?><?php if(!$rows): ?><tr><td colspan="3" class="empty">Noch keine Neuigkeiten angelegt.</td></tr><?php endif; ?></tbody></table></div></section></div>
 <?php elseif ($page === 'results'): ?>
 <?php $item=$editItem ?: ['id'=>0,'event_id'=>0,'title'=>'','content'=>'','published'=>0]; $rows=$db->query('SELECT r.*, e.title AS event_title FROM results r LEFT JOIN events e ON e.id=r.event_id ORDER BY r.updated_at DESC, r.id DESC')->fetchAll(); $eventOptions=$db->query('SELECT id,title,event_date FROM events ORDER BY event_date DESC,id DESC')->fetchAll(); ?>
 <div class="page-head"><div><p class="eyebrow">Rennbetrieb</p><h1>Ergebnisse</h1><p>Ergebnislisten und Rennberichte veröffentlichen. Platzierungen können als Text eingefügt werden.</p></div></div>
@@ -672,7 +715,7 @@ if ($loggedIn) {
 <div class="page-head"><div><p class="eyebrow">System</p><h1>Einstellungen</h1><p>Grundlegende Angaben für die Plattform.</p></div></div><section class="card" style="max-width:760px"><form class="stack" method="post"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="save_settings"><label for="site_name">Name der Webseite</label><input id="site_name" name="site_name" maxlength="190" value="<?= h($settings['site_name']??'RC Bande Zwickau e.V.') ?>"><label for="site_description">Kurzbeschreibung</label><textarea id="site_description" name="site_description" maxlength="1000"><?= h($settings['site_description']??'') ?></textarea><label for="contact_email">Kontakt-E-Mail</label><input id="contact_email" name="contact_email" type="email" maxlength="190" value="<?= h($settings['contact_email']??'') ?>"><label for="contact_phone">Telefon</label><input id="contact_phone" name="contact_phone" maxlength="190" value="<?= h($settings['contact_phone']??'') ?>"><label class="check"><input type="checkbox" name="site_enabled" value="1"<?= checked($settings['site_enabled']??1) ?>> Webseite aktiv (deaktiviert den öffentlichen Bereich für Wartungsarbeiten)</label><label class="check"><input type="checkbox" name="live_enabled" value="1"<?= checked($settings['live_enabled']??0) ?>> Live-Timing auf der öffentlichen Seite als aktiviert anzeigen</label><div class="form-actions"><button type="submit">Einstellungen speichern</button></div></form><p class="hint">Kontaktangaben und Wartungsmodus werden von den öffentlichen PHP-Seiten verwendet. Die Aktivierung von Live-Timing schaltet noch keine Zeitnahme-Schnittstelle frei.</p></section>
 <?php elseif ($page === 'users'): ?>
 <?php $rows=$db->query('SELECT id,username,email,role,active,created_at FROM users ORDER BY id')->fetchAll(); ?>
-<div class="page-head"><div><p class="eyebrow">Sicherheit</p><h1>Benutzerverwaltung</h1><p>Administratorkonten erstellen, deaktivieren oder entfernen.</p></div></div><div class="columns"><?php if (($currentUser['role'] ?? '') === 'superadmin'): ?><section class="card"><h2>Unteradmin hinzufügen</h2><p class="hint">Gib nur die Bereiche frei, die dieser Zugang bearbeiten darf.</p><form class="stack" method="post"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="create_user"><label for="username">Benutzername</label><input id="username" name="username" required minlength="3" maxlength="60" pattern="[a-zA-Z0-9._-]+"><label for="email">E-Mail</label><input id="email" name="email" type="email" maxlength="190"><label for="password">Startpasswort (mindestens 12 Zeichen)</label><input id="password" name="password" type="password" required minlength="12" autocomplete="new-password"><fieldset class="stack"><legend>Freigegebene Bereiche</legend><?php foreach (['events'=>'Termine','tracks'=>'Strecken','pages'=>'Seiten','sponsors'=>'Sponsoren','media'=>'Bilder','results'=>'Ergebnisse'] as $perm=>$permLabel): ?><label class="check"><input type="checkbox" name="permissions[]" value="<?= h($perm) ?>"> <?= h($permLabel) ?></label><?php endforeach; ?></fieldset><button type="submit">Unteradmin anlegen</button></form></section><?php endif; ?><section class="card"><h2>Vorhandene Benutzer</h2><div class="table-wrap"><table class="table"><thead><tr><th>Benutzer</th><th>Rolle / Rechte</th><th>Status</th><th>Aktion</th></tr></thead><tbody><?php foreach($rows as $row): ?><tr><td><strong><?= h($row['username']) ?></strong><br><span class="muted"><?= h($row['email']) ?></span><br><span class="hint">Seit <?= h($row['created_at']) ?></span></td><td><strong><?= ($row['role'] === 'superadmin') ? 'Hauptadmin' : 'Unteradmin' ?></strong><br><span class="hint"><?= h($row['role'] === 'superadmin' ? 'Alle Bereiche' : implode(', ', array_map(static fn($p) => ['events'=>'Termine','tracks'=>'Strecken','pages'=>'Seiten','sponsors'=>'Sponsoren','media'=>'Bilder','results'=>'Ergebnisse'][$p] ?? $p, admin_permissions($row)))) ?></span></td><td><span class="badge <?= $row['active']?'yes':'no' ?>"><?= $row['active']?'Aktiv':'Deaktiviert' ?></span></td><td class="actions"><?php if((int)$row['id'] !== (int)$currentUser['id']): ?><form method="post"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="toggle_user"><input type="hidden" name="id" value="<?= (int)$row['id'] ?>"><button class="secondary" type="submit"><?= $row['active']?'Deaktivieren':'Aktivieren' ?></button></form><form method="post" onsubmit="return confirm('Diesen Benutzer unwiderruflich löschen?')"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="delete_user"><input type="hidden" name="id" value="<?= (int)$row['id'] ?>"><button class="danger" type="submit">Löschen</button></form><?php else: ?><span class="hint">Aktuelle Sitzung</span><?php endif; ?></td></tr><?php endforeach; ?></tbody></table></div></section></div>
+<div class="page-head"><div><p class="eyebrow">Sicherheit</p><h1>Benutzerverwaltung</h1><p>Administratorkonten erstellen, deaktivieren oder entfernen.</p></div></div><div class="columns"><?php if (($currentUser['role'] ?? '') === 'superadmin'): ?><section class="card"><h2>Unteradmin hinzufügen</h2><p class="hint">Gib nur die Bereiche frei, die dieser Zugang bearbeiten darf.</p><form class="stack" method="post"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="create_user"><label for="username">Benutzername</label><input id="username" name="username" required minlength="3" maxlength="60" pattern="[a-zA-Z0-9._-]+"><label for="email">E-Mail</label><input id="email" name="email" type="email" maxlength="190"><label for="password">Startpasswort (mindestens 12 Zeichen)</label><input id="password" name="password" type="password" required minlength="12" autocomplete="new-password"><fieldset class="stack"><legend>Freigegebene Bereiche</legend><?php foreach (['events'=>'Termine','tracks'=>'Strecken','pages'=>'Seiten','sponsors'=>'Sponsoren','media'=>'Bilder','results'=>'Ergebnisse'] as $perm=>$permLabel): ?><label class="check"><input type="checkbox" name="permissions[]" value="<?= h($perm) ?>"> <?= h($permLabel) ?></label><?php endforeach; ?></fieldset><button type="submit">Unteradmin anlegen</button></form></section><?php endif; ?><section class="card"><h2>Vorhandene Benutzer</h2><div class="table-wrap"><table class="table"><thead><tr><th>Benutzer</th><th>Rolle / Rechte</th><th>Status</th><th>Aktion</th></tr></thead><tbody><?php foreach($rows as $row): ?><tr><td><strong><?= h($row['username']) ?></strong><br><span class="muted"><?= h($row['email']) ?></span><br><span class="hint">Seit <?= h($row['created_at']) ?></span></td><td><strong><?= ($row['role'] === 'superadmin') ? 'Hauptadmin' : 'Unteradmin' ?></strong><br><span class="hint"><?= h($row['role'] === 'superadmin' ? 'Alle Bereiche' : implode(', ', array_map(static fn($p) => ['events'=>'Termine','tracks'=>'Strecken','pages'=>'Seiten','sponsors'=>'Sponsoren','media'=>'Bilder','results'=>'Ergebnisse','news'=>'Neuigkeiten'][$p] ?? $p, admin_permissions($row)))) ?></span></td><td><span class="badge <?= $row['active']?'yes':'no' ?>"><?= $row['active']?'Aktiv':'Deaktiviert' ?></span></td><td class="actions"><?php if((int)$row['id'] !== (int)$currentUser['id']): ?><form method="post"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="toggle_user"><input type="hidden" name="id" value="<?= (int)$row['id'] ?>"><button class="secondary" type="submit"><?= $row['active']?'Deaktivieren':'Aktivieren' ?></button></form><form method="post" onsubmit="return confirm('Diesen Benutzer unwiderruflich löschen?')"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="delete_user"><input type="hidden" name="id" value="<?= (int)$row['id'] ?>"><button class="danger" type="submit">Löschen</button></form><?php else: ?><span class="hint">Aktuelle Sitzung</span><?php endif; ?></td></tr><?php endforeach; ?></tbody></table></div></section></div>
 <?php elseif ($page === 'logs'): ?>
 <?php $rows=$db->query('SELECT logs.id,logs.action,logs.details,logs.created_at,users.username FROM logs LEFT JOIN users ON users.id=logs.user_id ORDER BY logs.id DESC LIMIT 200')->fetchAll(); ?>
 <div class="page-head"><div><p class="eyebrow">Sicherheit</p><h1>Aktionsprotokoll</h1><p>Die letzten 200 Anmeldungen und Verwaltungsaktionen.</p></div></div><section class="card"><div class="table-wrap"><table class="table"><thead><tr><th>Zeit</th><th>Benutzer</th><th>Aktion</th><th>Details</th></tr></thead><tbody><?php foreach($rows as $row): ?><tr><td><?= h($row['created_at']) ?></td><td><?= h($row['username']??'System') ?></td><td><?= h($row['action']) ?></td><td><?= h($row['details']) ?></td></tr><?php endforeach; ?><?php if(!$rows): ?><tr><td colspan="4" class="empty">Noch keine Einträge vorhanden.</td></tr><?php endif; ?></tbody></table></div></section>

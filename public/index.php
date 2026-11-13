@@ -42,10 +42,12 @@ rcb_header('home');
             <span class="rcb-pill"><?= rcb_h(rcb_date(substr((string)$item['created_at'], 0, 10))) ?></span>
             <h3><?= rcb_h($item['title']) ?></h3>
             <?php if ($item['summary'] !== ''): ?><p><?= nl2br(rcb_h($item['summary'])) ?></p><?php endif; ?>
-            <?php if ($item['content'] !== ''): ?><div class="rcb-content"><?= nl2br(rcb_h($item['content'])) ?></div><?php endif; ?>
+            <?php if ($item['content'] !== ''): ?><p><?= nl2br(rcb_h(strlen((string)$item['content']) > 180 ? substr((string)$item['content'], 0, 180) . '…' : $item['content'])) ?></p><?php endif; ?>
+            <a class="rcb-btn" href="/neuigkeiten.php?id=<?= (int)$item['id'] ?>">Weiterlesen</a>
         </div></article>
         <?php endforeach; ?>
     </div>
+    <a class="rcb-btn" href="/neuigkeiten.php">Alle Neuigkeiten</a>
 </div></section>
 <?php endif; ?>
 

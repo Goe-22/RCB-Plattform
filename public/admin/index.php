@@ -602,7 +602,7 @@ if ($loggedIn) {
         $loggedIn = false;
     } else {
         $_SESSION['admin_username'] = $currentUser['username'];
-        if (!in_array($page, ['dashboard','events','tracks','pages','sponsors','media','results','backup','settings','users','logs'], true)) { $page = 'dashboard'; }
+        if (!in_array($page, ['dashboard','events','tracks','pages','sponsors','media','results','news','backup','settings','users','logs'], true)) { $page = 'dashboard'; }
         if (!admin_can($currentUser, admin_area_for_page($page))) { http_response_code(403); exit('Für diesen Bereich hast du keine Berechtigung.'); }
     }
 }

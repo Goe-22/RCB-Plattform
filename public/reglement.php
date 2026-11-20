@@ -8,10 +8,6 @@ $vorbehalt = '<p>Der Veranstalter behält sich vor, bei großer Teilnehmerzahl d
 $punkte = '<li>Der Sieger eines Vorlaufdurchgangs erhält 0 Punkte, der Zweitplatzierte 2 Punkte, der Dritte 3 Punkte, der Vierte 4 Punkte …</li><li>Gewertet wird der beste Vorlauf.</li>';
 
 $sections = [
-    'funcup' => ['Fun Cup 2026', '<p><strong>Erstellung der Gesamtwertung</strong></p>
-<ul><li><a href="https://storage.e.jimdo.com/file/236d195d-c12b-4518-9f7d-06880dbef797/121er%20Tabelle.jpg">121-Punkte-Tabelle nach DMC</a></li></ul>
-<p><strong>Streichergebnisse</strong></p>
-<ul><li>bis 4 Läufe: 1</li><li>5 und 6 Läufe: 2</li><li>ab 7 Läufen: 3</li></ul>'],
     '555' => ['555 Runden Team-Rennen', '<p><strong>Allgemein:</strong></p><ul><li>max. 12 Teams</li><li>pro Team 3–6 Fahrer</li></ul>
 <p><strong>Fahrzeug:</strong></p><ul><li>1 Auto pro Team, bei Defekt muss repariert werden</li><li>Fahrzeug nach TT02 Fun Cup</li></ul>
 <p><strong>Motor:</strong></p><ul><li>1 zugeloster Motor (bei Defekt wechselbar)</li></ul>
@@ -68,7 +64,6 @@ $sections = [
 <p><strong>Durchführung:</strong></p><ul><li>2–4 Vorläufe mit 5–7 Minuten</li><li>Subfinale (1/2- und 1/4-Finale) mit 8–10 Minuten</li><li>Jeder fährt 1 Hauptfinale A, B, C … mit 20–45 Minuten.</li></ul>' . $vorbehalt],
 ];
 $teaser = [
-    'funcup' => 'Gesamtwertung und Streichergebnisse',
     '555' => 'Teamrennen · TT02 · Zeitplan und Startgebühr',
     'tt02' => 'Onroad · Tamiya TT02 · Technik, Tuning und Ablauf',
     'einsteiger' => 'Onroad · Tourenwagen für Einsteiger',
@@ -88,7 +83,7 @@ if ($klasse !== '') {
     }
     [$title, $html] = $sections[$klasse];
     rcb_header('rules');
-    echo '<section class="rcb-hero rcb-hero-compact"><div class="rcb-hero-inner"><p><a class="rcb-pill" href="/reglement.php">← Alle Klassen</a></p><h1>'
+    echo '<section class="rcb-hero rcb-hero-compact"><div class="rcb-hero-inner"><p><a class="rcb-pill" href="/reglement.php">← Fun Cup 2026 – alle Klassen</a></p><h1>'
         . rcb_text('reglement.' . $klasse . '.titel', $title) . '</h1><p>'
         . rcb_text('reglement.' . $klasse . '.kurz', $teaser[$klasse] ?? '') . '</p></div></section>';
     ?>
@@ -114,9 +109,14 @@ echo rcb_page_hero('reglement', 'Reglement & Ranglisten', 'Regeln dienen der Sic
 ?>
 <section class="rcb-section"><div class="rcb-wrap" style="max-width:960px">
 <?= rcb_rich('reglement.allgemein', '<h2>Allgemeine Hinweise</h2><ul><li>Den Anweisungen der Veranstaltungsleitung und Streckenaufsicht ist Folge zu leisten.</li><li>Fahrzeuge dürfen nur auf der freigegebenen Strecke betrieben werden.</li><li>Bei Bergung oder Arbeiten auf der Strecke muss sichergestellt sein, dass kein Fahrzeug fährt.</li><li>Rücksichtnahme, sportliches Verhalten und ein respektvoller Umgang sind für alle selbstverständlich.</li><li>Nach jedem Lauf stellt die fertige Gruppe die Helfer für die nächste Gruppe.</li><li>Das Laden und Lagern von LiPo-Akkus ist nur im LiPo-Safe-Bag oder Ähnlichem erlaubt.</li></ul>') ?>
+<h2 style="margin-top:34px"><?= rcb_text('reglement.funcup.titel', 'Fun Cup 2026') ?></h2>
+<?= rcb_rich('reglement.funcup', '<p>Der Fun Cup ist unsere Rennserie. Alle unten aufgeführten Rennen und Klassen gehören dazu.</p><p><strong>Erstellung der Gesamtwertung</strong></p>
+<ul><li><a href="https://storage.e.jimdo.com/file/236d195d-c12b-4518-9f7d-06880dbef797/121er%20Tabelle.jpg">121-Punkte-Tabelle nach DMC</a></li></ul>
+<p><strong>Streichergebnisse</strong></p>
+<ul><li>bis 4 Läufe: 1</li><li>5 und 6 Läufe: 2</li><li>ab 7 Läufen: 3</li></ul>') ?>
 <?= rcb_rich('reglement.intro', '<p>Ergebnisse vergangener Meisterschaften und Rennen findest du unter <a href="/ergebnisse.php">Ergebnisse</a>.</p>') ?>
-<h2 style="margin-top:30px"><?= rcb_text('reglement.klassen.titel', 'Klassen & Regelwerke') ?></h2>
-<p class="rcb-muted"><?= rcb_text('reglement.klassen.text', 'Wähle eine Klasse, um das vollständige Regelwerk zu öffnen.') ?></p>
+<h3 style="margin-top:26px;color:#062b55;font-size:1.35rem"><?= rcb_text('reglement.klassen.titel', 'Rennen & Klassen im Fun Cup 2026') ?></h3>
+<p class="rcb-muted"><?= rcb_text('reglement.klassen.text', 'Wähle ein Rennen bzw. eine Klasse, um das vollständige Regelwerk zu öffnen.') ?></p>
 <div class="rcb-class-list">
 <?php foreach ($sections as $key => [$title]): ?>
 <a class="rcb-class" href="/reglement.php?klasse=<?= rcb_h($key) ?>"><span><strong><?= rcb_h(rcb_block('reglement.' . $key . '.titel', $title)) ?></strong><small><?= rcb_h(rcb_block('reglement.' . $key . '.kurz', $teaser[$key] ?? '')) ?></small></span><span aria-hidden="true">›</span></a>

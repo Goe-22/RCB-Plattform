@@ -34,16 +34,21 @@
   const controls = MODE === 'edit'
     ? [el('button', { type: 'button', class: 'rcb-ed-btn', text: 'Rückgängig', title: 'Ungespeicherte Änderungen auf dieser Seite verwerfen', onclick: () => { if (!dirty.size || confirm('Ungespeicherte Änderungen auf dieser Seite verwerfen?')) { dirty.clear(); location.reload(); } } }),
        saveBtn,
-       el('a', { class: 'rcb-ed-btn', href: withParam('vorschau=1'), target: 'rcb-vorschau', text: 'Vorschau', title: 'Speichert ungespeicherte Änderungen als Entwurf und zeigt die Seite ohne Bearbeitungsrahmen', onclick: openPreview }),
+       el('a', { class: 'rcb-ed-btn', href: withParam('vorschau=1'), text: 'Vorschau', title: 'Speichert ungespeicherte Änderungen als Entwurf und zeigt die Seite ohne Bearbeitungsrahmen', onclick: openPreview }),
        publishBtn, discardBtn]
-    : [el('a', { class: 'rcb-ed-btn rcb-ed-primary', href: withParam('bearbeiten=1'), text: '✎ Bearbeiten' }), publishBtn, discardBtn,
-       el('a', { class: 'rcb-ed-btn', href: plainUrl, target: '_blank', text: 'Aktuell online' })];
-  const bar = el('div', { class: 'rcb-ed-bar' + (MODE === 'preview' ? ' rcb-ed-preview' : ''), role: 'toolbar', 'aria-label': 'Seiten-Editor' }, [
-    el('strong', { text: MODE === 'edit' ? '✎ Bearbeiten' : '👁 Entwurfsvorschau' }), pageSelect, status, draftInfo,
-    el('span', { class: 'rcb-ed-spacer' }),
-    ...controls,
-    el('a', { class: 'rcb-ed-btn', href: adminUrl + (location.pathname === '/reglement.php' ? '?page=reglement' : '?page=pages'), text: 'Zum Admin' }),
-  ]);
+    : [el('a', { class: 'rcb-ed-btn rcb-ed-primary', href: withParam('bearbeiten=1'), text: '← Zurück zum Bearbeiten', title: 'Vorschau schließen und weiter bearbeiten (Esc)' })];
+  const bar = MODE === 'edit'
+    ? el('div', { class: 'rcb-ed-bar', role: 'toolbar', 'aria-label': 'Seiten-Editor' }, [
+        el('strong', { text: '✎ Bearbeiten' }), pageSelect, status, draftInfo,
+        el('span', { class: 'rcb-ed-spacer' }),
+        ...controls,
+        el('a', { class: 'rcb-ed-btn', href: adminUrl + (location.pathname === '/reglement.php' ? '?page=reglement' : '?page=pages'), text: 'Zum Admin' }),
+      ])
+    : el('div', { class: 'rcb-ed-bar rcb-ed-preview', role: 'toolbar', 'aria-label': 'Entwurfsvorschau' }, [
+        el('strong', { text: '👁 Entwurfsvorschau' }), status,
+        el('span', { class: 'rcb-ed-spacer' }),
+        ...controls,
+      ]);
   document.body.prepend(bar);
   document.body.classList.add('rcb-editing');
   const syncBar = () => {
@@ -80,11 +85,30 @@
   // Vorschau: ungespeicherte Änderungen zuerst als Entwurf sichern, dann die Vorschau (neu) laden.
   async function openPreview(event) {
     event.preventDefault();
-    const url = withParam('vorschau=1');
-    const win = window.open('', 'rcb-vorschau');
-    if (dirty.size && !(await save())) { if (win) win.close(); return; }
-    if (win) { win.location.href = url + (url.includes('?') ? '&' : '?') + 't=' + Date.now(); win.focus(); }
-    else { location.href = url; }
+    if (dirty.size && !(await save())) return;
+    dirty.clear();
+    location.href = withParam('vorschau=1');
+  }
+
+  // In der Vorschau ist die Seite nur zum Ansehen: Links, Knöpfe und Formulare sind gesperrt.
+  if (MODE === 'preview') {
+    document.body.classList.add('rcb-previewing');
+    let hintTimer;
+    const block = (e) => {
+      if (bar.contains(e.target)) return;
+      const link = e.target.closest('a[href]');
+      if (link && link.getAttribute('href').startsWith('#') && e.type === 'click') return; // Sprung innerhalb der Seite erlaubt
+      if (e.type === 'click' && !e.target.closest('a, button, input, select, textarea, label, summary, [role="button"], [onclick]')) return;
+      e.preventDefault(); e.stopPropagation();
+      setStatus('Nur Vorschau – hier lässt sich nichts anklicken. Mit „Zurück zum Bearbeiten“ geht es weiter.', 'error');
+      clearTimeout(hintTimer); hintTimer = setTimeout(() => setStatus('So sieht die Seite nach dem Veröffentlichen aus.'), 3500);
+    };
+    ['click', 'auxclick', 'submit'].forEach((t) => document.addEventListener(t, block, true));
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { location.href = withParam('bearbeiten=1'); return; }
+      if (!bar.contains(e.target) && ['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) e.preventDefault();
+    }, true);
+    document.querySelectorAll('input, select, textarea, button').forEach((f) => { if (!bar.contains(f)) f.tabIndex = -1; });
   }
 
   async function publish() {

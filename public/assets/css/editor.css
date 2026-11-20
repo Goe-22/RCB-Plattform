@@ -45,3 +45,5 @@ body.rcb-editing .site-header { top: 56px; }
 .rcb-ed-publish { background: #1f7a4d; border-color: #1f7a4d; font-weight: 700; }
 .rcb-ed-publish:hover { background: #18633e; }
 .rcb-ed-preview { background: #0d2f52; }
+body.rcb-previewing a:not(.rcb-ed-btn), body.rcb-previewing button:not(.rcb-ed-btn), body.rcb-previewing input, body.rcb-previewing select, body.rcb-previewing textarea { cursor: not-allowed; }
+.rcb-ed-preview .rcb-ed-status[data-kind="error"] { color: #ffd38a; }

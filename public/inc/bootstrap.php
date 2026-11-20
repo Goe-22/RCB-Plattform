@@ -22,6 +22,8 @@ if (is_file(Database::configFile()) || is_readable(Database::sqlitePath())) {
     }
 }
 
+require_once __DIR__ . '/content.php';
+
 function rcb_h(mixed $value): string
 {
     return htmlspecialchars((string)($value ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -79,15 +81,15 @@ function rcb_date(?string $date, bool $withYear = true): string
 function rcb_header(string $active = 'home'): void
 {
     $siteName = rcb_setting('site_name', 'RC Bande Zwickau e.V.');
-    if (rcb_setting('site_enabled', '1') === '0') {
+    $editor = rcb_editor();
+    if (rcb_setting('site_enabled', '1') === '0' && !$editor) {
         http_response_code(503);
         header('Retry-After: 3600');
         echo '<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Wartungsarbeiten · ' . rcb_h($siteName) . '</title><style>body{font:16px/1.6 Arial,sans-serif;background:#f3f6f9;color:#1d2733;display:grid;min-height:100vh;place-items:center;margin:0;padding:20px}.box{max-width:620px;background:white;border-radius:14px;padding:clamp(24px,6vw,48px);box-shadow:0 8px 35px #062b5518}h1{color:#062b55}</style></head><body><main class="box"><h1>Wir sind gleich zurück.</h1><p>Die Webseite wird gerade gewartet. Bitte versuche es später erneut.</p><p><strong>' . rcb_h($siteName) . '</strong></p></main></body></html>';
         exit;
     }
-    $logoRows = rcb_rows("SELECT filename FROM media WHERE published = 1 AND category = 'logo' ORDER BY id DESC LIMIT 1");
-    $logoFile = !empty($logoRows[0]['filename']) ? '/uploads/' . rawurlencode((string)$logoRows[0]['filename']) : '/assets/images/rcb-logo.png';
-    $logoMarkup = '<img src="' . rcb_h($logoFile) . '" alt="' . rcb_h($siteName) . '" style="width:min(250px,34vw);height:96px;object-fit:contain;object-position:left center">';
+    $logoUrl = rcb_img('global.logo', rcb_media_url('logo', '/assets/images/rcb-logo.png'));
+    $logoMarkup = '<img src="' . rcb_h($logoUrl) . '" alt="' . rcb_h($siteName) . '"' . rcb_img_attr('global.logo') . ' style="width:min(250px,34vw);height:96px;object-fit:contain;object-position:left center">';
     $links = [
         'home' => ['Startseite', '/'],
         'club' => ['Verein', '/verein.php'],
@@ -107,6 +109,11 @@ function rcb_header(string $active = 'home'): void
     echo '<meta name="description" content="' . rcb_h(rcb_setting('site_description', 'RC-Modellsport in Zwickau')) . '">';
     echo '<link rel="stylesheet" href="/assets/css/style.css">';
     echo '<script src="/assets/js/site.js" defer></script>';
+    if ($editor) {
+        echo '<meta name="rcb-csrf" content="' . rcb_h($editor['csrf']) . '">';
+        echo '<link rel="stylesheet" href="/assets/css/editor.css">';
+        echo '<script src="/assets/js/editor.js" defer></script>';
+    }
     echo '<style>
     main{padding:0}.rcb-wrap{width:min(100% - 32px,1200px);margin:0 auto}
     .rcb-hero{padding:clamp(64px,10vw,130px) 20px;background:linear-gradient(125deg,#041d3a,#0d4777);color:#fff;text-align:center}
@@ -121,6 +128,9 @@ function rcb_header(string $active = 'home'): void
     .rcb-btn:hover{background:#a81d22}.rcb-empty{padding:22px;background:#fff;border:1px dashed #c7d2de;border-radius:10px}
     .rcb-facts{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.rcb-facts span{padding:6px 10px;background:#f1f5f8;border-radius:6px;font-size:.9rem}
     .rcb-content{white-space:normal;overflow-wrap:anywhere;line-height:1.8}
+    .rcb-content h2{margin:26px 0 10px}.rcb-content h2:first-child,.rcb-content h3:first-child{margin-top:0}.rcb-content h3{color:#062b55;margin:20px 0 8px}.rcb-content ul,.rcb-content ol{padding-left:1.3em;margin:6px 0 14px}.rcb-content li{margin:3px 0}.rcb-content p{margin:8px 0}.rcb-content img{max-width:100%;height:auto;border-radius:8px}.rcb-content a{color:#0d4777}.rcb-content table{border-collapse:collapse;width:100%}.rcb-content td,.rcb-content th{border:1px solid #dce3ea;padding:6px 8px}
+    .rcb-toc{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0 26px}.rcb-toc a{padding:7px 12px;border-radius:99px;background:#e8eef5;color:#062b55;font-weight:bold;text-decoration:none;font-size:.92rem}.rcb-toc a:hover{background:#062b55;color:#fff}
+    .rcb-rule{margin-bottom:20px;scroll-margin-top:110px}.rcb-rule h2{color:#062b55}
     .rcb-footer{padding:26px 16px;background:#041d3a;color:#dce5ee;text-align:center}
     .rcb-footer a{color:#fff}.rcb-nav{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}.rcb-nav nav ul{flex-wrap:wrap;justify-content:flex-end}
     .logo-area{display:flex;align-items:center;gap:0;min-width:0;flex:0 1 auto}.logo-area .brand-mark{display:flex;align-items:center;justify-content:flex-start;width:auto;height:auto;min-width:0;margin:0;padding:0;border:0;border-radius:0;background:transparent}.logo-area .club-name{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}.logo-area .brand-mark img{display:block;max-width:min(250px,34vw);max-height:96px}

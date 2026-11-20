@@ -33,7 +33,7 @@ $items = rcb_rows('SELECT * FROM news WHERE published = 1 ORDER BY created_at DE
 rcb_header('news');
 ?>
 <section class="rcb-section"><div class="rcb-wrap">
-    <h1>Neuigkeiten</h1><p class="rcb-muted">Aktuelle Informationen aus dem Verein.</p>
+    <h1><?= rcb_text('neuigkeiten.titel', 'Neuigkeiten') ?></h1><p class="rcb-muted"><?= rcb_text('neuigkeiten.text', 'Aktuelle Informationen aus dem Verein.') ?></p>
     <?php if ($items): ?><div class="rcb-grid">
         <?php foreach ($items as $item): ?>
         <article class="rcb-card">

@@ -34,7 +34,13 @@ Auf dem Hosting ist `public_html/` der Webroot. Zuordnung der Ordner:
 
 Beim Aktualisieren immer **alle** geänderten Dateien hochladen, besonders `public/inc/bootstrap.php` zusammen mit den Seiten. `public_html/uploads/` und `config/database.php` auf dem Server nicht überschreiben. Danach einmal `/admin/` aufrufen, damit neue Tabellen/Spalten angelegt werden.
 
-Seitentexte lassen sich im Adminbereich unter „Seiten“ über diese Seitenkennungen anpassen: `startseite`, `verein`, `strecken`, `termine`, `onroad`, `offroad`, `reglement`, `impressum`, `datenschutz`, `haftungsausschluss`.
+## Seiten-Editor
+Im Adminbereich unter **Seiten** wird jede Seite als Vorschau angezeigt. Mit **Bearbeiten** öffnet sich die Seite im Bearbeitungsmodus (`?bearbeiten=1`): Rot gestrichelte Texte lassen sich direkt anklicken und ändern, Bilder über **Bild ändern** hochladen oder aus den vorhandenen Bildern wählen. **Speichern** (oder Strg+S) veröffentlicht die Änderungen sofort.
+
+- Gespeichert wird in der Tabelle `content_blocks`. Ohne Eintrag zeigt die Seite den Standardtext aus dem Code.
+- Formatierte Texte werden serverseitig bereinigt (`app/Helpers/RichText.php`); Skripte und unsichere Links werden entfernt.
+- Bearbeiten dürfen der Hauptadmin und Unter-Admins mit dem Bereich „Seiten“.
+- Die mitgelieferten Website-Bilder (Titelbild, Onroad, Offroad, Logo) werden automatisch in der Medienverwaltung eingetragen.
 
 ## Vor dem öffentlichen Vereinsbetrieb noch zu ergänzen
 - Offizielle Anschrift, Vertretungsberechtigte, Kontakt-E-Mail und Vereinsregisterdaten

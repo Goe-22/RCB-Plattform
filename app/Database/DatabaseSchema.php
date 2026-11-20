@@ -96,6 +96,12 @@ final class DatabaseSchema
             'details' => ["MEDIUMTEXT NULL", "TEXT DEFAULT ''"],
             'created_at' => ["TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP", "TEXT DEFAULT CURRENT_TIMESTAMP"],
         ],
+        'content_blocks' => [
+            'block_key' => ["VARCHAR(190) NOT NULL UNIQUE", "TEXT NOT NULL UNIQUE"],
+            'content' => ["MEDIUMTEXT NULL", "TEXT DEFAULT ''"],
+            'updated_by' => ["INT UNSIGNED NULL", "INTEGER"],
+            'updated_at' => ["TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP", "TEXT DEFAULT CURRENT_TIMESTAMP"],
+        ],
         'admin_login_attempts' => [
             'ip_hash' => ["CHAR(64) NOT NULL", "TEXT NOT NULL"],
             'attempted_at' => ["INT UNSIGNED NOT NULL", "INTEGER NOT NULL"],
@@ -142,6 +148,68 @@ final class DatabaseSchema
             }
         } else {
             $db->exec('CREATE INDEX IF NOT EXISTS idx_login_attempts_ip_time ON admin_login_attempts (ip_hash, attempted_at)');
+        }
+
+        self::migrateLegacyPages($db);
+    }
+
+    /**
+     * Übernimmt Texte aus der früheren Seitenverwaltung (Tabelle pages) einmalig in die Seitenbereiche.
+     */
+    private static function migrateLegacyPages(PDO $db): void
+    {
+        require_once dirname(__DIR__) . '/Helpers/RichText.php';
+        $insert = $db->prepare(Database::isMysql()
+            ? 'INSERT IGNORE INTO content_blocks (block_key, content) VALUES (?, ?)'
+            : 'INSERT OR IGNORE INTO content_blocks (block_key, content) VALUES (?, ?)');
+        $rows = $db->query("SELECT slug, title, content FROM pages WHERE published = 1 AND slug IN ('startseite','verein','impressum','datenschutz','haftungsausschluss','strecken','termine','onroad','offroad')")->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($rows as $row) {
+            $slug = (string)$row['slug'];
+            $title = trim((string)$row['title']);
+            $content = trim((string)$row['content']);
+            if (in_array($slug, ['strecken', 'termine', 'onroad', 'offroad'], true)) {
+                if ($title !== '') { $insert->execute([$slug . '.hero.titel', $title]); }
+                if ($content !== '') { $insert->execute([$slug . '.hero.text', $content]); }
+                continue;
+            }
+            $key = $slug === 'startseite' ? 'startseite.intro' : $slug . '.inhalt';
+            if ($content !== '') {
+                $html = ($title !== '' && $slug !== 'impressum' ? '<h2>' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</h2>' : '') . RichText::fromPlain($content);
+                $insert->execute([$key, $html]);
+            }
+        }
+    }
+
+    /**
+     * Trägt die mitgelieferten Website-Bilder (Startseite, Strecken, Logo) in die Medienverwaltung ein,
+     * damit sie im Adminbereich sichtbar und austauschbar sind.
+     */
+    public static function registerBundledImages(PDO $db, string $publicRoot): void
+    {
+        $images = [
+            ['startseite.jpg', 'hero', 'Titelbild Startseite'],
+            ['onroad.jpg', 'onroad', 'Onroad-Strecke'],
+            ['offroad.jpg', 'offroad', 'Offroad-Strecke'],
+            ['rcb-logo.png', 'logo', 'Vereinslogo'],
+        ];
+        $uploads = $publicRoot . '/uploads';
+        if (!is_dir($uploads) && !@mkdir($uploads, 0755, true) && !is_dir($uploads)) {
+            return;
+        }
+        $exists = $db->prepare('SELECT COUNT(*) FROM media WHERE filename = ? OR (category = ? AND published = 1)');
+        $insert = $db->prepare('INSERT INTO media (filename, title, description, category, mime_type, published) VALUES (?, ?, ?, ?, ?, 1)');
+        foreach ($images as [$file, $category, $title]) {
+            $exists->execute([$file, $category]);
+            if ((int)$exists->fetchColumn() > 0) {
+                continue;
+            }
+            $target = $uploads . '/' . $file;
+            $source = $publicRoot . '/assets/images/' . $file;
+            if (!is_file($target) && (!is_file($source) || !@copy($source, $target))) {
+                continue;
+            }
+            $mime = str_ends_with($file, '.png') ? 'image/png' : 'image/jpeg';
+            $insert->execute([$file, $title, 'Von der Website übernommen', $category, $mime]);
         }
     }
 }

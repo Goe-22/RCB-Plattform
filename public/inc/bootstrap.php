@@ -81,7 +81,7 @@ function rcb_date(?string $date, bool $withYear = true): string
 function rcb_header(string $active = 'home'): void
 {
     $siteName = rcb_setting('site_name', 'RC Bande Zwickau e.V.');
-    $editor = rcb_editor();
+    $editor = rcb_admin_viewer();
     if (rcb_setting('site_enabled', '1') === '0' && !$editor) {
         http_response_code(503);
         header('Retry-After: 3600');
@@ -112,7 +112,7 @@ function rcb_header(string $active = 'home'): void
     if ($editor) {
         echo '<meta name="rcb-csrf" content="' . rcb_h($editor['csrf']) . '">';
         echo '<link rel="stylesheet" href="/assets/css/editor.css">';
-        echo '<script src="/assets/js/editor.js" defer></script>';
+        echo '<script src="/assets/js/editor.js" data-mode="' . rcb_h($editor['mode']) . '" defer></script>';
     }
     echo '<style>
     main{padding:0}.rcb-wrap{width:min(100% - 32px,1200px);margin:0 auto}

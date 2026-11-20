@@ -9,16 +9,16 @@ declare(strict_types=1);
  * Mit ?bearbeiten=1 und angemeldetem Admin werden die Bereiche direkt auf der Seite bearbeitbar.
  */
 
-/** Angemeldeter Admin mit Seitenrechten im Bearbeitungsmodus, sonst null. */
-function rcb_editor(): ?array
+/** Angemeldeter Admin mit Seitenrechten, wenn ?bearbeiten=1 oder ?vorschau=1 aufgerufen wird; sonst null. */
+function rcb_admin_viewer(): ?array
 {
     static $resolved = false;
-    static $editor = null;
+    static $viewer = null;
     if ($resolved) {
-        return $editor;
+        return $viewer;
     }
     $resolved = true;
-    if (!isset($_GET['bearbeiten']) || empty($_COOKIE['rcb_admin_session'])) {
+    if ((!isset($_GET['bearbeiten']) && !isset($_GET['vorschau'])) || empty($_COOKIE['rcb_admin_session'])) {
         return null;
     }
     if (session_status() !== PHP_SESSION_ACTIVE) {
@@ -49,8 +49,22 @@ function rcb_editor(): ?array
     header('Cache-Control: no-store, private');
     header('X-Robots-Tag: noindex, nofollow');
     $user['csrf'] = $csrf;
-    $editor = $user;
-    return $editor;
+    $user['mode'] = isset($_GET['bearbeiten']) ? 'edit' : 'preview';
+    $viewer = $user;
+    return $viewer;
+}
+
+/** Admin im Bearbeitungsmodus (Texte und Bilder sind direkt änderbar), sonst null. */
+function rcb_editor(): ?array
+{
+    $viewer = rcb_admin_viewer();
+    return $viewer && $viewer['mode'] === 'edit' ? $viewer : null;
+}
+
+/** Werden unveröffentlichte Entwürfe angezeigt (Bearbeitungsmodus oder Entwurfsvorschau)? */
+function rcb_showing_drafts(): bool
+{
+    return rcb_admin_viewer() !== null;
 }
 
 /** Alle gespeicherten Seitenbereiche (einmal pro Seitenaufruf geladen). */
@@ -61,6 +75,16 @@ function rcb_blocks(): array
         $blocks = [];
         foreach (rcb_rows('SELECT block_key, content FROM content_blocks') as $row) {
             $blocks[(string)$row['block_key']] = (string)($row['content'] ?? '');
+        }
+        // Für angemeldete Admins: Entwürfe überlagern den veröffentlichten Stand (NULL = auf Standard zurücksetzen).
+        if (rcb_showing_drafts()) {
+            foreach (rcb_rows('SELECT block_key, content FROM content_drafts') as $row) {
+                if ($row['content'] === null) {
+                    unset($blocks[(string)$row['block_key']]);
+                } else {
+                    $blocks[(string)$row['block_key']] = (string)$row['content'];
+                }
+            }
         }
     }
     return $blocks;

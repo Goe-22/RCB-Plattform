@@ -1,6 +1,9 @@
 /* Seiten-Editor der RC Bande Zwickau: Texte und Bilder direkt auf der Seite bearbeiten. */
 (() => {
   const csrf = document.querySelector('meta[name="rcb-csrf"]')?.content || '';
+  const MODE = document.currentScript?.dataset.mode || (new URLSearchParams(location.search).has('vorschau') ? 'preview' : 'edit');
+  const MODE_PARAM = MODE === 'edit' ? 'bearbeiten=1' : 'vorschau=1';
+  let pending = 0;
   const adminUrl = '/admin/index.php';
   const dirty = new Map();
   const PAGES = [
@@ -23,35 +26,91 @@
   };
 
   /* ---------- Werkzeugleiste oben ---------- */
-  const status = el('span', { class: 'rcb-ed-status', text: 'Klicke auf markierte Texte oder Bilder, um sie zu ändern.' });
-  const saveBtn = el('button', { type: 'button', class: 'rcb-ed-btn rcb-ed-primary', text: 'Speichern', disabled: 'disabled', onclick: save });
+  const status = el('span', { class: 'rcb-ed-status', text: MODE === 'edit' ? 'Klicke auf markierte Texte oder Bilder, um sie zu ändern.' : 'So sieht die Seite nach dem Veröffentlichen aus.' });
+  const draftInfo = el('span', { class: 'rcb-ed-draft', hidden: 'hidden' });
+  const saveBtn = el('button', { type: 'button', class: 'rcb-ed-btn rcb-ed-primary', text: 'Entwurf speichern', disabled: 'disabled', title: 'Speichert die Änderungen als Entwurf – noch nicht online (Strg+S)', onclick: () => save() });
+  const publishBtn = el('button', { type: 'button', class: 'rcb-ed-btn rcb-ed-publish', text: '⬆ Veröffentlichen', title: 'Alle Entwurfsänderungen online stellen', onclick: publish });
+  const discardBtn = el('button', { type: 'button', class: 'rcb-ed-btn', text: 'Entwurf verwerfen', title: 'Alle gespeicherten, noch nicht veröffentlichten Änderungen löschen', onclick: discardDraft });
   const here = location.pathname === '/index.php' ? '/' : location.pathname;
   const pageSelect = el('select', { class: 'rcb-ed-select', 'aria-label': 'Seite wechseln', onchange: (e) => go(e.target.value) },
     PAGES.map(([url, label]) => { const o = el('option', { value: url, text: label }); if (url === here) o.selected = true; return o; }));
-  const bar = el('div', { class: 'rcb-ed-bar', role: 'toolbar', 'aria-label': 'Seiten-Editor' }, [
-    el('strong', { text: '✎ Bearbeiten' }), pageSelect, status,
+  const plainUrl = location.pathname + location.search.replace(/[?&](bearbeiten|vorschau)=1/g, '').replace(/^&/, '?');
+  const withParam = (param) => location.pathname + (plainUrl.includes('?') ? plainUrl.slice(plainUrl.indexOf('?')) + '&' : '?') + param;
+  const controls = MODE === 'edit'
+    ? [el('button', { type: 'button', class: 'rcb-ed-btn', text: 'Rückgängig', title: 'Ungespeicherte Änderungen auf dieser Seite verwerfen', onclick: () => { if (!dirty.size || confirm('Ungespeicherte Änderungen auf dieser Seite verwerfen?')) { dirty.clear(); location.reload(); } } }),
+       saveBtn,
+       el('a', { class: 'rcb-ed-btn', href: withParam('vorschau=1'), target: '_blank', text: 'Vorschau', title: 'Entwurf ohne Bearbeitungsrahmen ansehen' }),
+       publishBtn, discardBtn]
+    : [el('a', { class: 'rcb-ed-btn rcb-ed-primary', href: withParam('bearbeiten=1'), text: '✎ Bearbeiten' }), publishBtn, discardBtn,
+       el('a', { class: 'rcb-ed-btn', href: plainUrl, target: '_blank', text: 'Aktuell online' })];
+  const bar = el('div', { class: 'rcb-ed-bar' + (MODE === 'preview' ? ' rcb-ed-preview' : ''), role: 'toolbar', 'aria-label': 'Seiten-Editor' }, [
+    el('strong', { text: MODE === 'edit' ? '✎ Bearbeiten' : '👁 Entwurfsvorschau' }), pageSelect, status, draftInfo,
     el('span', { class: 'rcb-ed-spacer' }),
-    el('button', { type: 'button', class: 'rcb-ed-btn', text: 'Verwerfen', onclick: () => { if (!dirty.size || confirm('Alle ungespeicherten Änderungen verwerfen?')) { dirty.clear(); location.reload(); } } }),
-    saveBtn,
-    el('a', { class: 'rcb-ed-btn', href: location.pathname + location.search.replace(/[?&]bearbeiten=1/, '').replace(/^&/, '?'), target: '_blank', text: 'Vorschau' }),
+    ...controls,
     el('a', { class: 'rcb-ed-btn', href: adminUrl + '?page=pages', text: 'Zum Admin' }),
   ]);
   document.body.prepend(bar);
   document.body.classList.add('rcb-editing');
+  const syncBar = () => {
+    const h = bar.offsetHeight;
+    document.body.style.paddingTop = h + 'px';
+    const header = document.querySelector('.site-header');
+    if (header) header.style.top = h + 'px';
+  };
+  syncBar();
+  window.addEventListener('resize', syncBar);
+  new ResizeObserver(syncBar).observe(bar);
+
+  function showPending(n) {
+    pending = n;
+    draftInfo.hidden = n === 0;
+    draftInfo.textContent = n === 1 ? '1 Änderung im Entwurf, noch nicht online' : n + ' Änderungen im Entwurf, noch nicht online';
+    publishBtn.disabled = n === 0 && dirty.size === 0;
+    discardBtn.disabled = n === 0;
+  }
+  async function refreshPending() {
+    try { const r = await fetch(adminUrl + '?page=draftstatus', { credentials: 'same-origin' }); const d = await r.json(); if (d.ok) showPending(d.count); } catch (e) { /* Anzeige ist optional */ }
+  }
+  refreshPending();
+
+  async function post(action, extra = {}) {
+    const fd = new FormData();
+    fd.append('action', action); fd.append('csrf_token', csrf);
+    Object.entries(extra).forEach(([k, v]) => fd.append(k, v));
+    const res = await fetch(adminUrl, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'rcb-editor' }, credentials: 'same-origin' });
+    const data = await res.json().catch(() => ({ ok: false, error: res.status === 419 ? 'Sitzung abgelaufen. Bitte im Admin neu anmelden.' : 'Unerwartete Antwort vom Server.' }));
+    if (!data.ok) throw new Error(data.error || 'Aktion fehlgeschlagen.');
+    return data;
+  }
+  async function publish() {
+    if (dirty.size && !(await save())) return;
+    if (!pending) { setStatus('Es gibt keine Änderungen zum Veröffentlichen.'); return; }
+    if (!confirm(pending + (pending === 1 ? ' Änderung' : ' Änderungen') + ' jetzt veröffentlichen? Danach sind sie für alle Besucher sichtbar.')) return;
+    publishBtn.disabled = true; setStatus('Wird veröffentlicht …');
+    try { const d = await post('publish_drafts'); showPending(0); setStatus('Veröffentlicht ✓ – ' + d.published + (d.published === 1 ? ' Änderung ist' : ' Änderungen sind') + ' jetzt online.', 'ok'); }
+    catch (err) { publishBtn.disabled = false; setStatus(err.message, 'error'); }
+  }
+  async function discardDraft() {
+    if (!pending) return;
+    if (!confirm('Alle ' + pending + ' gespeicherten, noch nicht veröffentlichten Änderungen verwerfen? Das betrifft alle Seiten.')) return;
+    try { await post('discard_drafts'); dirty.clear(); location.reload(); } catch (err) { setStatus(err.message, 'error'); }
+  }
 
   function go(url) {
     if (dirty.size && !confirm('Es gibt ungespeicherte Änderungen. Trotzdem die Seite wechseln?')) { pageSelect.value = here; return; }
     dirty.clear();
-    location.href = url + (url.includes('?') ? '&' : '?') + 'bearbeiten=1';
+    location.href = url + (url.includes('?') ? '&' : '?') + MODE_PARAM;
   }
 
   function setStatus(text, kind = '') { status.textContent = text; status.dataset.kind = kind; }
   function markDirty(key, type, value) {
     dirty.set(key, { type, value });
     saveBtn.disabled = false;
+    publishBtn.disabled = false;
     setStatus(dirty.size + (dirty.size === 1 ? ' ungespeicherte Änderung' : ' ungespeicherte Änderungen'), 'dirty');
   }
 
+  if (MODE === 'edit') {
   /* ---------- Texte ---------- */
   const supportsPlain = (() => { const d = document.createElement('div'); d.contentEditable = 'plaintext-only'; return d.contentEditable === 'plaintext-only'; })();
   document.querySelectorAll('[data-rcb-type="text"]').forEach((node) => {
@@ -156,27 +215,28 @@
     }).catch(() => { grid.textContent = 'Bilder konnten nicht geladen werden.'; });
   }
 
-  /* ---------- Speichern ---------- */
+  document.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); save(); } });
+  }
+
+  /* ---------- Entwurf speichern ---------- */
   async function save() {
-    if (!dirty.size) return;
+    if (!dirty.size) return true;
     saveBtn.disabled = true;
-    setStatus('Wird gespeichert …');
+    setStatus('Entwurf wird gespeichert …');
     const blocks = {};
     dirty.forEach((v, k) => { blocks[k] = v; });
-    const fd = new FormData();
-    fd.append('action', 'save_blocks'); fd.append('csrf_token', csrf); fd.append('blocks', JSON.stringify(blocks));
     try {
-      const res = await fetch(adminUrl, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'rcb-editor' }, credentials: 'same-origin' });
-      const data = await res.json().catch(() => ({ ok: false, error: res.status === 419 ? 'Sitzung abgelaufen. Bitte im Admin neu anmelden.' : 'Unerwartete Antwort vom Server.' }));
-      if (!data.ok) throw new Error(data.error || 'Speichern fehlgeschlagen.');
+      const data = await post('save_blocks', { blocks: JSON.stringify(blocks) });
       dirty.clear();
-      setStatus('Gespeichert ✓ – die Änderungen sind jetzt online.', 'ok');
+      showPending(data.pending ?? pending);
+      setStatus('Entwurf gespeichert ✓ – noch nicht online. Zum Online-Stellen „Veröffentlichen“ klicken.', 'ok');
+      return true;
     } catch (err) {
       saveBtn.disabled = false;
       setStatus(err.message, 'error');
+      return false;
     }
   }
-  document.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); save(); } });
   window.addEventListener('beforeunload', (e) => { if (dirty.size) { e.preventDefault(); e.returnValue = ''; } });
 
   /* ---------- Links: im Bearbeitungsmodus bleiben, Klicks in Textfeldern nicht folgen ---------- */

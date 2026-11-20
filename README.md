@@ -35,9 +35,9 @@ Auf dem Hosting ist `public_html/` der Webroot. Zuordnung der Ordner:
 Beim Aktualisieren immer **alle** geänderten Dateien hochladen, besonders `public/inc/bootstrap.php` zusammen mit den Seiten. `public_html/uploads/` und `config/database.php` auf dem Server nicht überschreiben. Danach einmal `/admin/` aufrufen, damit neue Tabellen/Spalten angelegt werden.
 
 ## Seiten-Editor
-Im Adminbereich unter **Seiten** wird jede Seite als Vorschau angezeigt. Mit **Bearbeiten** öffnet sich die Seite im Bearbeitungsmodus (`?bearbeiten=1`): Rot gestrichelte Texte lassen sich direkt anklicken und ändern, Bilder über **Bild ändern** hochladen oder aus den vorhandenen Bildern wählen. **Speichern** (oder Strg+S) veröffentlicht die Änderungen sofort.
+Im Adminbereich unter **Seiten** wird jede Seite als Vorschau angezeigt. Mit **Bearbeiten** öffnet sich die Seite im Bearbeitungsmodus (`?bearbeiten=1`): Rot gestrichelte Texte lassen sich direkt anklicken und ändern, Bilder über **Bild ändern** hochladen oder aus den vorhandenen Bildern wählen. **Entwurf speichern** (oder Strg+S) sichert die Änderungen als Entwurf (Tabelle `content_drafts`); Besucher sehen sie noch nicht. Der Entwurf bleibt über mehrere Sitzungen erhalten. **Vorschau** zeigt den Entwurf ohne Bearbeitungsrahmen (`?vorschau=1`). Erst **Veröffentlichen** – im Editor oder unter „Seiten“ im Admin – stellt alle Entwurfsänderungen auf einmal online; **Entwurf verwerfen** löscht sie.
 
-- Gespeichert wird in der Tabelle `content_blocks`. Ohne Eintrag zeigt die Seite den Standardtext aus dem Code.
+- Veröffentlichte Inhalte stehen in der Tabelle `content_blocks`. Ohne Eintrag zeigt die Seite den Standardtext aus dem Code.
 - Formatierte Texte werden serverseitig bereinigt (`app/Helpers/RichText.php`); Skripte und unsichere Links werden entfernt.
 - Bearbeiten dürfen der Hauptadmin und Unter-Admins mit dem Bereich „Seiten“.
 - Die mitgelieferten Website-Bilder (Titelbild, Onroad, Offroad, Logo) werden automatisch in der Medienverwaltung eingetragen.

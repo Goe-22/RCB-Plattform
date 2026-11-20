@@ -99,6 +99,15 @@ function add_site_update(PDO $db, string $title, string $url): void {
         $db->prepare('INSERT INTO site_updates (title, url, created_at) VALUES (?, ?, ?)')->execute([$title, $url, date('Y-m-d H:i:s')]);
     }
 }
+/** Adressen eigener Seiten, die im Menü stehen (nur existierende). */
+function admin_custom_menu(PDO $db): array {
+    $list = json_decode(admin_setting($db, 'nav_custom', '[]'), true);
+    $existing = $db->query('SELECT slug FROM pages')->fetchAll(PDO::FETCH_COLUMN);
+    return array_values(array_filter(is_array($list) ? $list : [], static fn($slug) => is_string($slug) && in_array($slug, $existing, true)));
+}
+function admin_nav_order(PDO $db): array {
+    return rcb_nav_order(admin_setting($db, 'nav_order', '[]'), admin_custom_menu($db));
+}
 function admin_rule_classes(PDO $db): array {
     return rcb_rule_classes(admin_setting($db, 'reglement_klassen', ''));
 }
@@ -115,6 +124,12 @@ function admin_rule_class_title(PDO $db, array $class): string {
 function describe_block_key(PDO $db, string $key, array $hidden): ?array {
     $parts = explode('.', $key);
     $map = ['startseite' => 'home', 'verein' => 'verein', 'strecken' => 'home', 'strecke' => 'home', 'onroad' => 'onroad', 'offroad' => 'offroad', 'termine' => 'termine', 'ergebnisse' => 'ergebnisse', 'live' => 'live', 'mitglied' => 'mitglied', 'kontakt' => 'kontakt', 'downloads' => 'downloads', 'reglement' => 'reglement'];
+    if ($parts[0] === 'seite' && isset($parts[1])) {
+        $stmt = $db->prepare('SELECT title, published FROM pages WHERE slug = ? LIMIT 1');
+        $stmt->execute([$parts[1]]);
+        $row = $stmt->fetch();
+        return $row && (int)$row['published'] === 1 ? [(string)$row['title'], '/seite.php?slug=' . rawurlencode($parts[1])] : null;
+    }
     $slug = $map[$parts[0]] ?? '';
     if ($slug === '' || in_array($slug, $hidden, true)) {
         return null;
@@ -196,7 +211,7 @@ function admin_area_for_page(string $page): string {
     return $page;
 }
 function admin_area_for_action(string $action): string {
-    $map = ['save_event'=>'events','delete_event'=>'events','save_track'=>'tracks','delete_track'=>'tracks','save_page'=>'pages','delete_page'=>'pages','save_sponsor'=>'sponsors','delete_sponsor'=>'sponsors','upload_media'=>'media','delete_media'=>'media','save_result'=>'results','delete_result'=>'results','save_news'=>'news','delete_news'=>'news','save_settings'=>'settings','create_user'=>'users','toggle_user'=>'users','delete_user'=>'users','backup_export'=>'backup','page_visibility'=>'pages','page_move'=>'pages','rule_class_add'=>'pages','rule_class_move'=>'pages','rule_class_toggle'=>'pages','rule_class_delete'=>'pages','delete_site_update'=>'news'];
+    $map = ['save_event'=>'events','delete_event'=>'events','save_track'=>'tracks','delete_track'=>'tracks','save_page'=>'pages','delete_page'=>'pages','save_sponsor'=>'sponsors','delete_sponsor'=>'sponsors','upload_media'=>'media','delete_media'=>'media','save_result'=>'results','delete_result'=>'results','save_news'=>'news','delete_news'=>'news','save_settings'=>'settings','create_user'=>'users','toggle_user'=>'users','delete_user'=>'users','backup_export'=>'backup','page_visibility'=>'pages','page_move'=>'pages','rule_class_add'=>'pages','rule_class_move'=>'pages','rule_class_toggle'=>'pages','rule_class_delete'=>'pages','delete_site_update'=>'news','custom_page_add'=>'pages','custom_page_menu'=>'pages'];
     return $map[$action] ?? 'dashboard';
 }
 
@@ -539,6 +554,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 log_action($db, $uid, 'sponsor_deleted', 'Sponsor-ID ' . $id);
                 redirect_to('sponsors', 'Sponsor gelöscht');
             }
+            if ($action === 'custom_page_add') {
+                $title = post_string('title', 180);
+                if ($title === '') { throw new RuntimeException('Bitte einen Titel für die neue Seite eingeben.'); }
+                $base = trim((string)preg_replace('/[^a-z0-9]+/', '-', strtolower(strtr($title, ['ä'=>'ae','ö'=>'oe','ü'=>'ue','ß'=>'ss','Ä'=>'ae','Ö'=>'oe','Ü'=>'ue']))), '-');
+                $base = substr($base !== '' ? $base : 'seite', 0, 70);
+                $slug = $base; $n = 2;
+                $exists = $db->prepare('SELECT COUNT(*) FROM pages WHERE slug = ?');
+                while (true) { $exists->execute([$slug]); if ((int)$exists->fetchColumn() === 0) { break; } $slug = $base . '-' . $n++; }
+                $db->prepare('INSERT INTO pages (slug,title,content,published) VALUES (?,?,?,0)')->execute([$slug, $title, '']);
+                if (isset($_POST['in_menu'])) {
+                    $menu = admin_custom_menu($db); $menu[] = $slug;
+                    admin_set_setting($db, 'nav_custom', json_encode(array_values(array_unique($menu))));
+                }
+                log_action($db, $uid, 'page_saved', $title);
+                redirect_to('pages', 'Seite „' . $title . '“ angelegt – jetzt mit „Bearbeiten“ füllen und anschließend veröffentlichen');
+            }
+            if ($action === 'custom_page_menu') {
+                $slug = post_string('slug', 90);
+                $menu = admin_custom_menu($db);
+                $inMenu = in_array($slug, $menu, true);
+                $menu = $inMenu ? array_values(array_diff($menu, [$slug])) : array_merge($menu, [$slug]);
+                admin_set_setting($db, 'nav_custom', json_encode(array_values(array_unique($menu))));
+                redirect_to('pages', $inMenu ? 'Seite aus dem Menü genommen' : 'Seite ins Menü aufgenommen');
+            }
             if ($action === 'save_page') {
                 $id = (int)($_POST['id'] ?? 0);
                 $slug = strtolower(post_string('slug', 80));
@@ -558,6 +597,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             if ($action === 'delete_page') {
                 $id = (int)($_POST['id'] ?? 0);
+                $stmt = $db->prepare('SELECT slug FROM pages WHERE id = ?');
+                $stmt->execute([$id]);
+                $deletedSlug = $stmt->fetchColumn();
+                if (is_string($deletedSlug)) {
+                    foreach (['content_blocks', 'content_drafts'] as $table) {
+                        $db->prepare("DELETE FROM {$table} WHERE block_key LIKE ?")->execute(['seite.' . $deletedSlug . '.%']);
+                    }
+                    $db->prepare('DELETE FROM site_updates WHERE url = ?')->execute(['/seite.php?slug=' . rawurlencode($deletedSlug)]);
+                    admin_set_setting($db, 'nav_custom', json_encode(array_values(array_diff(admin_custom_menu($db), [$deletedSlug]))));
+                }
                 $db->prepare('DELETE FROM pages WHERE id=?')->execute([$id]);
                 log_action($db, $uid, 'page_deleted', 'Seiten-ID ' . $id);
                 redirect_to('pages', 'Seite gelöscht');
@@ -654,6 +703,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 log_action($db, $uid, 'result_deleted', 'Ergebnis-ID ' . $id);
                 redirect_to('results', 'Ergebnis gelöscht');
             }
+            if ($action === 'page_visibility' && str_starts_with((string)($_POST['slug'] ?? ''), 'seite:')) {
+                $slug = substr(post_string('slug', 90), 6);
+                $stmt = $db->prepare('SELECT title FROM pages WHERE slug = ? LIMIT 1');
+                $stmt->execute([$slug]);
+                $title = $stmt->fetchColumn();
+                if ($title === false) { throw new RuntimeException('Seite nicht gefunden.'); }
+                $visible = ($_POST['visible'] ?? '') === '1';
+                $db->prepare('UPDATE pages SET published = ?, updated_at = CURRENT_TIMESTAMP WHERE slug = ?')->execute([$visible ? 1 : 0, $slug]);
+                if ($visible) { add_site_update($db, 'Seite online: ' . $title, '/seite.php?slug=' . rawurlencode($slug)); }
+                log_action($db, $uid, $visible ? 'page_published' : 'page_hidden', (string)$title);
+                redirect_to('pages', $title . ($visible ? ' ist jetzt veröffentlicht' : ' ist jetzt verborgen'));
+            }
             if ($action === 'page_visibility') {
                 $slug = post_string('slug', 40);
                 $pages = rcb_site_pages();
@@ -671,8 +732,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 redirect_to('pages', $pages[$slug][0] . ($visible ? ' ist jetzt veröffentlicht' : ' ist jetzt verborgen'));
             }
             if ($action === 'page_move') {
-                $slug = post_string('slug', 40);
-                $order = rcb_nav_order(admin_setting($db, 'nav_order', '[]'));
+                $slug = post_string('slug', 90);
+                $order = admin_nav_order($db);
                 $pos = array_search($slug, $order, true);
                 $target = $pos === false ? false : $pos + (($_POST['dir'] ?? '') === 'up' ? -1 : 1);
                 if ($pos !== false && $slug !== 'home' && $target >= 1 && $target < count($order)) {
@@ -829,7 +890,7 @@ if ($loggedIn) {
 <meta name="robots" content="noindex,nofollow">
 <title><?= $loggedIn ? 'Admin – ' . h($currentUser['username']) : 'Admin-Anmeldung' ?> | RC Bande Zwickau</title>
 <style>
-.draft-banner{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:22px;border-color:#f6c76b}.draft-banner h2{margin:0 0 4px}.draft-banner form{display:inline}.page-preview.is-hidden{opacity:.75;border-style:dashed}.page-preview-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.page-pos{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#30323a;font-size:12px;font-weight:700}.page-preview-body .form-actions{flex-wrap:wrap;gap:6px}.page-preview-body form,.actions form{display:inline}.move-buttons{display:inline-flex;gap:4px;margin-left:auto}button.small{padding:6px 10px;min-width:34px}.inline-add{margin-top:16px}.inline-add .form-actions input{flex:1;min-width:200px}.page-previews{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}.page-preview{overflow:hidden;border:1px solid var(--line);border-radius:12px;background:var(--panel)}.page-preview-frame{position:relative;height:190px;overflow:hidden;background:#fff}.page-preview-frame iframe{position:absolute;top:0;left:0;width:500%;height:500%;border:0;transform:scale(.2);transform-origin:0 0;pointer-events:none}.page-preview-body{padding:12px 14px}.page-preview-body .form-actions{margin-top:10px}.media-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}.media-item{overflow:hidden;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}.media-item img{display:block;width:100%;height:160px;object-fit:cover;background:#111}.media-item-body{padding:12px}.media-item-body form{margin-top:10px}.media-item-body .hint{overflow-wrap:anywhere}
+.draft-banner{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:22px;border-color:#f6c76b}.draft-banner h2{margin:0 0 4px}.draft-banner form{display:inline}.page-group .page-preview-body{padding:16px}.group-children{margin:8px 0 12px;padding-left:18px}.group-children li{margin:6px 0}.group-children a{margin-left:6px}.page-preview.is-hidden{opacity:.75;border-style:dashed}.page-preview-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.page-pos{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#30323a;font-size:12px;font-weight:700}.page-preview-body .form-actions{flex-wrap:wrap;gap:6px}.page-preview-body form,.actions form{display:inline}.move-buttons{display:inline-flex;gap:4px;margin-left:auto}button.small{padding:6px 10px;min-width:34px}.inline-add{margin-top:16px}.inline-add .form-actions input{flex:1;min-width:200px}.page-previews{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}.page-preview{overflow:hidden;border:1px solid var(--line);border-radius:12px;background:var(--panel)}.page-preview-frame{position:relative;height:190px;overflow:hidden;background:#fff}.page-preview-frame iframe{position:absolute;top:0;left:0;width:500%;height:500%;border:0;transform:scale(.2);transform-origin:0 0;pointer-events:none}.page-preview-body{padding:12px 14px}.page-preview-body .form-actions{margin-top:10px}.media-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}.media-item{overflow:hidden;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}.media-item img{display:block;width:100%;height:160px;object-fit:cover;background:#111}.media-item-body{padding:12px}.media-item-body form{margin-top:10px}.media-item-body .hint{overflow-wrap:anywhere}
 :root{color-scheme:dark;--bg:#101114;--panel:#191b20;--panel2:#202229;--text:#f4f4f5;--muted:#a1a1aa;--line:#34363d;--red:#d71920;--red2:#b8141a;--green:#78dba9;--amber:#f6c76b}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}a{color:#ff8c91;text-decoration:none}a:hover{text-decoration:underline}button,input,textarea,select{font:inherit}button,.button{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 15px;border:0;border-radius:9px;background:var(--red);color:white;font-weight:750;cursor:pointer;text-decoration:none}button:hover,.button:hover{background:var(--red2);text-decoration:none}.button.secondary,button.secondary{background:#30323a;color:var(--text)}.button.danger,button.danger{background:#702126}.wrap{width:min(1400px,100%);margin:auto;padding:24px}.login-wrap{min-height:100vh;display:grid;place-items:center;padding:22px;background:radial-gradient(ellipse at top,rgba(215,25,32,.18),transparent 48%),var(--bg)}.login-card{width:min(100%,480px);padding:clamp(24px,5vw,42px);background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 24px 70px #0006}.brand-mark{display:grid;place-items:center;width:58px;height:58px;margin-bottom:20px;border-radius:14px;background:var(--red);font-weight:950;font-size:20px}.eyebrow{margin:0 0 6px;color:#ff8c91;font-size:12px;font-weight:850;letter-spacing:.14em;text-transform:uppercase}h1,h2,h3{line-height:1.2}h1{font-size:clamp(27px,4vw,36px);margin:0 0 10px}h2{font-size:20px;margin:0 0 12px}h3{font-size:16px;margin:0 0 10px}.muted,.intro{color:var(--muted)}.intro{margin:0 0 25px}form.stack{display:grid;gap:10px}label{display:block;font-size:13px;font-weight:750;margin:8px 0 5px}input,textarea,select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:9px;background:#101114;color:var(--text);outline:none}textarea{min-height:140px;resize:vertical}input:focus,textarea:focus,select:focus{border-color:var(--red);box-shadow:0 0 0 3px #d7192030}.check{display:flex;align-items:center;gap:9px;margin:12px 0;color:#dedee2}.check input{width:auto}.alert{margin:0 0 18px;padding:12px 14px;border:1px solid #7c3439;border-radius:9px;background:#381b1e;color:#ffdadd}.notice{margin:0 0 18px;padding:12px 14px;border:1px solid #286746;border-radius:9px;background:#142a20;color:#baf3d2}.admin-top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 24px;border-bottom:1px solid var(--line);background:#15161a;position:sticky;top:0;z-index:5}.brand{display:flex;align-items:center;gap:12px;font-weight:850}.brand .brand-mark{width:42px;height:42px;margin:0;border-radius:10px;font-size:15px}.top-actions{display:flex;align-items:center;gap:12px}.shell{display:grid;grid-template-columns:240px minmax(0,1fr);min-height:calc(100vh - 75px)}.sidebar{padding:20px 14px;border-right:1px solid var(--line);background:#15161a}.nav-label{padding:10px 12px;color:#777983;font-size:11px;letter-spacing:.12em;font-weight:850;text-transform:uppercase}.nav{display:grid;gap:4px}.nav a{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:9px;color:#d4d4d8}.nav a.active,.nav a:hover{background:#2a1a1d;color:#fff;text-decoration:none}.nav a.active{box-shadow:inset 3px 0 var(--red)}main.content{min-width:0;padding:clamp(18px,3vw,36px)}.page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:24px}.page-head p{margin:0;color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.card{min-width:0;padding:19px;border:1px solid var(--line);border-radius:13px;background:var(--panel)}.stat{font-size:30px;font-weight:850;letter-spacing:-.04em}.stat-label{color:var(--muted);font-size:13px}.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:20px}.tile{display:block;padding:20px;border:1px solid var(--line);border-radius:13px;background:var(--panel);color:var(--text)}.tile:hover{background:var(--panel2);border-color:#565963;text-decoration:none}.tile-icon{font-size:25px}.tile p{margin:5px 0 0;color:var(--muted);font-size:13px}.columns{display:grid;grid-template-columns:minmax(280px,.8fr) minmax(0,1.2fr);gap:18px;align-items:start}.table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse;font-size:14px}.table th,.table td{padding:11px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}.table th{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.05em}.table td.actions{white-space:nowrap}.table form{display:inline}.table .button,.table button{padding:6px 9px;font-size:12px}.badge{display:inline-block;padding:3px 8px;border-radius:20px;background:#30323a;color:#ddd;font-size:12px}.badge.yes{background:#183c2a;color:#a8f0c5}.badge.no{background:#3c2828;color:#f3b1b1}.form-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}.empty{padding:22px;color:var(--muted);text-align:center}.hint{color:var(--muted);font-size:12px}.footer{padding:20px 0;color:#777983;font-size:12px}@media(max-width:1000px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.columns{grid-template-columns:1fr}}@media(max-width:720px){.admin-top{padding:12px 15px}.top-actions .user-label{display:none}.shell{grid-template-columns:1fr}.sidebar{padding:10px;border-right:0;border-bottom:1px solid var(--line);overflow:auto}.nav{display:flex;gap:5px;width:max-content}.nav-label{display:none}.nav a{white-space:nowrap;padding:8px 10px;font-size:13px}.wrap{padding:14px}main.content{padding:20px 14px}.tiles{grid-template-columns:1fr 1fr}.page-head{display:block}.page-head .button{margin-top:14px}}@media(max-width:440px){.grid,.tiles{grid-template-columns:1fr}.login-card{padding:24px}}
 .password-field{position:relative;display:flex;align-items:center;width:100%}.password-field input{padding-right:98px}.password-toggle{position:absolute;right:6px;top:50%;transform:translateY(-50%);min-height:34px;margin:0;padding:6px 9px;border:1px solid var(--line);background:#30323a;color:var(--text);font-size:13px;line-height:1.2}.password-toggle:hover{background:#454854}.password-toggle:focus-visible{outline:2px solid #fff;outline-offset:2px}
@@ -918,36 +979,72 @@ if ($loggedIn) {
 <?php if ($draftCount > 0): ?><section class="card draft-banner"><div><h2>Unveröffentlichter Entwurf</h2><p><strong><?= $draftCount ?></strong> gespeicherte <?= $draftCount === 1 ? 'Änderung ist' : 'Änderungen sind' ?> noch nicht online. Besucher sehen weiterhin den bisherigen Stand.</p></div><div class="form-actions"><form method="post"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="publish_drafts"><button type="submit">⬆ Jetzt veröffentlichen</button></form><a class="button secondary" href="/?vorschau=1" target="_blank" rel="noopener">Entwurf ansehen</a><form method="post" data-confirm="Alle unveröffentlichten Änderungen verwerfen?"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="discard_drafts"><button class="danger" type="submit">Entwurf verwerfen</button></form></div></section><?php else: ?><p class="muted">Alle gespeicherten Änderungen sind online.</p><?php endif; ?>
 <?php
 $allPages = rcb_site_pages();
+$groups = rcb_nav_groups();
 $hiddenPages = rcb_hidden_pages(admin_setting($db, 'pages_hidden', '[]'), admin_setting($db, 'live_enabled', '0'));
-$navOrder = rcb_nav_order(admin_setting($db, 'nav_order', '[]'));
-$otherPages = array_keys(array_filter($allPages, static fn($p) => !$p[2]));
-$pageCard = static function (string $slug, ?int $pos, int $navCount) use ($allPages, $hiddenPages): string {
-    [$label, $url, $inNav, $hideable] = $allPages[$slug];
-    $hidden = in_array($slug, $hiddenPages, true);
-    $form = static fn(string $action, array $fields, string $label, string $class = 'secondary', string $confirm = '') =>
-        '<form method="post"' . ($confirm !== '' ? ' data-confirm="' . h($confirm) . '"' : '') . '><input type="hidden" name="csrf_token" value="' . h(csrf_token()) . '"><input type="hidden" name="action" value="' . h($action) . '">'
-        . implode('', array_map(static fn($k, $v) => '<input type="hidden" name="' . h($k) . '" value="' . h($v) . '">', array_keys($fields), $fields))
-        . '<button type="submit" class="' . h($class) . '">' . h($label) . '</button></form>';
-    $html = '<article class="page-preview' . ($hidden ? ' is-hidden' : '') . '"><div class="page-preview-frame"><iframe src="' . h($url) . ($hidden ? '?vorschau=1' : '') . '" title="Vorschau ' . h($label) . '" loading="lazy" tabindex="-1" aria-hidden="true"></iframe></div><div class="page-preview-body">';
-    $html .= '<div class="page-preview-title">' . ($pos !== null ? '<span class="page-pos">' . ($pos + 1) . '</span>' : '') . '<strong>' . h($label) . '</strong> ' . ($hidden ? '<span class="badge no">Verborgen</span>' : '<span class="badge yes">Online</span>') . '</div>';
-    $html .= '<div class="form-actions"><a class="button" href="' . h($url) . '?bearbeiten=1">✎ Bearbeiten</a>';
+$customRows = $db->query('SELECT id, slug, title, published FROM pages ORDER BY title')->fetchAll();
+$customBySlug = [];
+foreach ($customRows as $row) { $customBySlug[(string)$row['slug']] = $row; }
+$customMenu = admin_custom_menu($db);
+$navOrder = admin_nav_order($db);
+$form = static fn(string $action, array $fields, string $label, string $class = 'secondary', string $confirm = '') =>
+    '<form method="post"' . ($confirm !== '' ? ' data-confirm="' . h($confirm) . '"' : '') . '><input type="hidden" name="csrf_token" value="' . h(csrf_token()) . '"><input type="hidden" name="action" value="' . h($action) . '">'
+    . implode('', array_map(static fn($k, $v) => '<input type="hidden" name="' . h($k) . '" value="' . h($v) . '">', array_keys($fields), $fields))
+    . '<button type="submit" class="' . h($class) . '">' . h($label) . '</button></form>';
+$moveButtons = static function (string $key, ?int $pos, int $count) use ($form): string {
+    if ($pos === null || $key === 'home') { return ''; }
+    return '<span class="move-buttons">' . ($pos > 1 ? $form('page_move', ['slug' => $key, 'dir' => 'up'], '↑', 'secondary small') : '') . ($pos < $count - 1 ? $form('page_move', ['slug' => $key, 'dir' => 'down'], '↓', 'secondary small') : '') . '</span>';
+};
+// Karte einer Seite: Vorschau, Status, Bearbeiten, Veröffentlichen/Verbergen, ggf. Menü und Reihenfolge.
+$pageCard = static function (string $key, ?int $pos = null, int $count = 0) use ($allPages, $hiddenPages, $customBySlug, $customMenu, $form, $moveButtons): string {
+    $isCustom = str_starts_with($key, 'seite:');
+    if ($isCustom) {
+        $row = $customBySlug[substr($key, 6)];
+        [$label, $url, $hideable, $hidden] = [(string)$row['title'], '/seite.php?slug=' . rawurlencode((string)$row['slug']), true, (int)$row['published'] !== 1];
+    } else {
+        [$label, $url, , $hideable] = $allPages[$key];
+        $hidden = in_array($key, $hiddenPages, true);
+    }
+    $sep = str_contains($url, '?') ? '&' : '?';
+    $html = '<article class="page-preview' . ($hidden ? ' is-hidden' : '') . '"><div class="page-preview-frame"><iframe src="' . h($url . ($hidden ? $sep . 'vorschau=1' : '')) . '" title="Vorschau ' . h($label) . '" loading="lazy" tabindex="-1" aria-hidden="true"></iframe></div><div class="page-preview-body">';
+    $html .= '<div class="page-preview-title">' . ($pos !== null ? '<span class="page-pos">' . ($pos + 1) . '</span>' : '') . '<strong>' . h($label) . '</strong> ' . ($hidden ? '<span class="badge no">Verborgen</span>' : '<span class="badge yes">Online</span>') . ($isCustom ? ' <span class="badge">Eigene Seite</span>' : '') . '</div>';
+    $html .= '<div class="form-actions"><a class="button" href="' . h($url . $sep . 'bearbeiten=1') . '">✎ Bearbeiten</a>';
     if ($hideable) {
         $html .= $hidden
-            ? $form('page_visibility', ['slug' => $slug, 'visible' => '1'], '⬆ Veröffentlichen', '')
-            : $form('page_visibility', ['slug' => $slug, 'visible' => '0'], 'Verbergen', 'secondary', $label . ' von der Website nehmen? Die Seite verschwindet aus dem Menü, die Inhalte bleiben erhalten.');
+            ? $form('page_visibility', ['slug' => $key, 'visible' => '1'], '⬆ Veröffentlichen', '')
+            : $form('page_visibility', ['slug' => $key, 'visible' => '0'], 'Verbergen', 'secondary', $label . ' von der Website nehmen? Die Seite verschwindet aus dem Menü, die Inhalte bleiben erhalten.');
     }
-    if ($pos !== null && $slug !== 'home') {
-        $html .= '<span class="move-buttons">' . ($pos > 1 ? $form('page_move', ['slug' => $slug, 'dir' => 'up'], '↑', 'secondary small') : '') . ($pos < $navCount - 1 ? $form('page_move', ['slug' => $slug, 'dir' => 'down'], '↓', 'secondary small') : '') . '</span>';
+    if ($isCustom) {
+        $slug = substr($key, 6);
+        $inMenu = in_array($slug, $customMenu, true);
+        $html .= $form('custom_page_menu', ['slug' => $slug], $inMenu ? 'Aus dem Menü' : '+ Ins Menü');
+        $html .= $form('delete_page', ['id' => (string)$customBySlug[$slug]['id']], 'Löschen', 'danger', 'Seite „' . $label . '“ mit allen Inhalten unwiderruflich löschen?');
     }
+    $html .= $moveButtons($key, $pos, $count);
     return $html . '</div></div></article>';
 };
 ?>
-<h2>Seiten im Menü</h2><p class="muted" style="margin-top:-6px">In dieser Reihenfolge erscheinen die Seiten im Menü. Mit ↑ ↓ verschieben, mit „Verbergen“ von der Website nehmen. Verborgene Seiten kannst du weiter bearbeiten und später wieder veröffentlichen.</p>
-<div class="page-previews"><?php foreach ($navOrder as $pos => $slug) { echo $pageCard($slug, $pos, count($navOrder)); } ?></div>
-<h2 style="margin-top:30px">Weitere Seiten</h2><p class="muted" style="margin-top:-6px">Unterseiten und rechtliche Seiten (Fußzeile). Impressum und Datenschutz müssen immer online bleiben.</p>
-<div class="page-previews"><?php foreach ($otherPages as $slug) { echo $pageCard($slug, null, 0); } ?></div>
+<h2>Menü</h2><p class="muted" style="margin-top:-6px">In dieser Reihenfolge erscheinen die Punkte im Menü. Mit ↑ ↓ verschieben, mit „Verbergen“ von der Website nehmen. Verborgene Seiten kannst du weiter bearbeiten und später wieder veröffentlichen.</p>
+<div class="page-previews">
+<?php foreach ($navOrder as $pos => $key): ?>
+<?php if (isset($groups[$key])): [$groupLabel, $children] = $groups[$key]; ?>
+<article class="page-preview page-group"><div class="page-preview-body">
+<div class="page-preview-title"><span class="page-pos"><?= $pos + 1 ?></span><strong><?= h($groupLabel) ?></strong> <span class="badge">Untermenü</span></div>
+<p class="muted">Klappt im Menü auf, eigene Seite gibt es keine. Enthält:</p>
+<ul class="group-children"><?php foreach ($children as $child): $childHidden = in_array($child, $hiddenPages, true); ?><li><strong><?= h($allPages[$child][0]) ?></strong> <span class="badge <?= $childHidden ? 'no' : 'yes' ?>"><?= $childHidden ? 'Verborgen' : 'Online' ?></span> <a href="<?= h($allPages[$child][1]) ?>?bearbeiten=1">✎ Bearbeiten</a></li><?php endforeach; ?></ul>
+<div class="form-actions"><?= $moveButtons($key, $pos, count($navOrder)) ?></div>
+</div></article>
+<?php else: echo $pageCard($key, $pos, count($navOrder)); endif; ?>
+<?php endforeach; ?>
+</div>
+<h2 style="margin-top:30px">Unterseiten</h2><p class="muted" style="margin-top:-6px">Seiten im Untermenü „Strecken“.</p>
+<div class="page-previews"><?php foreach ($groups as [, $children]) { foreach ($children as $child) { echo $pageCard($child); } } ?></div>
+<h2 style="margin-top:30px">Eigene Seiten</h2><p class="muted" style="margin-top:-6px">Zusätzliche Seiten, z. B. Ausschreibungen oder Vorstand. Neue Seiten sind zuerst verborgen: mit „Bearbeiten“ füllen, dann veröffentlichen. Mit „+ Ins Menü“ erscheinen sie im Menü.</p>
+<section class="card"><form class="inline-add" method="post" style="margin-top:0"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="custom_page_add"><label for="new_page_title">Neue Seite anlegen</label><div class="form-actions"><input id="new_page_title" name="title" required maxlength="180" placeholder="Titel, z. B. Vorstand"><label class="check" style="margin:0"><input type="checkbox" name="in_menu" value="1" checked> ins Menü</label><button type="submit">+ Seite anlegen</button></div></form></section>
+<?php $customOutside = array_filter(array_keys($customBySlug), static fn($slug) => !in_array((string)$slug, $customMenu, true)); ?>
+<?php if ($customOutside): ?><div class="page-previews" style="margin-top:16px"><?php foreach ($customOutside as $slug) { echo $pageCard('seite:' . $slug); } ?></div><?php elseif (!$customBySlug): ?><p class="muted">Noch keine eigenen Seiten angelegt.</p><?php else: ?><p class="muted">Alle eigenen Seiten stehen im Menü (siehe oben).</p><?php endif; ?>
+<h2 style="margin-top:30px">Fußzeile &amp; Rechtliches</h2><p class="muted" style="margin-top:-6px">Impressum und Datenschutz müssen immer online bleiben.</p>
+<div class="page-previews"><?php foreach (['downloads', 'impressum', 'datenschutz', 'haftungsausschluss'] as $slug) { echo $pageCard($slug); } ?></div>
 <p class="muted" style="margin-top:22px">Die Klassen und Rennen des Reglements verwaltest du unter <a href="<?= h($script) ?>?page=reglement">📋 Reglement</a>.</p>
-<h2 style="margin-top:34px">Zusätzliche Inhaltsseiten</h2><p class="muted" style="margin-top:-6px">Eigene Seiten unter /seite.php?slug=…, z. B. für Ausschreibungen. Texte für Downloads mit der Kennung download-…</p><div class="columns"><section class="card"><h2><?= $editItem?'Seite bearbeiten':'Seite anlegen' ?></h2><form class="stack" method="post"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="save_page"><input type="hidden" name="id" value="<?= (int)$item['id'] ?>"><label for="title">Seitentitel *</label><input id="title" name="title" required maxlength="180" value="<?= h($item['title']) ?>"><label for="slug">Seitenkennung *</label><input id="slug" name="slug" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" maxlength="80" placeholder="z. B. verein" value="<?= h($item['slug']) ?>"><label for="content">Textinhalt</label><textarea id="content" name="content" maxlength="20000"><?= h($item['content']) ?></textarea><p class="hint">HTML wird aus Sicherheitsgründen nicht ausgeführt. Veröffentlichte Seiteninhalte können öffentlich über /seite.php?slug=SEITENKENNUNG aufgerufen werden.</p><label class="check"><input type="checkbox" name="published" value="1"<?= checked($item['published']) ?>> Veröffentlicht markieren</label><div class="form-actions"><button type="submit">Speichern</button><?php if($editItem): ?><a class="button secondary" href="<?= h($script) ?>?page=pages">Abbrechen</a><?php endif; ?></div></form></section><section class="card"><h2>Angelegte Seiten</h2><div class="table-wrap"><table class="table"><thead><tr><th>Seite</th><th>Status</th><th>Aktion</th></tr></thead><tbody><?php foreach($rows as $row): ?><tr><td><strong><?= h($row['title']) ?></strong><br><span class="muted">/<?= h($row['slug']) ?></span></td><td><span class="badge <?= $row['published']?'yes':'no' ?>"><?= $row['published']?'Veröffentlicht':'Entwurf' ?></span></td><td class="actions"><a class="button secondary" href="<?= h($script) ?>?page=pages&amp;edit=<?= (int)$row['id'] ?>">Bearbeiten</a><form method="post" data-confirm="Diese Seite wirklich löschen?"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="delete_page"><input type="hidden" name="id" value="<?= (int)$row['id'] ?>"><button class="danger" type="submit">Löschen</button></form></td></tr><?php endforeach; ?><?php if(!$rows): ?><tr><td colspan="4" class="empty">Noch keine Seiten angelegt.</td></tr><?php endif; ?></tbody></table></div></section></div>
 <?php elseif ($page === 'news'): ?>
 <?php $item=$editItem ?: ['id'=>0,'title'=>'','summary'=>'','content'=>'','image_url'=>'','published'=>0]; $rows=$db->query('SELECT * FROM news ORDER BY created_at DESC, id DESC')->fetchAll(); ?>
 <div class="page-head"><div><p class="eyebrow">Verwaltung</p><h1>Neuigkeiten</h1><p>Vereinsinformationen und aktuelle Meldungen veröffentlichen.</p></div></div>

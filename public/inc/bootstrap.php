@@ -68,6 +68,26 @@ function rcb_page_published(string $slug): bool
     return !in_array($slug, rcb_hidden_slugs(), true);
 }
 
+/** Eigene Seiten (Admin → Seiten → Eigene Seiten): Adresse => Zeile (id, slug, title, published). */
+function rcb_custom_pages(): array
+{
+    static $pages = null;
+    if ($pages === null) {
+        $pages = [];
+        foreach (rcb_rows('SELECT id, slug, title, published FROM pages ORDER BY title') as $row) {
+            $pages[(string)$row['slug']] = $row;
+        }
+    }
+    return $pages;
+}
+
+/** Adressen eigener Seiten, die im Menü stehen. */
+function rcb_custom_menu(): array
+{
+    $list = json_decode(rcb_setting('nav_custom', '[]'), true);
+    return array_values(array_filter(is_array($list) ? $list : [], static fn($slug) => is_string($slug) && isset(rcb_custom_pages()[$slug])));
+}
+
 /** Ist die Live-Timing-Seite veröffentlicht? */
 function rcb_live_published(): bool
 {
@@ -128,14 +148,38 @@ function rcb_header(string $active = 'home'): void
         rcb_not_found();
     }
     $activeSlug = ['club' => 'verein', 'tracks' => $currentSlug, 'events' => 'termine', 'rules' => 'reglement', 'results' => 'ergebnisse', 'join' => 'mitglied', 'contact' => 'kontakt'][$active] ?? $active;
+    // Menüeinträge: [Bezeichnung, Adresse, verborgen?, Unterpunkte]
     $pages = rcb_site_pages();
+    $groups = rcb_nav_groups();
+    $custom = rcb_custom_pages();
     $links = [];
-    foreach (rcb_nav_order(rcb_setting('nav_order', '[]')) as $slug) {
+    foreach (rcb_nav_order(rcb_setting('nav_order', '[]'), rcb_custom_menu()) as $slug) {
+        if (isset($groups[$slug])) {
+            $children = [];
+            foreach ($groups[$slug][1] as $child) {
+                $childHidden = !rcb_page_published($child);
+                if (!$childHidden || $editor) {
+                    $children[$child] = [$pages[$child][0], $pages[$child][1], $childHidden];
+                }
+            }
+            if ($children) {
+                $links[$slug] = [$groups[$slug][0], '', false, $children];
+            }
+            continue;
+        }
+        if (str_starts_with($slug, 'seite:')) {
+            $row = $custom[substr($slug, 6)] ?? null;
+            $isHidden = !$row || (int)$row['published'] !== 1;
+            if ($row && (!$isHidden || $editor)) {
+                $links[$slug] = [(string)$row['title'], '/seite.php?slug=' . rawurlencode((string)$row['slug']), $isHidden, []];
+            }
+            continue;
+        }
         $isHidden = !rcb_page_published($slug);
         if ($isHidden && !$editor) {
             continue;
         }
-        $links[$slug] = [$pages[$slug][0], $pages[$slug][1], $isHidden];
+        $links[$slug] = [$pages[$slug][0], $pages[$slug][1], $isHidden, []];
     }
     echo '<!doctype html><html lang="de"><head><meta charset="utf-8">';
     echo '<meta name="viewport" content="width=device-width, initial-scale=1">';
@@ -149,7 +193,12 @@ function rcb_header(string $active = 'home'): void
         $editorPages = [];
         $allPages = rcb_site_pages();
         foreach (array_merge(rcb_nav_order(rcb_setting('nav_order', '[]')), array_keys(array_filter($allPages, static fn($p) => !$p[2]))) as $slug) {
-            $editorPages[] = [$allPages[$slug][1], $allPages[$slug][0] . (rcb_page_published($slug) ? '' : ' (verborgen)')];
+            if (isset($allPages[$slug])) {
+                $editorPages[] = [$allPages[$slug][1], $allPages[$slug][0] . (rcb_page_published($slug) ? '' : ' (verborgen)')];
+            }
+        }
+        foreach (rcb_custom_pages() as $row) {
+            $editorPages[] = ['/seite.php?slug=' . rawurlencode((string)$row['slug']), (string)$row['title'] . ((int)$row['published'] === 1 ? '' : ' (verborgen)')];
         }
         echo '<script type="application/json" id="rcb-pages">' . json_encode($editorPages, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) . '</script>';
         echo '<link rel="stylesheet" href="/assets/css/editor.css">';
@@ -173,7 +222,10 @@ function rcb_header(string $active = 'home'): void
     .rcb-toc{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0 26px}.rcb-toc a{padding:7px 12px;border-radius:99px;background:#e8eef5;color:#062b55;font-weight:bold;text-decoration:none;font-size:.92rem}.rcb-toc a:hover{background:#062b55;color:#fff}
     .rcb-rule{margin-bottom:20px;scroll-margin-top:110px}.rcb-rule h2{color:#062b55}
     .rcb-class-list{display:flex;flex-direction:column;gap:10px;margin-top:16px}.rcb-class{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 20px;background:#fff;border:1px solid #dce3ea;border-radius:12px;color:#1d2733;text-decoration:none;box-shadow:0 4px 14px rgba(4,29,58,.05);transition:border-color .15s,transform .15s}.rcb-class:hover{border-color:#062b55;transform:translateX(3px)}.rcb-class strong{display:block;color:#062b55;font-size:1.12rem}.rcb-class small{display:block;color:#657383;margin-top:3px}.rcb-class>span:last-child{font-size:1.8rem;color:#c9272c;line-height:1}
-    .rcb-rule-nav{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px}.rcb-btn-light{background:#e8eef5;color:#062b55!important}.rcb-btn-light:hover{background:#d5e0eb}.rcb-hero .rcb-pill{text-decoration:none}.rcb-track-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin:22px 0}.rcb-track-tile{position:relative;display:flex;align-items:flex-end;justify-content:space-between;gap:14px;min-height:300px;padding:22px;border-radius:14px;background-size:cover;background-position:center;color:#fff;text-decoration:none;box-shadow:0 8px 24px rgba(4,29,58,.18);transition:transform .15s}.rcb-track-tile:hover{transform:translateY(-3px)}.rcb-track-tile-text strong{display:block;font-size:1.7rem}.rcb-track-tile-text span{display:block;opacity:.92}.rcb-track-tile .rcb-btn{margin:0;flex:none}
+    .rcb-rule-nav{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px}.rcb-btn-light{background:#e8eef5;color:#062b55!important}.rcb-btn-light:hover{background:#d5e0eb}.rcb-hero .rcb-pill{text-decoration:none}.rcb-has-sub{position:relative}.rcb-sub-toggle{display:block;padding:9px 10px;border:0;border-radius:5px;background:transparent;color:#fff;font-family:inherit;font-size:13px;font-weight:700;line-height:1.2;cursor:pointer;white-space:nowrap}.rcb-sub-toggle:hover,.rcb-sub-toggle[aria-expanded="true"]{background:rgba(255,255,255,.14)}.rcb-has-sub.is-active>.rcb-sub-toggle{background:rgba(255,255,255,.2);box-shadow:inset 0 -2px 0 #f2c94c}.rcb-sub-toggle:focus-visible{outline:3px solid #f2c94c;outline-offset:2px}
+    .site-header nav ul.rcb-sub{display:none;justify-content:flex-start;position:absolute;top:calc(100% + 6px);left:0;z-index:1100;min-width:190px;flex-direction:column;align-items:stretch;gap:2px;padding:6px;border-radius:10px;background:#062b55;box-shadow:0 10px 26px rgba(0,0,0,.28)}.site-header nav .rcb-has-sub.open>ul.rcb-sub{display:flex}.site-header nav ul.rcb-sub a{padding:10px 12px;font-size:14px}
+    @media(max-width:900px){.rcb-sub-toggle{width:100%;text-align:left;padding:12px 14px;font-size:15px;opacity:.75;cursor:default;pointer-events:none}.rcb-sub-toggle span{display:none}.site-header nav ul.rcb-sub{display:flex;position:static;min-width:0;padding:0 0 0 14px;background:transparent;box-shadow:none}}
+    .rcb-track-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin:22px 0}.rcb-track-tile{position:relative;display:flex;align-items:flex-end;justify-content:space-between;gap:14px;min-height:300px;padding:22px;border-radius:14px;background-size:cover;background-position:center;color:#fff;text-decoration:none;box-shadow:0 8px 24px rgba(4,29,58,.18);transition:transform .15s}.rcb-track-tile:hover{transform:translateY(-3px)}.rcb-track-tile-text strong{display:block;font-size:1.7rem}.rcb-track-tile-text span{display:block;opacity:.92}.rcb-track-tile .rcb-btn{margin:0;flex:none}
     .rcb-detail{display:grid;grid-template-columns:minmax(0,2fr) minmax(260px,1fr);gap:28px;align-items:start}.rcb-detail-main>div+div{margin-top:22px}.rcb-steckbrief dl{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;margin:12px 0 18px}.rcb-steckbrief dt{font-weight:bold;color:#062b55}.rcb-steckbrief dd{margin:0}@media(max-width:820px){.rcb-detail{grid-template-columns:1fr}}
     .rcb-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}.rcb-gallery-item{position:relative;min-height:160px;border-radius:10px;overflow:hidden;background:#dce3ea center/cover}.rcb-gallery-img{display:block;width:100%;height:200px;object-fit:cover}.rcb-gallery-empty{display:grid;place-items:center;border:2px dashed #9fb0c2;color:#657383;font-weight:bold}
     .rcb-news-list{display:flex;flex-direction:column;gap:12px}.rcb-news{display:flex;align-items:center;gap:18px;justify-content:space-between;padding:18px 20px;background:#fff;border:1px solid #dce3ea;border-radius:12px}.rcb-news>div{flex:1;min-width:0}.rcb-news h3{margin:6px 0 4px;color:#062b55}.rcb-news p{margin:6px 0}.rcb-news img{width:140px;height:96px;object-fit:cover;border-radius:8px;flex:none}.rcb-news .rcb-btn{margin-top:0;flex:none}.rcb-news details summary{cursor:pointer;color:#0d4777;font-weight:bold}.rcb-news-update{border-left:4px solid #c9272c}@media(max-width:600px){.rcb-news{flex-direction:column;align-items:flex-start}.rcb-news img{width:100%;height:170px}}
@@ -189,10 +241,19 @@ function rcb_header(string $active = 'home'): void
     echo '<a class="logo-area" href="/" aria-label="Zur Startseite"><span class="brand-mark">' . $logoMarkup . '</span><span class="club-name">' . rcb_h($siteName) . '<small>RC-Modellsport in Zwickau</small></span></a>';
     echo '<button class="rcb-menu-button" type="button" aria-controls="rcb-main-nav" aria-expanded="false" aria-label="Menü öffnen">☰</button>';
     echo '<nav id="rcb-main-nav" aria-label="Hauptnavigation"><ul>';
-    foreach ($links as $key => [$label, $url, $isHidden]) {
+    $hiddenMark = ' class="rcb-nav-hidden" title="Nicht veröffentlicht – nur für Admins sichtbar"';
+    foreach ($links as $key => [$label, $url, $isHidden, $children]) {
+        if ($children) {
+            $groupActive = isset($children[$activeSlug]);
+            echo '<li class="rcb-has-sub' . ($groupActive ? ' is-active' : '') . '"><button type="button" class="rcb-sub-toggle" aria-expanded="false" aria-controls="rcb-sub-' . rcb_h($key) . '"' . ($groupActive ? ' aria-current="true"' : '') . '>' . rcb_h($label) . ' <span aria-hidden="true">▾</span></button><ul class="rcb-sub" id="rcb-sub-' . rcb_h($key) . '">';
+            foreach ($children as $childKey => [$childLabel, $childUrl, $childHidden]) {
+                echo '<li><a href="' . rcb_h($childUrl) . '"' . ($activeSlug === $childKey ? ' aria-current="page"' : '') . ($childHidden ? $hiddenMark : '') . '>' . rcb_h($childLabel) . '</a></li>';
+            }
+            echo '</ul></li>';
+            continue;
+        }
         $aria = $activeSlug === $key ? ' aria-current="page"' : '';
-        $mark = $isHidden ? ' class="rcb-nav-hidden" title="Nicht veröffentlicht – nur für Admins sichtbar"' : '';
-        echo '<li><a href="' . rcb_h($url) . '"' . $aria . $mark . '>' . rcb_h($label) . '</a></li>';
+        echo '<li><a href="' . rcb_h($url) . '"' . $aria . ($isHidden ? $hiddenMark : '') . '>' . rcb_h($label) . '</a></li>';
     }
     echo '</ul></nav></div></header><main>';
 }

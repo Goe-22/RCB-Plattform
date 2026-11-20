@@ -12,14 +12,14 @@ function rcb_site_pages(): array
     return [
         'home' => ['Startseite', '/', true, false],
         'verein' => ['Verein', '/verein.php', true, true],
-        'onroad' => ['Onroad', '/onroad.php', true, true],
-        'offroad' => ['Offroad', '/offroad.php', true, true],
         'termine' => ['Termine', '/termine.php', true, true],
         'reglement' => ['Reglement', '/reglement.php', true, true],
         'ergebnisse' => ['Ergebnisse', '/ergebnisse.php', true, true],
         'live' => ['Live-Timing', '/live.php', true, true],
         'mitglied' => ['Mitglied werden', '/mitglied-werden.php', true, true],
         'kontakt' => ['Kontakt', '/kontakt.php', true, true],
+        'onroad' => ['Onroad', '/onroad.php', false, true],
+        'offroad' => ['Offroad', '/offroad.php', false, true],
         'downloads' => ['Downloads', '/downloads.php', false, true],
         'impressum' => ['Impressum', '/impressum.php', false, false],
         'datenschutz' => ['Datenschutz', '/datenschutz.php', false, false],
@@ -39,31 +39,57 @@ function rcb_page_slug_for_path(string $path): string
     return '';
 }
 
-/**
- * Menüreihenfolge: gespeicherte Reihenfolge (JSON-Liste von Kennungen), ergänzt um neue Menüseiten.
- */
-function rcb_nav_order(string $storedJson): array
+/** Menüpunkte mit Untermenü (keine eigene Seite): Kennung => [Bezeichnung, [Unterseiten]]. */
+function rcb_nav_groups(): array
 {
-    $navSlugs = array_keys(array_filter(rcb_site_pages(), static fn(array $p): bool => $p[2]));
+    return ['strecken' => ['Strecken', ['onroad', 'offroad']]];
+}
+
+/** Standard-Reihenfolge des Menüs. */
+function rcb_default_nav(): array
+{
+    return ['home', 'verein', 'strecken', 'termine', 'reglement', 'ergebnisse', 'live', 'mitglied', 'kontakt'];
+}
+
+/**
+ * Menüreihenfolge aus der Einstellung nav_order (JSON-Liste).
+ * Einträge: Seitenkennungen, Gruppen (z. B. „strecken“) und eigene Seiten als „seite:<adresse>“.
+ * $customInMenu: Adressen eigener Seiten, die im Menü stehen sollen.
+ */
+function rcb_nav_order(string $storedJson, array $customInMenu = []): array
+{
+    $valid = rcb_default_nav();
+    foreach ($customInMenu as $slug) {
+        $valid[] = 'seite:' . $slug;
+    }
     $stored = json_decode($storedJson, true);
     $order = [];
-    // Früher gab es die Übersichtsseite „Strecken“: an ihrer Stelle stehen jetzt Onroad und Offroad.
-    $expanded = [];
-    foreach (is_array($stored) ? $stored : [] as $slug) {
-        array_push($expanded, ...($slug === 'strecken' ? ['onroad', 'offroad'] : [$slug]));
-    }
-    foreach ($expanded as $slug) {
-        if (is_string($slug) && in_array($slug, $navSlugs, true) && !in_array($slug, $order, true)) {
-            $order[] = $slug;
+    foreach (is_array($stored) ? $stored : [] as $item) {
+        // Frühere Einträge: Übersichtsseite „strecken“ bzw. Onroad/Offroad einzeln → Menüpunkt „Strecken“.
+        $item = in_array($item, ['onroad', 'offroad'], true) ? 'strecken' : $item;
+        if (is_string($item) && in_array($item, $valid, true) && !in_array($item, $order, true)) {
+            $order[] = $item;
         }
     }
-    foreach ($navSlugs as $slug) {
-        if (!in_array($slug, $order, true)) {
-            $order[] = $slug;
+    foreach ($valid as $item) {
+        if (in_array($item, $order, true)) {
+            continue;
         }
+        // Fehlende Standardpunkte an ihrer üblichen Stelle einfügen, eigene Seiten hinten anhängen.
+        $defaultPos = array_search($item, rcb_default_nav(), true);
+        $insertAt = count($order);
+        if ($defaultPos !== false && $defaultPos > 0) {
+            $before = rcb_default_nav()[$defaultPos - 1];
+            $found = array_search($before, $order, true);
+            if ($found !== false) {
+                $insertAt = $found + 1;
+            }
+        }
+        array_splice($order, $insertAt, 0, [$item]);
     }
-    // Die Startseite steht immer vorne.
-    return array_values(array_unique(array_merge(['home'], $order)));
+    $order = array_values(array_diff($order, ['home']));
+    array_unshift($order, 'home');
+    return $order;
 }
 
 /** Verborgene Seiten aus der Einstellung pages_hidden (JSON) und live_enabled. */

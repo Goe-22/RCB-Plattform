@@ -1,28 +1,27 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/inc/bootstrap.php';
+require_once dirname(__DIR__) . '/app/Helpers/RichText.php';
 
+// Eigene Seiten (Admin → Seiten → Eigene Seiten). Unveröffentlichte Seiten sehen nur angemeldete Admins.
 $slug = strtolower(trim((string)($_GET['slug'] ?? '')));
-if (!preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug)) {
-    http_response_code(400);
-    $page = null;
-} else {
-    $rows = rcb_rows('SELECT title, content FROM pages WHERE slug = ? AND published = 1 LIMIT 1', [$slug]);
-    $page = $rows[0] ?? null;
+$page = null;
+if (preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug)) {
+    $page = rcb_custom_pages()[$slug] ?? null;
 }
-if (!$page) {
-    http_response_code(404);
+if (!$page || ((int)$page['published'] !== 1 && !rcb_admin_viewer())) {
+    rcb_not_found();
 }
-rcb_header();
+$legacy = rcb_rows('SELECT content FROM pages WHERE slug = ? LIMIT 1', [$slug]);
+$defaultHtml = RichText::fromPlain((string)($legacy[0]['content'] ?? ''));
+if ($defaultHtml === '') {
+    $defaultHtml = '<p>Hier steht der Inhalt dieser Seite.</p>';
+}
+rcb_header('seite:' . $slug);
+echo rcb_page_hero('seite.' . $slug, (string)$page['title'], '');
 ?>
-<section class="rcb-section"><div class="rcb-wrap">
-<?php if ($page): ?>
-    <h1><?= rcb_h($page['title']) ?></h1>
-    <div class="rcb-content"><?= nl2br(rcb_h($page['content'])) ?></div>
-<?php else: ?>
-    <h1>Seite nicht gefunden</h1>
-    <p>Diese Seite existiert nicht oder wurde noch nicht veröffentlicht.</p>
-    <a class="rcb-btn" href="/">Zur Startseite</a>
-<?php endif; ?>
+<?php if ((int)$page['published'] !== 1): ?><div class="rcb-wrap"><div class="rcb-empty" style="margin-top:20px;border-color:#f6c76b;background:#fff8e6"><strong>Nicht veröffentlicht:</strong> Diese Seite sehen nur angemeldete Admins. Veröffentlichen unter Admin → Seiten.</div></div><?php endif; ?>
+<section class="rcb-section"><div class="rcb-wrap" style="max-width:960px">
+<?= rcb_rich('seite.' . $slug . '.inhalt', $defaultHtml) ?>
 </div></section>
 <?php rcb_footer(); ?>

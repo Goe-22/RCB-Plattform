@@ -5,3 +5,16 @@ document.addEventListener('submit', (event) => {
     event.preventDefault();
   }
 });
+
+// Termine: weitere Klassenzeile hinzufügen.
+document.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-add-class]');
+  if (!button) return;
+  const rows = document.getElementById('class-rows');
+  const template = document.getElementById('class-row-template');
+  if (!rows || !template) return;
+  const index = rows.querySelectorAll('.class-row').length + Date.now() % 1000;
+  const html = template.innerHTML.replace(/class\[999\]/g, `class[${index}]`);
+  rows.insertAdjacentHTML('beforeend', html);
+  rows.lastElementChild?.querySelector('input')?.focus();
+});

@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/inc/bootstrap.php';
-$results = rcb_rows("SELECT r.id, r.title, r.content, r.updated_at, e.title AS event_title, e.event_date FROM results r LEFT JOIN events e ON e.id=r.event_id WHERE r.published = 1 ORDER BY COALESCE(e.event_date, r.updated_at) DESC, r.id DESC");
+$results = rcb_rows("SELECT r.id, r.event_id, r.title, r.content, r.updated_at, e.title AS event_title, e.event_date FROM results r LEFT JOIN events e ON e.id=r.event_id WHERE r.published = 1 ORDER BY COALESCE(e.event_date, r.updated_at) DESC, r.id DESC");
 rcb_header('results');
 echo rcb_page_hero('ergebnisse', 'Rennergebnisse', 'Meisterschaftswertungen und Ergebnisse der Rennen bei der RC Bande Zwickau.');
 ?>
@@ -10,7 +10,7 @@ echo rcb_page_hero('ergebnisse', 'Rennergebnisse', 'Meisterschaftswertungen und 
 <h2><?= rcb_text('ergebnisse.berichte.titel', 'Aktuelle Ergebnisse & Rennberichte') ?></h2>
 <div class="rcb-grid">
 <?php foreach ($results as $item): ?>
-<article class="rcb-card"><div class="rcb-card-body">
+<article class="rcb-card"<?= !empty($item['event_id']) ? ' id="termin-' . (int)$item['event_id'] . '" style="scroll-margin-top:110px"' : '' ?>><div class="rcb-card-body">
 <?php if (!empty($item['event_date'])): ?><span class="rcb-pill"><?= rcb_h(rcb_date((string)$item['event_date'])) ?></span><?php endif; ?>
 <h3><?= rcb_h($item['title']) ?></h3>
 <?php if (!empty($item['event_title'])): ?><p class="rcb-muted">Veranstaltung: <?= rcb_h($item['event_title']) ?></p><?php endif; ?>

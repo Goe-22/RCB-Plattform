@@ -12,7 +12,7 @@ foreach (rcb_rows("SELECT id, title, url, created_at FROM site_updates ORDER BY 
 }
 usort($feed, static fn(array $a, array $b): int => strcmp($b['date'], $a['date']));
 $feed = array_slice($feed, 0, 6);
-$events = rcb_rows("SELECT * FROM events WHERE published = 1 AND (event_date IS NULL OR CAST(event_date AS CHAR) = '' OR event_date >= ?) ORDER BY CASE WHEN event_date IS NULL OR CAST(event_date AS CHAR) = '' THEN 1 ELSE 0 END, event_date ASC, start_time ASC LIMIT 3", [rcb_today()]);
+$events = rcb_rows("SELECT * FROM events WHERE published = 1 AND (event_date IS NULL OR CAST(event_date AS CHAR) = '' OR (CASE WHEN end_date IS NOT NULL AND CAST(end_date AS CHAR) <> '' THEN end_date ELSE event_date END) >= ?) ORDER BY CASE WHEN event_date IS NULL OR CAST(event_date AS CHAR) = '' THEN 1 ELSE 0 END, event_date ASC, start_time ASC LIMIT 3", [rcb_today()]);
 $sponsors = rcb_rows("SELECT * FROM sponsors WHERE published = 1 ORDER BY name ASC");
 $heroImage = rcb_img('startseite.hero.bild', rcb_media_url('hero', '/assets/images/startseite.jpg'));
 rcb_header('home');
@@ -74,16 +74,8 @@ rcb_header('home');
 <section class="rcb-section" style="background:#eaf0f5"><div class="rcb-wrap">
     <h2><?= rcb_text('startseite.termine.titel', 'Kommende Termine') ?></h2>
     <p class="rcb-muted"><?= rcb_text('startseite.termine.text', 'Rennen, Trainings und Vereinsveranstaltungen.') ?></p>
-    <?php if ($events): ?><div class="rcb-grid">
-        <?php foreach ($events as $event): ?>
-        <article class="rcb-card"><div class="rcb-card-body">
-            <?php if (!empty($event['event_date'])): ?><span class="rcb-pill"><?= rcb_h(rcb_date((string)$event['event_date'])) ?><?= !empty($event['start_time']) ? ' · ' . rcb_h(substr((string)$event['start_time'], 0, 5)) . ' Uhr' : '' ?></span><?php endif; ?>
-            <h3><?= rcb_h($event['title']) ?></h3>
-            <?php if ((string)$event['location'] !== ''): ?><p><strong>Ort:</strong> <?= rcb_h($event['location']) ?></p><?php endif; ?>
-            <?php if ((string)$event['description'] !== ''): ?><p><?= nl2br(rcb_h($event['description'])) ?></p><?php endif; ?>
-        </div></article>
-        <?php endforeach; ?>
-    </div><?php else: ?><div class="rcb-empty"><?= rcb_text('startseite.termine.leer', 'Aktuell sind keine kommenden Termine veröffentlicht. Schau später wieder vorbei.') ?></div><?php endif; ?>
+    <?php if ($events): ?><div class="rcb-events"><?php foreach ($events as $event) { echo rcb_event_card($event, 'compact'); } ?></div>
+    <?php else: ?><div class="rcb-empty"><?= rcb_text('startseite.termine.leer', 'Aktuell sind keine kommenden Termine veröffentlicht. Schau später wieder vorbei.') ?></div><?php endif; ?>
     <a class="rcb-btn" href="/termine.php"><?= rcb_text('startseite.termine.button', 'Alle Termine ansehen') ?></a>
 </div></section>
 

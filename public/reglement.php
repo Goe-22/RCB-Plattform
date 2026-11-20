@@ -75,19 +75,36 @@ $teaser = [
 // Weitere Reglements, die früher als Inhaltsseite (Kennung reglement-…) angelegt wurden.
 $extra = rcb_rows("SELECT slug, title FROM pages WHERE published = 1 AND slug LIKE 'reglement-%' ORDER BY title");
 
+// Verwaltbare Klassenliste (Admin → Seiten → Reglement-Klassen): Reihenfolge, neue Klassen, veröffentlicht ja/nein.
+$isAdminView = rcb_admin_viewer() !== null;
+$classes = [];
+foreach (rcb_rule_classes(rcb_setting('reglement_klassen', '')) as $item) {
+    if (!$item['published'] && !$isAdminView) {
+        continue;
+    }
+    $key = $item['key'];
+    $classes[$key] = [
+        $sections[$key][0] ?? $item['title'],
+        $sections[$key][1] ?? '<p>Das Regelwerk für diese Klasse wird hier ergänzt.</p>',
+        $item['published'],
+    ];
+}
+$sections = $classes;
+
 $klasse = isset($_GET['klasse']) ? (string)$_GET['klasse'] : '';
 if ($klasse !== '') {
     // ---------- Unterseite: Regelwerk einer Klasse ----------
     if (!isset($sections[$klasse])) {
         rcb_not_found();
     }
-    [$title, $html] = $sections[$klasse];
+    [$title, $html, $published] = $sections[$klasse];
     rcb_header('rules');
     echo '<section class="rcb-hero rcb-hero-compact"><div class="rcb-hero-inner"><p><a class="rcb-pill" href="/reglement.php">← Fun Cup 2026 – alle Klassen</a></p><h1>'
         . rcb_text('reglement.' . $klasse . '.titel', $title) . '</h1><p>'
         . rcb_text('reglement.' . $klasse . '.kurz', $teaser[$klasse] ?? '') . '</p></div></section>';
     ?>
 <section class="rcb-section"><div class="rcb-wrap" style="max-width:960px">
+<?php if (!$published): ?><div class="rcb-empty" style="margin-bottom:18px;border-color:#f6c76b;background:#fff8e6"><strong>Nicht veröffentlicht:</strong> Diese Klasse sehen nur angemeldete Admins. Veröffentlichen unter Admin → Seiten → Reglement-Klassen.</div><?php endif; ?>
 <article class="rcb-card rcb-rule"><div class="rcb-card-body">
 <?= rcb_rich('reglement.' . $klasse, $html) ?>
 </div></article>
@@ -118,8 +135,8 @@ echo rcb_page_hero('reglement', 'Reglement & Ranglisten', 'Regeln dienen der Sic
 <h3 style="margin-top:26px;color:#062b55;font-size:1.35rem"><?= rcb_text('reglement.klassen.titel', 'Rennen & Klassen im Fun Cup 2026') ?></h3>
 <p class="rcb-muted"><?= rcb_text('reglement.klassen.text', 'Wähle ein Rennen bzw. eine Klasse, um das vollständige Regelwerk zu öffnen.') ?></p>
 <div class="rcb-class-list">
-<?php foreach ($sections as $key => [$title]): ?>
-<a class="rcb-class" href="/reglement.php?klasse=<?= rcb_h($key) ?>"><span><strong><?= rcb_h(rcb_block('reglement.' . $key . '.titel', $title)) ?></strong><small><?= rcb_h(rcb_block('reglement.' . $key . '.kurz', $teaser[$key] ?? '')) ?></small></span><span aria-hidden="true">›</span></a>
+<?php foreach ($sections as $key => [$title, , $published]): ?>
+<a class="rcb-class" href="/reglement.php?klasse=<?= rcb_h($key) ?>"><span><strong><?= rcb_h(rcb_block('reglement.' . $key . '.titel', $title)) ?><?= $published ? '' : ' <em style="color:#b26b00;font-weight:normal">(nicht veröffentlicht)</em>' ?></strong><small><?= rcb_h(rcb_block('reglement.' . $key . '.kurz', $teaser[$key] ?? '')) ?></small></span><span aria-hidden="true">›</span></a>
 <?php endforeach; ?>
 <?php foreach ($extra as $page): ?>
 <a class="rcb-class" href="/seite.php?slug=<?= rcb_h(rawurlencode((string)$page['slug'])) ?>"><span><strong><?= rcb_h($page['title']) ?></strong><small>Weiteres Regelwerk</small></span><span aria-hidden="true">›</span></a>

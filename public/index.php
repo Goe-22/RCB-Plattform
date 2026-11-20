@@ -2,7 +2,16 @@
 declare(strict_types=1);
 require_once __DIR__ . '/inc/bootstrap.php';
 
-$news = rcb_rows("SELECT * FROM news WHERE published = 1 ORDER BY created_at DESC, id DESC LIMIT 3");
+// Neuigkeiten: eigene Meldungen (Admin → Neuigkeiten) und automatische Hinweise auf neue Inhalte, neueste zuerst.
+$feed = [];
+foreach (rcb_rows("SELECT id, title, summary, content, image_url, created_at FROM news WHERE published = 1 ORDER BY created_at DESC, id DESC LIMIT 6") as $item) {
+    $feed[] = ['type' => 'news', 'date' => (string)$item['created_at'], 'item' => $item];
+}
+foreach (rcb_rows("SELECT id, title, url, created_at FROM site_updates ORDER BY created_at DESC, id DESC LIMIT 6") as $item) {
+    $feed[] = ['type' => 'update', 'date' => (string)$item['created_at'], 'item' => $item];
+}
+usort($feed, static fn(array $a, array $b): int => strcmp($b['date'], $a['date']));
+$feed = array_slice($feed, 0, 6);
 $events = rcb_rows("SELECT * FROM events WHERE published = 1 AND (event_date IS NULL OR CAST(event_date AS CHAR) = '' OR event_date >= ?) ORDER BY CASE WHEN event_date IS NULL OR CAST(event_date AS CHAR) = '' THEN 1 ELSE 0 END, event_date ASC, start_time ASC LIMIT 3", [rcb_today()]);
 $tracks = rcb_rows("SELECT * FROM tracks WHERE published = 1 ORDER BY name ASC");
 $sponsors = rcb_rows("SELECT * FROM sponsors WHERE published = 1 ORDER BY name ASC");
@@ -27,20 +36,26 @@ rcb_header('home');
 </div></section>
 <?php endif; ?>
 
-<section class="rcb-section" style="background:#eaf0f5"><div class="rcb-wrap">
-    <h2><?= rcb_text('startseite.news.titel', 'Neuigkeiten') ?></h2>
-    <?php if ($news): ?><div class="rcb-grid">
-        <?php foreach ($news as $item): ?>
-        <article class="rcb-card"><?php if ($item['image_url'] !== '' && $item['image_url'] !== null): ?><img class="rcb-card-image" src="<?= rcb_h($item['image_url']) ?>" alt="<?= rcb_h($item['title']) ?>" loading="lazy"><?php endif; ?><div class="rcb-card-body">
-            <span class="rcb-pill"><?= rcb_h(rcb_date(substr((string)$item['created_at'], 0, 10))) ?></span>
+<section class="rcb-section" id="neuigkeiten" style="background:#eaf0f5"><div class="rcb-wrap">
+    <h2><?= rcb_text('startseite.news.titel', 'Neuigkeiten – hier hat sich was getan') ?></h2>
+    <?php if ($feed): ?><div class="rcb-news-list">
+        <?php foreach ($feed as $entry): $item = $entry['item']; ?>
+        <?php if ($entry['type'] === 'news'): ?>
+        <article class="rcb-news"><?php if ((string)($item['image_url'] ?? '') !== ''): ?><img src="<?= rcb_h($item['image_url']) ?>" alt="" loading="lazy"><?php endif; ?><div>
+            <span class="rcb-pill"><?= rcb_h(rcb_date(substr($entry['date'], 0, 10))) ?></span>
             <h3><?= rcb_h($item['title']) ?></h3>
-            <?php if ((string)$item['summary'] !== ''): ?><p><?= nl2br(rcb_h($item['summary'])) ?></p><?php elseif ((string)$item['content'] !== ''): ?><p><?= nl2br(rcb_h(rcb_excerpt((string)$item['content']))) ?></p><?php endif; ?>
-            <a class="rcb-btn" href="/neuigkeiten.php?id=<?= (int)$item['id'] ?>">Weiterlesen</a>
+            <?php if ((string)$item['summary'] !== ''): ?><p><?= nl2br(rcb_h($item['summary'])) ?></p><?php endif; ?>
+            <?php if ((string)$item['content'] !== ''): ?><?php if ((string)$item['summary'] !== ''): ?><details><summary>Weiterlesen</summary><p><?= nl2br(rcb_h($item['content'])) ?></p></details><?php else: ?><p><?= nl2br(rcb_h($item['content'])) ?></p><?php endif; ?><?php endif; ?>
         </div></article>
+        <?php else: ?>
+        <article class="rcb-news rcb-news-update"><div>
+            <span class="rcb-pill"><?= rcb_h(rcb_date(substr($entry['date'], 0, 10))) ?> · Neu auf der Seite</span>
+            <h3><?= rcb_h($item['title']) ?></h3>
+        </div><?php if ((string)$item['url'] !== ''): ?><a class="rcb-btn" href="<?= rcb_h($item['url']) ?>">Ansehen</a><?php endif; ?></article>
+        <?php endif; ?>
         <?php endforeach; ?>
     </div>
-    <a class="rcb-btn" href="/neuigkeiten.php">Alle Neuigkeiten</a>
-    <?php else: ?><div class="rcb-empty"><?= rcb_text('startseite.news.leer', 'Hier erscheinen Vereinsneuigkeiten, sobald sie im Adminbereich veröffentlicht werden.') ?></div><?php endif; ?>
+    <?php else: ?><div class="rcb-empty"><?= rcb_text('startseite.news.leer', 'Hier erscheinen Neuigkeiten und Hinweise, sobald sich auf der Seite etwas tut.') ?></div><?php endif; ?>
 </div></section>
 
 <section class="rcb-section"><div class="rcb-wrap">

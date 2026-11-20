@@ -6,13 +6,8 @@
   let pending = 0;
   const adminUrl = '/admin/index.php';
   const dirty = new Map();
-  const PAGES = [
-    ['/', 'Startseite'], ['/verein.php', 'Verein'], ['/strecken.php', 'Strecken'], ['/onroad.php', 'Onroad'],
-    ['/offroad.php', 'Offroad'], ['/termine.php', 'Termine'], ['/neuigkeiten.php', 'Neuigkeiten'],
-    ['/reglement.php', 'Reglement'], ['/ergebnisse.php', 'Ergebnisse'], ['/live.php', 'Live-Timing'],
-    ['/mitglied-werden.php', 'Mitglied werden'], ['/kontakt.php', 'Kontakt'], ['/downloads.php', 'Downloads'],
-    ['/impressum.php', 'Impressum'], ['/datenschutz.php', 'Datenschutz'], ['/haftungsausschluss.php', 'Haftungsausschluss'],
-  ];
+  let PAGES = [];
+  try { PAGES = JSON.parse(document.getElementById('rcb-pages')?.textContent || '[]'); } catch (e) { PAGES = []; }
 
   const el = (tag, attrs = {}, children = []) => {
     const node = document.createElement(tag);

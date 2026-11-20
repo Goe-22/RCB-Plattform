@@ -22,6 +22,7 @@ if (is_file(Database::configFile()) || is_readable(Database::sqlitePath())) {
     }
 }
 
+require_once __DIR__ . '/pages.php';
 require_once __DIR__ . '/content.php';
 
 function rcb_h(mixed $value): string
@@ -52,10 +53,25 @@ function rcb_setting(string $key, string $fallback = ''): string
     return isset($rows[0]['setting_value']) ? (string)$rows[0]['setting_value'] : $fallback;
 }
 
-/** Ist die Live-Timing-Seite in den Einstellungen veröffentlicht? */
+/** Kennungen der verborgenen (nicht veröffentlichten) Seiten. */
+function rcb_hidden_slugs(): array
+{
+    static $hidden = null;
+    if ($hidden === null) {
+        $hidden = rcb_hidden_pages(rcb_setting('pages_hidden', '[]'), rcb_setting('live_enabled', '0'));
+    }
+    return $hidden;
+}
+
+function rcb_page_published(string $slug): bool
+{
+    return !in_array($slug, rcb_hidden_slugs(), true);
+}
+
+/** Ist die Live-Timing-Seite veröffentlicht? */
 function rcb_live_published(): bool
 {
-    return rcb_setting('live_enabled', '0') === '1';
+    return rcb_page_published('live');
 }
 
 /** Gibt eine einfache 404-Seite aus und beendet die Ausgabe. */
@@ -106,18 +122,21 @@ function rcb_header(string $active = 'home'): void
     }
     $logoUrl = rcb_img('global.logo', rcb_media_url('logo', '/assets/images/rcb-logo.png'));
     $logoMarkup = '<img src="' . rcb_h($logoUrl) . '" alt="' . rcb_h($siteName) . '"' . rcb_img_attr('global.logo') . ' style="width:min(250px,34vw);height:96px;object-fit:contain;object-position:left center">';
-    $links = [
-        'home' => ['Startseite', '/'],
-        'club' => ['Verein', '/verein.php'],
-        'tracks' => ['Strecken', '/strecken.php'],
-        'events' => ['Termine', '/termine.php'],
-        'news' => ['Neuigkeiten', '/neuigkeiten.php'],
-        'rules' => ['Reglement', '/reglement.php'],
-        'results' => ['Ergebnisse', '/ergebnisse.php'],
-        'live' => ['Live-Timing', '/live.php'],
-        'join' => ['Mitglied werden', '/mitglied-werden.php'],
-        'contact' => ['Kontakt', '/kontakt.php'],
-    ];
+    // Verborgene Seiten sind für Besucher nicht erreichbar; angemeldete Admins sehen sie im Editor/in der Vorschau.
+    $currentSlug = rcb_page_slug_for_path((string)parse_url((string)($_SERVER['SCRIPT_NAME'] ?? ''), PHP_URL_PATH));
+    if ($currentSlug !== '' && !rcb_page_published($currentSlug) && !$editor && http_response_code() !== 404) {
+        rcb_not_found();
+    }
+    $activeSlug = ['club' => 'verein', 'tracks' => 'strecken', 'events' => 'termine', 'rules' => 'reglement', 'results' => 'ergebnisse', 'join' => 'mitglied', 'contact' => 'kontakt'][$active] ?? $active;
+    $pages = rcb_site_pages();
+    $links = [];
+    foreach (rcb_nav_order(rcb_setting('nav_order', '[]')) as $slug) {
+        $isHidden = !rcb_page_published($slug);
+        if ($isHidden && !$editor) {
+            continue;
+        }
+        $links[$slug] = [$pages[$slug][0], $pages[$slug][1], $isHidden];
+    }
     echo '<!doctype html><html lang="de"><head><meta charset="utf-8">';
     echo '<meta name="viewport" content="width=device-width, initial-scale=1">';
     echo '<meta name="theme-color" content="#062b55">';
@@ -127,6 +146,12 @@ function rcb_header(string $active = 'home'): void
     echo '<script src="/assets/js/site.js" defer></script>';
     if ($editor) {
         echo '<meta name="rcb-csrf" content="' . rcb_h($editor['csrf']) . '">';
+        $editorPages = [];
+        $allPages = rcb_site_pages();
+        foreach (array_merge(rcb_nav_order(rcb_setting('nav_order', '[]')), array_keys(array_filter($allPages, static fn($p) => !$p[2]))) as $slug) {
+            $editorPages[] = [$allPages[$slug][1], $allPages[$slug][0] . (rcb_page_published($slug) ? '' : ' (verborgen)')];
+        }
+        echo '<script type="application/json" id="rcb-pages">' . json_encode($editorPages, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) . '</script>';
         echo '<link rel="stylesheet" href="/assets/css/editor.css">';
         echo '<script src="/assets/js/editor.js" data-mode="' . rcb_h($editor['mode']) . '" defer></script>';
     }
@@ -148,7 +173,8 @@ function rcb_header(string $active = 'home'): void
     .rcb-toc{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0 26px}.rcb-toc a{padding:7px 12px;border-radius:99px;background:#e8eef5;color:#062b55;font-weight:bold;text-decoration:none;font-size:.92rem}.rcb-toc a:hover{background:#062b55;color:#fff}
     .rcb-rule{margin-bottom:20px;scroll-margin-top:110px}.rcb-rule h2{color:#062b55}
     .rcb-class-list{display:flex;flex-direction:column;gap:10px;margin-top:16px}.rcb-class{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 20px;background:#fff;border:1px solid #dce3ea;border-radius:12px;color:#1d2733;text-decoration:none;box-shadow:0 4px 14px rgba(4,29,58,.05);transition:border-color .15s,transform .15s}.rcb-class:hover{border-color:#062b55;transform:translateX(3px)}.rcb-class strong{display:block;color:#062b55;font-size:1.12rem}.rcb-class small{display:block;color:#657383;margin-top:3px}.rcb-class>span:last-child{font-size:1.8rem;color:#c9272c;line-height:1}
-    .rcb-rule-nav{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px}.rcb-btn-light{background:#e8eef5;color:#062b55!important}.rcb-btn-light:hover{background:#d5e0eb}.rcb-hero .rcb-pill{text-decoration:none}.rcb-hero.rcb-hero-compact{min-height:0;padding:clamp(36px,6vw,64px) 20px}.rcb-hero-compact h1{margin-bottom:10px}
+    .rcb-rule-nav{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px}.rcb-btn-light{background:#e8eef5;color:#062b55!important}.rcb-btn-light:hover{background:#d5e0eb}.rcb-hero .rcb-pill{text-decoration:none}.rcb-news-list{display:flex;flex-direction:column;gap:12px}.rcb-news{display:flex;align-items:center;gap:18px;justify-content:space-between;padding:18px 20px;background:#fff;border:1px solid #dce3ea;border-radius:12px}.rcb-news>div{flex:1;min-width:0}.rcb-news h3{margin:6px 0 4px;color:#062b55}.rcb-news p{margin:6px 0}.rcb-news img{width:140px;height:96px;object-fit:cover;border-radius:8px;flex:none}.rcb-news .rcb-btn{margin-top:0;flex:none}.rcb-news details summary{cursor:pointer;color:#0d4777;font-weight:bold}.rcb-news-update{border-left:4px solid #c9272c}@media(max-width:600px){.rcb-news{flex-direction:column;align-items:flex-start}.rcb-news img{width:100%;height:170px}}
+    .rcb-nav-hidden{opacity:.55;text-decoration:line-through dotted!important}.rcb-hero.rcb-hero-compact{min-height:0;padding:clamp(36px,6vw,64px) 20px}.rcb-hero-compact h1{margin-bottom:10px}
     .rcb-footer{padding:26px 16px;background:#041d3a;color:#dce5ee;text-align:center}
     .rcb-footer a{color:#fff}.rcb-nav{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}.rcb-nav nav ul{flex-wrap:wrap;justify-content:flex-end}
     .logo-area{display:flex;align-items:center;gap:0;min-width:0;flex:0 1 auto}.logo-area .brand-mark{display:flex;align-items:center;justify-content:flex-start;width:auto;height:auto;min-width:0;margin:0;padding:0;border:0;border-radius:0;background:transparent}.logo-area .club-name{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}.logo-area .brand-mark img{display:block;max-width:min(250px,34vw);max-height:96px}
@@ -160,13 +186,10 @@ function rcb_header(string $active = 'home'): void
     echo '<a class="logo-area" href="/" aria-label="Zur Startseite"><span class="brand-mark">' . $logoMarkup . '</span><span class="club-name">' . rcb_h($siteName) . '<small>RC-Modellsport in Zwickau</small></span></a>';
     echo '<button class="rcb-menu-button" type="button" aria-controls="rcb-main-nav" aria-expanded="false" aria-label="Menü öffnen">☰</button>';
     echo '<nav id="rcb-main-nav" aria-label="Hauptnavigation"><ul>';
-    // Live-Timing erscheint erst im Menü, wenn es in den Einstellungen veröffentlicht ist (Admins sehen es im Editor).
-    if (!rcb_live_published() && !$editor) {
-        unset($links['live']);
-    }
-    foreach ($links as $key => [$label, $url]) {
-        $aria = $active === $key ? ' aria-current="page"' : '';
-        echo '<li><a href="' . rcb_h($url) . '"' . $aria . '>' . rcb_h($label) . '</a></li>';
+    foreach ($links as $key => [$label, $url, $isHidden]) {
+        $aria = $activeSlug === $key ? ' aria-current="page"' : '';
+        $mark = $isHidden ? ' class="rcb-nav-hidden" title="Nicht veröffentlicht – nur für Admins sichtbar"' : '';
+        echo '<li><a href="' . rcb_h($url) . '"' . $aria . $mark . '>' . rcb_h($label) . '</a></li>';
     }
     echo '</ul></nav></div></header><main>';
 }
@@ -182,6 +205,13 @@ function rcb_footer(): void
     if ($phone !== '') {
         echo '<p>Telefon: ' . rcb_h($phone) . '</p>';
     }
-    echo '<p><a href="/impressum.php">Impressum</a> · <a href="/datenschutz.php">Datenschutz</a> · <a href="/haftungsausschluss.php">Haftungsausschluss</a> · <a href="/downloads.php">Downloads</a></p>';
+    $footerLinks = [];
+    foreach (['impressum', 'datenschutz', 'haftungsausschluss', 'downloads'] as $slug) {
+        if (rcb_page_published($slug)) {
+            [$label, $url] = rcb_site_pages()[$slug];
+            $footerLinks[] = '<a href="' . rcb_h($url) . '">' . rcb_h($label) . '</a>';
+        }
+    }
+    echo '<p>' . implode(' · ', $footerLinks) . '</p>';
     echo '</footer></body></html>';
 }

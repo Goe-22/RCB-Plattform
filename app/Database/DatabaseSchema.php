@@ -108,6 +108,11 @@ final class DatabaseSchema
             'updated_by' => ["INT UNSIGNED NULL", "INTEGER"],
             'updated_at' => ["TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP", "TEXT DEFAULT CURRENT_TIMESTAMP"],
         ],
+        'site_updates' => [
+            'title' => ["VARCHAR(255) NOT NULL", "TEXT NOT NULL"],
+            'url' => ["VARCHAR(500) NOT NULL DEFAULT ''", "TEXT DEFAULT ''"],
+            'created_at' => ["TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP", "TEXT DEFAULT CURRENT_TIMESTAMP"],
+        ],
         'admin_login_attempts' => [
             'ip_hash' => ["CHAR(64) NOT NULL", "TEXT NOT NULL"],
             'attempted_at' => ["INT UNSIGNED NOT NULL", "INTEGER NOT NULL"],

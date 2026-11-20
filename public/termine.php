@@ -2,11 +2,12 @@
 declare(strict_types=1);
 require_once __DIR__ . '/inc/bootstrap.php';
 
-$upcoming = rcb_rows("SELECT * FROM events WHERE published = 1 AND (event_date IS NULL OR event_date = '' OR event_date >= date('now','localtime')) ORDER BY CASE WHEN event_date IS NULL OR event_date = '' THEN 1 ELSE 0 END, event_date ASC, start_time ASC");
-$past = rcb_rows("SELECT * FROM events WHERE published = 1 AND event_date IS NOT NULL AND event_date <> '' AND event_date < date('now','localtime') ORDER BY event_date DESC, start_time DESC LIMIT 20");
+$upcoming = rcb_rows("SELECT * FROM events WHERE published = 1 AND (event_date IS NULL OR CAST(event_date AS CHAR) = '' OR event_date >= ?) ORDER BY CASE WHEN event_date IS NULL OR CAST(event_date AS CHAR) = '' THEN 1 ELSE 0 END, event_date ASC, start_time ASC", [rcb_today()]);
+$past = rcb_rows("SELECT * FROM events WHERE published = 1 AND event_date IS NOT NULL AND CAST(event_date AS CHAR) <> '' AND event_date < ? ORDER BY event_date DESC, start_time DESC LIMIT 20", [rcb_today()]);
+$pageCopy = rcb_page_copy('termine');
 rcb_header('events');
 ?>
-<section class="rcb-hero"><div class="rcb-hero-inner"><h1>Termine & Veranstaltungen</h1><p>Rennen, Trainings und Vereinsaktivitäten der RC Bande Zwickau.</p></div></section>
+<section class="rcb-hero"><div class="rcb-hero-inner"><h1><?= rcb_h($pageCopy['title'] ?? 'Termine & Veranstaltungen') ?></h1><p><?= nl2br(rcb_h($pageCopy['content'] ?? 'Rennen, Trainings und Vereinsaktivitäten der RC Bande Zwickau.')) ?></p></div></section>
 <section class="rcb-section"><div class="rcb-wrap">
 <h2>Kommende Veranstaltungen</h2>
 <?php if ($upcoming): ?><div class="rcb-grid">

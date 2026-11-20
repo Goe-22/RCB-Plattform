@@ -60,7 +60,7 @@ for page in pages:
 
 required = ["index.html", "verein.html", "strecken.html", "onroad.html", "offroad.html",
             "termine.html", "ergebnisse.html", "reglement.html", "kontakt.html",
-            "mitglied-werden.html", "galerie.html", "downloads.html", "live.html",
+            "mitglied-werden.html", "downloads.html", "live.html",
             "impressum.html", "datenschutz.html", "assets/css/site.css", "assets/js/site.js"]
 for item in required:
     if not (ROOT / item).is_file():

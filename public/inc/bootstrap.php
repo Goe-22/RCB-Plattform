@@ -3,21 +3,19 @@ declare(strict_types=1);
 
 /**
  * Gemeinsame, schreibgeschützte Datenzugriffe für die öffentliche Webseite.
- * Die SQLite-Datei wird ausschließlich vom Adminbereich angelegt.
+ * Die Tabellen werden ausschließlich vom Adminbereich angelegt.
  */
 $rcbRoot = dirname(__DIR__, 2);
-$rcbDbFile = $rcbRoot . '/storage/database.sqlite';
 $rcbDb = null;
 
-if (is_file($rcbDbFile) && is_readable($rcbDbFile)) {
+// Gemeinsame Datenbankschicht: MySQL über config/database.php, sonst SQLite in storage/.
+require_once $rcbRoot . '/app/Database/Database.php';
+if (is_file(Database::configFile()) || is_readable(Database::sqlitePath())) {
     try {
-        $rcbDb = new PDO('sqlite:' . $rcbDbFile, null, null, [
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES => false,
-        ]);
-        $rcbDb->exec('PRAGMA query_only = ON');
-        $rcbDb->exec('PRAGMA busy_timeout = 3000');
+        $rcbDb = Database::connect();
+        if (!Database::isMysql()) {
+            $rcbDb->exec('PRAGMA query_only = ON');
+        }
     } catch (Throwable $e) {
         error_log('RCB public database error: ' . $e->getMessage());
         $rcbDb = null;
@@ -52,6 +50,19 @@ function rcb_setting(string $key, string $fallback = ''): string
     return isset($rows[0]['setting_value']) ? (string)$rows[0]['setting_value'] : $fallback;
 }
 
+/** Veröffentlichte Inhaltsseite (Titel/Text) zu einer Seitenkennung, z. B. 'strecken'. */
+function rcb_page_copy(string $slug): ?array
+{
+    $rows = rcb_rows('SELECT title, content FROM pages WHERE slug = ? AND published = 1 LIMIT 1', [$slug]);
+    return $rows[0] ?? null;
+}
+
+/** Heutiges Datum in deutscher Zeit (Y-m-d) für Terminabfragen in MySQL und SQLite. */
+function rcb_today(): string
+{
+    return (new DateTimeImmutable('now', new DateTimeZone('Europe/Berlin')))->format('Y-m-d');
+}
+
 function rcb_date(?string $date, bool $withYear = true): string
 {
     if (!$date || $date === '0000-00-00') {
@@ -75,9 +86,8 @@ function rcb_header(string $active = 'home'): void
         exit;
     }
     $logoRows = rcb_rows("SELECT filename FROM media WHERE published = 1 AND category = 'logo' ORDER BY id DESC LIMIT 1");
-    $logoMarkup = !empty($logoRows[0]['filename'])
-        ? '<img src="/uploads/' . rcb_h(rawurlencode((string)$logoRows[0]['filename'])) . '" alt="Vereinslogo" style="width:48px;height:48px;object-fit:contain">'
-        : 'RCB';
+    $logoFile = !empty($logoRows[0]['filename']) ? '/uploads/' . rawurlencode((string)$logoRows[0]['filename']) : '/assets/images/rcb-logo.png';
+    $logoMarkup = '<img src="' . rcb_h($logoFile) . '" alt="' . rcb_h($siteName) . '" style="width:min(250px,34vw);height:96px;object-fit:contain;object-position:left center">';
     $links = [
         'home' => ['Startseite', '/'],
         'club' => ['Verein', '/verein.php'],
@@ -113,6 +123,8 @@ function rcb_header(string $active = 'home'): void
     .rcb-content{white-space:normal;overflow-wrap:anywhere;line-height:1.8}
     .rcb-footer{padding:26px 16px;background:#041d3a;color:#dce5ee;text-align:center}
     .rcb-footer a{color:#fff}.rcb-nav{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}.rcb-nav nav ul{flex-wrap:wrap;justify-content:flex-end}
+    .logo-area{display:flex;align-items:center;gap:0;min-width:0;flex:0 1 auto}.logo-area .brand-mark{display:flex;align-items:center;justify-content:flex-start;width:auto;height:auto;min-width:0;margin:0;padding:0;border:0;border-radius:0;background:transparent}.logo-area .club-name{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}.logo-area .brand-mark img{display:block;max-width:min(250px,34vw);max-height:96px}
+    .rcb-card-image{display:block;width:100%;height:220px;object-fit:cover}
     .rcb-menu-button{display:none;border:1px solid rgba(255,255,255,.55);border-radius:7px;background:transparent;color:#fff;font-size:25px;line-height:1;padding:8px 11px;cursor:pointer}
     @media(max-width:900px){.rcb-nav{align-items:center}.rcb-menu-button{display:block;margin-left:auto}.rcb-nav nav{display:none;flex-basis:100%;width:100%}.rcb-nav nav.open{display:block}.rcb-nav nav ul{display:flex;flex-direction:column;align-items:stretch;gap:2px}.rcb-nav nav a{padding:10px 12px}.rcb-nav nav a[aria-current="page"]{background:rgba(255,255,255,.14)}}
     </style></head><body>';

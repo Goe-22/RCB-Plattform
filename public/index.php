@@ -3,7 +3,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/inc/bootstrap.php';
 
 $news = rcb_rows("SELECT * FROM news WHERE published = 1 ORDER BY created_at DESC, id DESC LIMIT 3");
-$events = rcb_rows("SELECT * FROM events WHERE published = 1 AND (event_date IS NULL OR event_date = '' OR event_date >= date('now','localtime')) ORDER BY CASE WHEN event_date IS NULL OR event_date = '' THEN 1 ELSE 0 END, event_date ASC, start_time ASC LIMIT 3");
+$events = rcb_rows("SELECT * FROM events WHERE published = 1 AND (event_date IS NULL OR CAST(event_date AS CHAR) = '' OR event_date >= ?) ORDER BY CASE WHEN event_date IS NULL OR CAST(event_date AS CHAR) = '' THEN 1 ELSE 0 END, event_date ASC, start_time ASC LIMIT 3", [rcb_today()]);
 $tracks = rcb_rows("SELECT * FROM tracks WHERE published = 1 ORDER BY name ASC");
 $sponsors = rcb_rows("SELECT * FROM sponsors WHERE published = 1 ORDER BY name ASC");
 $intro = rcb_rows("SELECT title, content FROM pages WHERE slug = 'startseite' AND published = 1 LIMIT 1");

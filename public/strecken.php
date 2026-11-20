@@ -3,12 +3,13 @@ declare(strict_types=1);
 require_once __DIR__ . '/inc/bootstrap.php';
 
 $tracks = rcb_rows("SELECT * FROM tracks WHERE published = 1 ORDER BY name ASC");
+$pageCopy = rcb_page_copy('strecken');
 $trackImages = rcb_rows("SELECT category, filename FROM media WHERE published = 1 AND category IN ('onroad','offroad') ORDER BY uploaded_at DESC, id DESC");
 $imageMap = [];
 foreach ($trackImages as $image) { if (!isset($imageMap[$image['category']])) { $imageMap[$image['category']] = (string)$image['filename']; } }
 rcb_header('tracks');
 ?>
-<section class="rcb-hero"><div class="rcb-hero-inner"><h1>Unsere Strecken</h1><p>Entdecke die veröffentlichten Strecken der RC Bande Zwickau und informiere dich über Ausstattung und Bedingungen.</p></div></section>
+<section class="rcb-hero"><div class="rcb-hero-inner"><h1><?= rcb_h($pageCopy['title'] ?? 'Unsere Strecken') ?></h1><p><?= nl2br(rcb_h($pageCopy['content'] ?? 'Entdecke die veröffentlichten Strecken der RC Bande Zwickau und informiere dich über Ausstattung und Bedingungen.')) ?></p></div></section>
 <section class="rcb-section"><div class="rcb-wrap">
 <?php if ($tracks): ?><div class="rcb-grid">
 <?php foreach ($tracks as $track): ?><?php $kind = stripos((string)$track['name'], 'onroad') !== false ? 'onroad' : (stripos((string)$track['name'], 'offroad') !== false ? 'offroad' : ''); $trackImage = $kind !== '' ? ($imageMap[$kind] ?? '') : ''; ?><article class="rcb-card"><?php if ($trackImage !== ''): ?><img src="/uploads/<?= rcb_h(rawurlencode($trackImage)) ?>" alt="<?= rcb_h($track['name']) ?>" loading="lazy" style="display:block;width:100%;height:220px;object-fit:cover"><?php endif; ?><div class="rcb-card-body">

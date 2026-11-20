@@ -25,35 +25,18 @@ header('Cache-Control: no-store, private');
 header('Content-Security-Policy: default-src \'self\'; style-src \'unsafe-inline\'; form-action \'self\'; frame-ancestors \'none\'; base-uri \'self\'');
 
 $root = dirname(__DIR__, 2);
+// Öffentliches Verzeichnis: bei Hosting mit public_html als Webroot ist es der Elternordner von admin/.
+$publicRoot = dirname(__DIR__);
 $storage = $root . '/storage';
 if (!is_dir($storage) && !mkdir($storage, 0750, true) && !is_dir($storage)) {
     http_response_code(500);
     exit('Speicherverzeichnis konnte nicht angelegt werden. Bitte Hosting prüfen.');
 }
-$dbFile = $storage . '/database.sqlite';
+require_once $root . '/app/Database/Database.php';
+require_once $root . '/app/Database/DatabaseSchema.php';
 try {
-    $db = new PDO('sqlite:' . $dbFile, null, null, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES => false,
-    ]);
-    $db->exec('PRAGMA foreign_keys = ON');
-    $db->exec('PRAGMA busy_timeout = 5000');
-    $db->exec("CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT NOT NULL UNIQUE,
-        email TEXT DEFAULT '',
-        password_hash TEXT NOT NULL,
-        role TEXT NOT NULL DEFAULT 'subadmin',
-        permissions TEXT NOT NULL DEFAULT '[]',
-        active INTEGER NOT NULL DEFAULT 1,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )");
-    $userColumns = $db->query('PRAGMA table_info(users)')->fetchAll();
-    $userColumnNames = array_column($userColumns, 'name');
-    if (!in_array('permissions', $userColumnNames, true)) {
-        $db->exec("ALTER TABLE users ADD COLUMN permissions TEXT NOT NULL DEFAULT '[]'");
-    }
+    $db = Database::connect();
+    DatabaseSchema::ensure($db);
     // Promote the first existing account once, preserving access to the main administrator.
     $superadminCount = (int)$db->query("SELECT COUNT(*) FROM users WHERE role = 'superadmin'")->fetchColumn();
     if ($superadminCount === 0) {
@@ -61,109 +44,22 @@ try {
         if ($firstAdminId !== false) {
             $stmt = $db->prepare("UPDATE users SET role='superadmin', permissions='[]' WHERE id=?");
             $stmt->execute([(int)$firstAdminId]);
-            $db->exec("UPDATE users SET role='subadmin', permissions='[\"events\",\"tracks\",\"pages\",\"sponsors\",\"media\",\"results\"]' WHERE id <> " . (int)$firstAdminId . " AND role='admin'");
+            $db->exec("UPDATE users SET role='subadmin', permissions='[\"events\",\"tracks\",\"pages\",\"sponsors\",\"media\",\"results\",\"news\"]' WHERE id <> " . (int)$firstAdminId . " AND role NOT IN ('superadmin','subadmin')");
         }
     }
-    $db->exec("CREATE TABLE IF NOT EXISTS settings (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        setting_key TEXT NOT NULL UNIQUE,
-        setting_value TEXT DEFAULT '',
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )");
-    $db->exec("CREATE TABLE IF NOT EXISTS events (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT NOT NULL,
-        description TEXT DEFAULT '',
-        event_date TEXT DEFAULT '',
-        start_time TEXT DEFAULT '',
-        location TEXT DEFAULT '',
-        published INTEGER NOT NULL DEFAULT 0,
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )");
-    $db->exec("CREATE TABLE IF NOT EXISTS tracks (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        description TEXT DEFAULT '',
-        surface TEXT DEFAULT '',
-        length TEXT DEFAULT '',
-        classes TEXT DEFAULT '',
-        electricity INTEGER DEFAULT 0,
-        toilet INTEGER DEFAULT 0,
-        paddock INTEGER DEFAULT 0,
-        guest_drivers INTEGER DEFAULT 0,
-        published INTEGER DEFAULT 0,
-        show_status INTEGER DEFAULT 0,
-        status TEXT DEFAULT 'closed',
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )");
-    $db->exec("CREATE TABLE IF NOT EXISTS sponsors (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        url TEXT DEFAULT '',
-        description TEXT DEFAULT '',
-        published INTEGER NOT NULL DEFAULT 0,
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )");
-    $db->exec("CREATE TABLE IF NOT EXISTS pages (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        slug TEXT NOT NULL UNIQUE,
-        title TEXT NOT NULL,
-        content TEXT DEFAULT '',
-        published INTEGER NOT NULL DEFAULT 0,
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )");
-    $db->exec("CREATE TABLE IF NOT EXISTS media (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        filename TEXT NOT NULL,
-        title TEXT DEFAULT '',
-        description TEXT DEFAULT '',
-        category TEXT DEFAULT 'onroad',
-        mime_type TEXT DEFAULT '',
-        published INTEGER NOT NULL DEFAULT 0,
-        uploaded_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )");
-    // Migration: ältere Plattform-Versionen nannten das MIME-Feld in media noch "type".
-    $mediaColumns = $db->query('PRAGMA table_info(media)')->fetchAll();
-    $mediaColumnNames = array_column($mediaColumns, 'name');
-    if (!in_array('mime_type', $mediaColumnNames, true)) {
-        $db->exec("ALTER TABLE media ADD COLUMN mime_type TEXT DEFAULT ''");
+    if (!Database::isMysql()) {
+        @chmod(Database::sqlitePath(), 0640);
     }
-    $db->exec("CREATE TABLE IF NOT EXISTS results (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        event_id INTEGER,
-        title TEXT NOT NULL,
-        content TEXT DEFAULT '',
-        published INTEGER NOT NULL DEFAULT 0,
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )");
-    $db->exec("CREATE TABLE IF NOT EXISTS news (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT NOT NULL,
-        summary TEXT DEFAULT '',
-        content TEXT DEFAULT '',
-        image_url TEXT DEFAULT '',
-        published INTEGER NOT NULL DEFAULT 0,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )");
-    $db->exec("CREATE TABLE IF NOT EXISTS logs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER,
-        action TEXT NOT NULL,
-        details TEXT DEFAULT '',
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP
-    )");
-    $db->exec("CREATE TABLE IF NOT EXISTS admin_login_attempts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        ip_hash TEXT NOT NULL,
-        attempted_at INTEGER NOT NULL
-    )");
-    @chmod($dbFile, 0640);
 } catch (Throwable $e) {
     error_log('RCB admin database error: ' . $e->getMessage());
     http_response_code(500);
-    exit('Die Admin-Datenbank konnte nicht geöffnet werden. Bitte PHP mit PDO_SQLite aktivieren und Schreibrechte für storage/ setzen.');
+    exit(Database::isMysql()
+        ? 'Die Admin-Datenbank konnte nicht geöffnet werden. Bitte die Zugangsdaten in config/database.php prüfen.'
+        : 'Die Admin-Datenbank konnte nicht geöffnet werden. Bitte PHP mit PDO_SQLite aktivieren und Schreibrechte für storage/ setzen.');
 }
+$initialSetupKey = trim((string)(Database::config()['initial_setup_key'] ?? ''));
+// Sobald eine Konfigurationsdatei existiert (Webhosting), ist die Ersteinrichtung nur mit Schlüssel möglich.
+$setupKeyRequired = is_file(Database::configFile()) || $initialSetupKey !== '';
 
 function h(mixed $value): string {
     return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -230,7 +126,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email = post_string('email', 190);
         $password = (string)($_POST['password'] ?? '');
         $confirm = (string)($_POST['password_confirm'] ?? '');
-        if (!preg_match('/^[a-zA-Z0-9._-]{3,60}$/', $username)) {
+        $providedSetupKey = trim((string)($_POST['initial_setup_key'] ?? ''));
+        $setupIpHash = hash('sha256', (string)($_SERVER['REMOTE_ADDR'] ?? 'unknown') . (string)($_SERVER['HTTP_USER_AGENT'] ?? ''));
+        $setupCutoff = time() - 900;
+        $db->prepare('DELETE FROM admin_login_attempts WHERE attempted_at < ?')->execute([$setupCutoff]);
+        $attemptQuery = $db->prepare('SELECT COUNT(*) FROM admin_login_attempts WHERE ip_hash = ? AND attempted_at >= ?');
+        $attemptQuery->execute([$setupIpHash, $setupCutoff]);
+        if ($setupKeyRequired && (int)$attemptQuery->fetchColumn() >= 8) {
+            $error = 'Zu viele Versuche mit dem Einrichtungsschlüssel. Bitte 15 Minuten warten.';
+        } elseif ($setupKeyRequired && (strlen($initialSetupKey) < 10 || str_starts_with($initialSetupKey, 'REPLACE_WITH_'))) {
+            $error = 'Der Einrichtungsschlüssel fehlt oder ist zu kurz. In config/database.php muss bei initial_setup_key ein Schlüssel mit mindestens 10 Zeichen eingetragen sein.';
+        } elseif ($setupKeyRequired && !hash_equals($initialSetupKey, $providedSetupKey)) {
+            $db->prepare('INSERT INTO admin_login_attempts (ip_hash, attempted_at) VALUES (?, ?)')->execute([$setupIpHash, time()]);
+            $error = 'Der eingegebene Einrichtungsschlüssel stimmt nicht mit config/database.php überein. Das ist nicht das Datenbank-Passwort.';
+        } elseif (!preg_match('/^[a-zA-Z0-9._-]{3,60}$/', $username)) {
             $error = 'Der Benutzername muss 3–60 Zeichen haben (Buchstaben, Zahlen, Punkt, Unterstrich oder Bindestrich).';
         } elseif ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $error = 'Bitte eine gültige E-Mail-Adresse eingeben.';
@@ -267,7 +176,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($attempts >= 8) {
             $error = 'Zu viele Anmeldeversuche. Bitte 15 Minuten warten.';
         } else {
-            $stmt = $db->prepare('SELECT id, username, password_hash, role, active FROM users WHERE username = ? COLLATE NOCASE LIMIT 1');
+            $stmt = $db->prepare('SELECT id, username, password_hash, role, active FROM users WHERE LOWER(username) = LOWER(?) LIMIT 1');
             $stmt->execute([$username]);
             $user = $stmt->fetch();
             if ($user && (int)$user['active'] === 1 && password_verify($password, $user['password_hash'])) {
@@ -294,6 +203,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($action === 'backup_export') {
             // Authenticated, CSRF-protected SQL export. Restore only into a fresh database.
             log_action($db, $uid, 'database_backup_downloaded', 'SQL-Datenbankexport heruntergeladen');
+            if (Database::isMysql()) {
+                $dump = "-- RC Bande Zwickau Datenbank-Backup (MySQL/MariaDB)\n-- Erstellt: " . date(DATE_ATOM) . "\n-- Import nur in eine frische/leere Datenbank.\n";
+                $dump .= "SET NAMES utf8mb4;\nSET FOREIGN_KEY_CHECKS=0;\n";
+                foreach ($db->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN) as $tableName) {
+                    $quotedTable = '`' . str_replace('`', '``', (string)$tableName) . '`';
+                    $create = $db->query('SHOW CREATE TABLE ' . $quotedTable)->fetch(PDO::FETCH_NUM);
+                    $dump .= "\n" . (string)($create[1] ?? '') . ";\n";
+                    $rows = $db->query('SELECT * FROM ' . $quotedTable);
+                    while ($row = $rows->fetch(PDO::FETCH_ASSOC)) {
+                        $columnsSql = implode(', ', array_map(static fn($name) => '`' . str_replace('`', '``', (string)$name) . '`', array_keys($row)));
+                        $values = array_map(static fn($value) => $value === null ? 'NULL' : $db->quote((string)$value), array_values($row));
+                        $dump .= 'INSERT INTO ' . $quotedTable . ' (' . $columnsSql . ') VALUES (' . implode(', ', $values) . ");\n";
+                    }
+                }
+                $dump .= "\nSET FOREIGN_KEY_CHECKS=1;\n";
+                header('Content-Type: application/sql; charset=UTF-8');
+                header('Content-Disposition: attachment; filename="rcb-backup-' . date('Ymd-His') . '.sql"');
+                header('Content-Length: ' . strlen($dump));
+                echo $dump;
+                exit;
+            }
             $tables = $db->query("SELECT name, sql FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND sql IS NOT NULL ORDER BY name")->fetchAll();
             $dump = "-- RC Bande Zwickau Datenbank-Backup\n-- Erstellt: " . date(DATE_ATOM) . "\n-- Import nur in eine frische/leere SQLite-Datenbank.\n";
             $dump .= "PRAGMA foreign_keys=OFF;\nBEGIN TRANSACTION;\n";
@@ -333,7 +263,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             if ($action === 'save_event') {
                 $id = (int)($_POST['id'] ?? 0);
-                $values = [post_string('title', 180), post_string('description', 5000), post_string('event_date', 10), post_string('start_time', 5), post_string('location', 180), isset($_POST['published']) ? 1 : 0];
+                $eventDate = post_string('event_date', 10);
+                $startTime = post_string('start_time', 5);
+                if ($eventDate !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $eventDate)) { throw new RuntimeException('Bitte ein gültiges Datum eingeben.'); }
+                if ($startTime !== '' && !preg_match('/^\d{2}:\d{2}$/', $startTime)) { throw new RuntimeException('Bitte eine gültige Uhrzeit eingeben.'); }
+                $values = [post_string('title', 180), post_string('description', 5000), $eventDate !== '' ? $eventDate : null, $startTime !== '' ? $startTime : null, post_string('location', 180), isset($_POST['published']) ? 1 : 0];
                 if ($values[0] === '') { throw new RuntimeException('Bitte einen Veranstaltungstitel eingeben.'); }
                 if ($id > 0) {
                     $values[] = $id;
@@ -442,7 +376,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!$imageInfo || (int)$imageInfo[0] < 1 || (int)$imageInfo[1] < 1) {
                     throw new RuntimeException('Die Datei enthält kein gültiges Bild.');
                 }
-                $uploads = $root . '/public/uploads';
+                $uploads = $publicRoot . '/uploads';
                 if (!is_dir($uploads) && !mkdir($uploads, 0755, true) && !is_dir($uploads)) {
                     throw new RuntimeException('Der Upload-Ordner konnte nicht angelegt werden.');
                 }
@@ -475,7 +409,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($file) {
                     $filename = basename((string)$file['filename']);
                     if (preg_match('/^[a-f0-9]{32}\\.(jpg|png|webp)$/', $filename)) {
-                        @unlink($root . '/public/uploads/' . $filename);
+                        @unlink($publicRoot . '/uploads/' . $filename);
                     }
                     $db->prepare('DELETE FROM media WHERE id=?')->execute([$id]);
                     log_action($db, $uid, 'media_deleted', $filename);
@@ -538,7 +472,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             if ($action === 'save_settings') {
                 $allowed = ['site_name','site_description','contact_email','contact_phone','site_enabled','live_enabled'];
-                $stmt = $db->prepare('INSERT INTO settings (setting_key,setting_value) VALUES (?,?) ON CONFLICT(setting_key) DO UPDATE SET setting_value=excluded.setting_value, updated_at=CURRENT_TIMESTAMP');
+                $stmt = $db->prepare(Database::isMysql()
+                    ? 'INSERT INTO settings (setting_key,setting_value) VALUES (?,?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value), updated_at=CURRENT_TIMESTAMP'
+                    : 'INSERT INTO settings (setting_key,setting_value) VALUES (?,?) ON CONFLICT(setting_key) DO UPDATE SET setting_value=excluded.setting_value, updated_at=CURRENT_TIMESTAMP');
                 foreach ($allowed as $key) {
                     $value = in_array($key, ['site_enabled','live_enabled'], true) ? (isset($_POST[$key]) ? '1' : '0') : post_string($key, $key === 'site_description' ? 1000 : 190);
                     if ($key === 'contact_email' && $value !== '' && !filter_var($value, FILTER_VALIDATE_EMAIL)) { throw new RuntimeException('Bitte eine gültige Kontakt-E-Mail eingeben.'); }
@@ -637,7 +573,9 @@ if ($loggedIn) {
 .media-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}.media-item{overflow:hidden;border:1px solid var(--line);border-radius:10px;background:var(--panel2)}.media-item img{display:block;width:100%;height:160px;object-fit:cover;background:#111}.media-item-body{padding:12px}.media-item-body form{margin-top:10px}.media-item-body .hint{overflow-wrap:anywhere}
 :root{color-scheme:dark;--bg:#101114;--panel:#191b20;--panel2:#202229;--text:#f4f4f5;--muted:#a1a1aa;--line:#34363d;--red:#d71920;--red2:#b8141a;--green:#78dba9;--amber:#f6c76b}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}a{color:#ff8c91;text-decoration:none}a:hover{text-decoration:underline}button,input,textarea,select{font:inherit}button,.button{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 15px;border:0;border-radius:9px;background:var(--red);color:white;font-weight:750;cursor:pointer;text-decoration:none}button:hover,.button:hover{background:var(--red2);text-decoration:none}.button.secondary,button.secondary{background:#30323a;color:var(--text)}.button.danger,button.danger{background:#702126}.wrap{width:min(1400px,100%);margin:auto;padding:24px}.login-wrap{min-height:100vh;display:grid;place-items:center;padding:22px;background:radial-gradient(ellipse at top,rgba(215,25,32,.18),transparent 48%),var(--bg)}.login-card{width:min(100%,480px);padding:clamp(24px,5vw,42px);background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 24px 70px #0006}.brand-mark{display:grid;place-items:center;width:58px;height:58px;margin-bottom:20px;border-radius:14px;background:var(--red);font-weight:950;font-size:20px}.eyebrow{margin:0 0 6px;color:#ff8c91;font-size:12px;font-weight:850;letter-spacing:.14em;text-transform:uppercase}h1,h2,h3{line-height:1.2}h1{font-size:clamp(27px,4vw,36px);margin:0 0 10px}h2{font-size:20px;margin:0 0 12px}h3{font-size:16px;margin:0 0 10px}.muted,.intro{color:var(--muted)}.intro{margin:0 0 25px}form.stack{display:grid;gap:10px}label{display:block;font-size:13px;font-weight:750;margin:8px 0 5px}input,textarea,select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:9px;background:#101114;color:var(--text);outline:none}textarea{min-height:140px;resize:vertical}input:focus,textarea:focus,select:focus{border-color:var(--red);box-shadow:0 0 0 3px #d7192030}.check{display:flex;align-items:center;gap:9px;margin:12px 0;color:#dedee2}.check input{width:auto}.alert{margin:0 0 18px;padding:12px 14px;border:1px solid #7c3439;border-radius:9px;background:#381b1e;color:#ffdadd}.notice{margin:0 0 18px;padding:12px 14px;border:1px solid #286746;border-radius:9px;background:#142a20;color:#baf3d2}.admin-top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 24px;border-bottom:1px solid var(--line);background:#15161a;position:sticky;top:0;z-index:5}.brand{display:flex;align-items:center;gap:12px;font-weight:850}.brand .brand-mark{width:42px;height:42px;margin:0;border-radius:10px;font-size:15px}.top-actions{display:flex;align-items:center;gap:12px}.shell{display:grid;grid-template-columns:240px minmax(0,1fr);min-height:calc(100vh - 75px)}.sidebar{padding:20px 14px;border-right:1px solid var(--line);background:#15161a}.nav-label{padding:10px 12px;color:#777983;font-size:11px;letter-spacing:.12em;font-weight:850;text-transform:uppercase}.nav{display:grid;gap:4px}.nav a{display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:9px;color:#d4d4d8}.nav a.active,.nav a:hover{background:#2a1a1d;color:#fff;text-decoration:none}.nav a.active{box-shadow:inset 3px 0 var(--red)}main.content{min-width:0;padding:clamp(18px,3vw,36px)}.page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:24px}.page-head p{margin:0;color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.card{min-width:0;padding:19px;border:1px solid var(--line);border-radius:13px;background:var(--panel)}.stat{font-size:30px;font-weight:850;letter-spacing:-.04em}.stat-label{color:var(--muted);font-size:13px}.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:20px}.tile{display:block;padding:20px;border:1px solid var(--line);border-radius:13px;background:var(--panel);color:var(--text)}.tile:hover{background:var(--panel2);border-color:#565963;text-decoration:none}.tile-icon{font-size:25px}.tile p{margin:5px 0 0;color:var(--muted);font-size:13px}.columns{display:grid;grid-template-columns:minmax(280px,.8fr) minmax(0,1.2fr);gap:18px;align-items:start}.table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse;font-size:14px}.table th,.table td{padding:11px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}.table th{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.05em}.table td.actions{white-space:nowrap}.table form{display:inline}.table .button,.table button{padding:6px 9px;font-size:12px}.badge{display:inline-block;padding:3px 8px;border-radius:20px;background:#30323a;color:#ddd;font-size:12px}.badge.yes{background:#183c2a;color:#a8f0c5}.badge.no{background:#3c2828;color:#f3b1b1}.form-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}.empty{padding:22px;color:var(--muted);text-align:center}.hint{color:var(--muted);font-size:12px}.footer{padding:20px 0;color:#777983;font-size:12px}@media(max-width:1000px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.columns{grid-template-columns:1fr}}@media(max-width:720px){.admin-top{padding:12px 15px}.top-actions .user-label{display:none}.shell{grid-template-columns:1fr}.sidebar{padding:10px;border-right:0;border-bottom:1px solid var(--line);overflow:auto}.nav{display:flex;gap:5px;width:max-content}.nav-label{display:none}.nav a{white-space:nowrap;padding:8px 10px;font-size:13px}.wrap{padding:14px}main.content{padding:20px 14px}.tiles{grid-template-columns:1fr 1fr}.page-head{display:block}.page-head .button{margin-top:14px}}@media(max-width:440px){.grid,.tiles{grid-template-columns:1fr}.login-card{padding:24px}}
+.password-field{position:relative;display:flex;align-items:center;width:100%}.password-field input{padding-right:98px}.password-toggle{position:absolute;right:6px;top:50%;transform:translateY(-50%);min-height:34px;margin:0;padding:6px 9px;border:1px solid var(--line);background:#30323a;color:var(--text);font-size:13px;line-height:1.2}.password-toggle:hover{background:#454854}.password-toggle:focus-visible{outline:2px solid #fff;outline-offset:2px}
 </style>
+<script src="/assets/js/password-toggle.js" defer></script>
 </head>
 <body>
 <?php if ($setupMode): ?>
@@ -647,6 +585,7 @@ if ($loggedIn) {
 <?php if ($error !== ''): ?><div class="alert" role="alert"><?= h($error) ?></div><?php endif; ?>
 <form class="stack" method="post" action="<?= h($script) ?>">
 <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="initial_setup">
+<?php if ($setupKeyRequired): ?><label for="initial_setup_key">Einmaliger Einrichtungsschlüssel</label><input id="initial_setup_key" name="initial_setup_key" type="password" required minlength="10" autocomplete="off"><p class="hint">Steht in <code>config/database.php</code> beim Eintrag <code>initial_setup_key</code>. Das ist nicht das Datenbank-Passwort.</p><?php endif; ?>
 <label for="username">Benutzername</label><input id="username" name="username" required minlength="3" maxlength="60" pattern="[a-zA-Z0-9._-]+" autocomplete="username">
 <label for="email">E-Mail (optional)</label><input id="email" name="email" type="email" maxlength="190" autocomplete="email">
 <label for="password">Eigenes Passwort (mindestens 12 Zeichen)</label><input id="password" name="password" type="password" required minlength="12" autocomplete="new-password">

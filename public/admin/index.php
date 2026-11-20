@@ -192,7 +192,8 @@ function admin_can(array $user, string $area): bool {
     return in_array($area, admin_permissions($user), true);
 }
 function admin_area_for_page(string $page): string {
-    return in_array($page, ['events','tracks','pages','sponsors','media','results','news'], true) ? $page : $page;
+    if ($page === 'reglement') { return 'pages'; }
+    return $page;
 }
 function admin_area_for_action(string $action): string {
     $map = ['save_event'=>'events','delete_event'=>'events','save_track'=>'tracks','delete_track'=>'tracks','save_page'=>'pages','delete_page'=>'pages','save_sponsor'=>'sponsors','delete_sponsor'=>'sponsors','upload_media'=>'media','delete_media'=>'media','save_result'=>'results','delete_result'=>'results','save_news'=>'news','delete_news'=>'news','save_settings'=>'settings','create_user'=>'users','toggle_user'=>'users','delete_user'=>'users','backup_export'=>'backup','page_visibility'=>'pages','page_move'=>'pages','rule_class_add'=>'pages','rule_class_move'=>'pages','rule_class_toggle'=>'pages','rule_class_delete'=>'pages','delete_site_update'=>'news'];
@@ -697,7 +698,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $classes[] = ['key' => $newKey, 'title' => $title, 'published' => false];
                     admin_save_rule_classes($db, $classes);
                     log_action($db, $uid, 'rule_class_added', $title);
-                    redirect_to('pages', 'Klasse „' . $title . '“ angelegt – jetzt Regelwerk bearbeiten und anschließend veröffentlichen');
+                    redirect_to('reglement', 'Klasse „' . $title . '“ angelegt – jetzt Regelwerk bearbeiten und anschließend veröffentlichen');
                 }
                 if ($index === null) { throw new RuntimeException('Klasse nicht gefunden.'); }
                 $label = admin_rule_class_title($db, $classes[$index]);
@@ -705,14 +706,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $target = $index + (($_POST['dir'] ?? '') === 'up' ? -1 : 1);
                     if ($target >= 0 && $target < count($classes)) { [$classes[$index], $classes[$target]] = [$classes[$target], $classes[$index]]; }
                     admin_save_rule_classes($db, $classes);
-                    redirect_to('pages', 'Reihenfolge der Klassen gespeichert');
+                    redirect_to('reglement', 'Reihenfolge der Klassen gespeichert');
                 }
                 if ($action === 'rule_class_toggle') {
                     $classes[$index]['published'] = !$classes[$index]['published'];
                     admin_save_rule_classes($db, $classes);
                     if ($classes[$index]['published']) { add_site_update($db, 'Reglement: ' . $label, '/reglement.php?klasse=' . rawurlencode($key)); }
                     log_action($db, $uid, $classes[$index]['published'] ? 'rule_class_published' : 'rule_class_hidden', $label);
-                    redirect_to('pages', 'Klasse „' . $label . '“ ist jetzt ' . ($classes[$index]['published'] ? 'veröffentlicht' : 'verborgen'));
+                    redirect_to('reglement', 'Klasse „' . $label . '“ ist jetzt ' . ($classes[$index]['published'] ? 'veröffentlicht' : 'verborgen'));
                 }
                 // Löschen: Klasse aus der Liste entfernen und ihre Texte (auch Entwürfe) entfernen.
                 array_splice($classes, $index, 1);
@@ -722,7 +723,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $db->prepare('DELETE FROM site_updates WHERE url = ?')->execute(['/reglement.php?klasse=' . rawurlencode($key)]);
                 log_action($db, $uid, 'rule_class_deleted', $label);
-                redirect_to('pages', 'Klasse „' . $label . '“ gelöscht');
+                redirect_to('reglement', 'Klasse „' . $label . '“ gelöscht');
             }
             if ($action === 'delete_site_update') {
                 $db->prepare('DELETE FROM site_updates WHERE id = ?')->execute([(int)($_POST['id'] ?? 0)]);
@@ -796,7 +797,7 @@ if ($loggedIn) {
         $loggedIn = false;
     } else {
         $_SESSION['admin_username'] = $currentUser['username'];
-        if (!in_array($page, ['dashboard','events','tracks','pages','sponsors','media','results','news','backup','settings','users','logs'], true)) { $page = 'dashboard'; }
+        if (!in_array($page, ['dashboard','events','tracks','reglement','pages','sponsors','media','results','news','backup','settings','users','logs'], true)) { $page = 'dashboard'; }
         if (!admin_can($currentUser, admin_area_for_page($page))) { http_response_code(403); exit('Für diesen Bereich hast du keine Berechtigung.'); }
     }
 }
@@ -867,7 +868,7 @@ if ($loggedIn) {
 <?php else: ?>
 <header class="admin-top"><div class="brand"><div class="brand-mark">RCB</div><div>RCB <span class="muted">/ Admin</span></div></div><div class="top-actions"><span class="user-label muted"><?= h($currentUser['username']) ?></span><form method="post" action="<?= h($script) ?>"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="logout"><button class="secondary" type="submit">Abmelden</button></form></div></header>
 <div class="shell"><aside class="sidebar"><div class="nav-label">Verwaltung</div><nav class="nav">
-<?php foreach (['dashboard'=>'▦ Übersicht','events'=>'▣ Termine','tracks'=>'⌁ Strecken','pages'=>'▤ Seiten','sponsors'=>'♧ Sponsoren','media'=>'▧ Bilder','results'=>'🏁 Ergebnisse','news'=>'📰 Neuigkeiten','backup'=>'⬇ Datenbank-Backup','settings'=>'⚙ Einstellungen','users'=>'♙ Benutzer','logs'=>'☷ Protokoll'] as $key=>$label): ?><?php if (admin_can($currentUser, admin_area_for_page($key))): ?><a class="<?= $page === $key ? 'active' : '' ?>" href="<?= h($script) ?>?page=<?= h($key) ?>"><?= h($label) ?></a><?php endif; ?><?php endforeach; ?>
+<?php foreach (['dashboard'=>'▦ Übersicht','events'=>'▣ Termine','tracks'=>'⌁ Strecken','reglement'=>'📋 Reglement','pages'=>'▤ Seiten','sponsors'=>'♧ Sponsoren','media'=>'▧ Bilder','results'=>'🏁 Ergebnisse','news'=>'📰 Neuigkeiten','backup'=>'⬇ Datenbank-Backup','settings'=>'⚙ Einstellungen','users'=>'♙ Benutzer','logs'=>'☷ Protokoll'] as $key=>$label): ?><?php if (admin_can($currentUser, admin_area_for_page($key))): ?><a class="<?= $page === $key ? 'active' : '' ?>" href="<?= h($script) ?>?page=<?= h($key) ?>"><?= h($label) ?></a><?php endif; ?><?php endforeach; ?>
 </nav><div class="footer">RCB Plattform<br>Verwaltungsbereich</div></aside>
 <main class="content">
 <?php if ($error !== ''): ?><div class="alert" role="alert"><?= h($error) ?></div><?php endif; ?>
@@ -891,6 +892,25 @@ if ($loggedIn) {
 <?php elseif ($page === 'sponsors'): ?>
 <?php $item=$editItem ?: ['id'=>0,'name'=>'','url'=>'','description'=>'','published'=>0]; $rows=$db->query('SELECT * FROM sponsors ORDER BY name')->fetchAll(); ?>
 <div class="page-head"><div><p class="eyebrow">Verwaltung</p><h1>Sponsoren</h1><p>Partner und Sponsor-Webseiten verwalten.</p></div></div><div class="columns"><section class="card"><h2><?= $editItem?'Sponsor bearbeiten':'Sponsor anlegen' ?></h2><form class="stack" method="post"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="save_sponsor"><input type="hidden" name="id" value="<?= (int)$item['id'] ?>"><label for="name">Name *</label><input id="name" name="name" required maxlength="180" value="<?= h($item['name']) ?>"><label for="url">Webseite</label><input id="url" name="url" type="url" maxlength="500" placeholder="https://…" value="<?= h($item['url']) ?>"><label for="description">Beschreibung</label><textarea id="description" name="description" maxlength="2000"><?= h($item['description']) ?></textarea><label class="check"><input type="checkbox" name="published" value="1"<?= checked($item['published']) ?>> Veröffentlicht</label><div class="form-actions"><button type="submit">Speichern</button><?php if($editItem): ?><a class="button secondary" href="<?= h($script) ?>?page=sponsors">Abbrechen</a><?php endif; ?></div></form></section><section class="card"><h2>Vorhandene Sponsoren</h2><div class="table-wrap"><table class="table"><thead><tr><th>Name</th><th>Status</th><th>Aktion</th></tr></thead><tbody><?php foreach($rows as $row): ?><tr><td><strong><?= h($row['name']) ?></strong><?php if($row['url']): ?><br><a href="<?= h($row['url']) ?>" target="_blank" rel="noopener noreferrer"><?= h($row['url']) ?></a><?php endif; ?></td><td><span class="badge <?= $row['published']?'yes':'no' ?>"><?= $row['published']?'Veröffentlicht':'Entwurf' ?></span></td><td class="actions"><a class="button secondary" href="<?= h($script) ?>?page=sponsors&amp;edit=<?= (int)$row['id'] ?>">Bearbeiten</a><form method="post" data-confirm="Diesen Sponsor wirklich löschen?"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="delete_sponsor"><input type="hidden" name="id" value="<?= (int)$row['id'] ?>"><button class="danger" type="submit">Löschen</button></form></td></tr><?php endforeach; ?><?php if(!$rows): ?><tr><td colspan="4" class="empty">Noch keine Sponsoren angelegt.</td></tr><?php endif; ?></tbody></table></div></section></div>
+<?php elseif ($page === 'reglement'): ?>
+<?php $ruleClasses = admin_rule_classes($db); ?>
+<div class="page-head"><div><p class="eyebrow">Website</p><h1>Reglement</h1><p>Allgemeine Regeln, Fun Cup und die einzelnen Klassen bzw. Rennen. Neue Klassen sind zuerst verborgen: Regelwerk im Editor ausfüllen, Entwurf veröffentlichen, dann die Klasse veröffentlichen.</p></div><div class="form-actions"><a class="button" href="/reglement.php?bearbeiten=1">✎ Allgemeinen Teil bearbeiten</a><a class="button secondary" href="/reglement.php" target="_blank" rel="noopener">Reglement ansehen</a></div></div>
+<?php if (in_array('reglement', rcb_hidden_pages(admin_setting($db, 'pages_hidden', '[]'), admin_setting($db, 'live_enabled', '0')), true)): ?><p class="alert">Die Reglement-Seite ist zurzeit verborgen. Veröffentlichen unter <a href="<?= h($script) ?>?page=pages">Seiten</a>.</p><?php endif; ?>
+<h2>Klassen &amp; Rennen</h2>
+<section class="card"><div class="table-wrap"><table class="table"><thead><tr><th>#</th><th>Klasse</th><th>Status</th><th>Aktion</th></tr></thead><tbody>
+<?php foreach ($ruleClasses as $i => $class): $label = admin_rule_class_title($db, $class); $hf = '<input type="hidden" name="csrf_token" value="' . h(csrf_token()) . '"><input type="hidden" name="key" value="' . h($class['key']) . '">'; ?>
+<tr><td><?= $i + 1 ?></td><td><strong><?= h($label) ?></strong></td><td><span class="badge <?= $class['published'] ? 'yes' : 'no' ?>"><?= $class['published'] ? 'Online' : 'Verborgen' ?></span></td><td class="actions">
+<a class="button" href="/reglement.php?klasse=<?= h(rawurlencode($class['key'])) ?>&amp;bearbeiten=1">✎ Regelwerk bearbeiten</a>
+<form method="post"><?= $hf ?><input type="hidden" name="action" value="rule_class_toggle"><button type="submit" class="<?= $class['published'] ? 'secondary' : '' ?>"><?= $class['published'] ? 'Verbergen' : '⬆ Veröffentlichen' ?></button></form>
+<?php if ($i > 0): ?><form method="post"><?= $hf ?><input type="hidden" name="action" value="rule_class_move"><input type="hidden" name="dir" value="up"><button type="submit" class="secondary small">↑</button></form><?php endif; ?>
+<?php if ($i < count($ruleClasses) - 1): ?><form method="post"><?= $hf ?><input type="hidden" name="action" value="rule_class_move"><input type="hidden" name="dir" value="down"><button type="submit" class="secondary small">↓</button></form><?php endif; ?>
+<form method="post" data-confirm="Klasse „<?= h($label) ?>“ mit ihrem gesamten Regelwerk unwiderruflich löschen?"><?= $hf ?><input type="hidden" name="action" value="rule_class_delete"><button type="submit" class="danger">Löschen</button></form>
+</td></tr>
+<?php endforeach; ?>
+<?php if (!$ruleClasses): ?><tr><td colspan="4" class="empty">Keine Klassen vorhanden.</td></tr><?php endif; ?>
+</tbody></table></div>
+<form class="inline-add" method="post"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="rule_class_add"><label for="new_class">Neue Klasse / neues Rennen</label><div class="form-actions"><input id="new_class" name="title" required maxlength="120" placeholder="z. B. Mini-Z Cup"><button type="submit">+ Hinzufügen</button></div></form>
+</section>
 <?php elseif ($page === 'pages'): ?>
 <?php $item=$editItem ?: ['id'=>0,'slug'=>'','title'=>'','content'=>'','published'=>0]; $rows=$db->query('SELECT * FROM pages ORDER BY title')->fetchAll(); ?>
 <div class="page-head"><div><p class="eyebrow">Website</p><h1>Seiten bearbeiten</h1><p>Jede Seite wird so angezeigt, wie sie online ist. Mit „Bearbeiten“ öffnest du sie im Editor und änderst Texte und Bilder direkt an der richtigen Stelle. Gespeicherte Änderungen bleiben ein Entwurf, bis du sie veröffentlichst.</p></div></div>
@@ -926,22 +946,7 @@ $pageCard = static function (string $slug, ?int $pos, int $navCount) use ($allPa
 <div class="page-previews"><?php foreach ($navOrder as $pos => $slug) { echo $pageCard($slug, $pos, count($navOrder)); } ?></div>
 <h2 style="margin-top:30px">Weitere Seiten</h2><p class="muted" style="margin-top:-6px">Unterseiten und rechtliche Seiten (Fußzeile). Impressum und Datenschutz müssen immer online bleiben.</p>
 <div class="page-previews"><?php foreach ($otherPages as $slug) { echo $pageCard($slug, null, 0); } ?></div>
-<?php $ruleClasses = admin_rule_classes($db); ?>
-<h2 style="margin-top:30px" id="reglement-klassen">Reglement-Klassen</h2><p class="muted" style="margin-top:-6px">Die Rennen und Klassen des Fun Cup auf der Reglement-Seite. Neue Klassen sind zuerst verborgen: Regelwerk im Editor ausfüllen, dann veröffentlichen.</p>
-<section class="card"><div class="table-wrap"><table class="table"><thead><tr><th>#</th><th>Klasse</th><th>Status</th><th>Aktion</th></tr></thead><tbody>
-<?php foreach ($ruleClasses as $i => $class): $label = admin_rule_class_title($db, $class); $hf = '<input type="hidden" name="csrf_token" value="' . h(csrf_token()) . '"><input type="hidden" name="key" value="' . h($class['key']) . '">'; ?>
-<tr><td><?= $i + 1 ?></td><td><strong><?= h($label) ?></strong></td><td><span class="badge <?= $class['published'] ? 'yes' : 'no' ?>"><?= $class['published'] ? 'Online' : 'Verborgen' ?></span></td><td class="actions">
-<a class="button" href="/reglement.php?klasse=<?= h(rawurlencode($class['key'])) ?>&amp;bearbeiten=1">✎ Regelwerk bearbeiten</a>
-<form method="post"><?= $hf ?><input type="hidden" name="action" value="rule_class_toggle"><button type="submit" class="<?= $class['published'] ? 'secondary' : '' ?>"><?= $class['published'] ? 'Verbergen' : '⬆ Veröffentlichen' ?></button></form>
-<?php if ($i > 0): ?><form method="post"><?= $hf ?><input type="hidden" name="action" value="rule_class_move"><input type="hidden" name="dir" value="up"><button type="submit" class="secondary small">↑</button></form><?php endif; ?>
-<?php if ($i < count($ruleClasses) - 1): ?><form method="post"><?= $hf ?><input type="hidden" name="action" value="rule_class_move"><input type="hidden" name="dir" value="down"><button type="submit" class="secondary small">↓</button></form><?php endif; ?>
-<form method="post" data-confirm="Klasse „<?= h($label) ?>“ mit ihrem gesamten Regelwerk unwiderruflich löschen?"><?= $hf ?><input type="hidden" name="action" value="rule_class_delete"><button type="submit" class="danger">Löschen</button></form>
-</td></tr>
-<?php endforeach; ?>
-<?php if (!$ruleClasses): ?><tr><td colspan="4" class="empty">Keine Klassen vorhanden.</td></tr><?php endif; ?>
-</tbody></table></div>
-<form class="inline-add" method="post"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="rule_class_add"><label for="new_class">Neue Klasse / neues Rennen</label><div class="form-actions"><input id="new_class" name="title" required maxlength="120" placeholder="z. B. Mini-Z Cup"><button type="submit">+ Hinzufügen</button></div></form>
-</section>
+<p class="muted" style="margin-top:22px">Die Klassen und Rennen des Reglements verwaltest du unter <a href="<?= h($script) ?>?page=reglement">📋 Reglement</a>.</p>
 <h2 style="margin-top:34px">Zusätzliche Inhaltsseiten</h2><p class="muted" style="margin-top:-6px">Eigene Seiten unter /seite.php?slug=…, z. B. für Ausschreibungen. Texte für Downloads mit der Kennung download-…</p><div class="columns"><section class="card"><h2><?= $editItem?'Seite bearbeiten':'Seite anlegen' ?></h2><form class="stack" method="post"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="save_page"><input type="hidden" name="id" value="<?= (int)$item['id'] ?>"><label for="title">Seitentitel *</label><input id="title" name="title" required maxlength="180" value="<?= h($item['title']) ?>"><label for="slug">Seitenkennung *</label><input id="slug" name="slug" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" maxlength="80" placeholder="z. B. verein" value="<?= h($item['slug']) ?>"><label for="content">Textinhalt</label><textarea id="content" name="content" maxlength="20000"><?= h($item['content']) ?></textarea><p class="hint">HTML wird aus Sicherheitsgründen nicht ausgeführt. Veröffentlichte Seiteninhalte können öffentlich über /seite.php?slug=SEITENKENNUNG aufgerufen werden.</p><label class="check"><input type="checkbox" name="published" value="1"<?= checked($item['published']) ?>> Veröffentlicht markieren</label><div class="form-actions"><button type="submit">Speichern</button><?php if($editItem): ?><a class="button secondary" href="<?= h($script) ?>?page=pages">Abbrechen</a><?php endif; ?></div></form></section><section class="card"><h2>Angelegte Seiten</h2><div class="table-wrap"><table class="table"><thead><tr><th>Seite</th><th>Status</th><th>Aktion</th></tr></thead><tbody><?php foreach($rows as $row): ?><tr><td><strong><?= h($row['title']) ?></strong><br><span class="muted">/<?= h($row['slug']) ?></span></td><td><span class="badge <?= $row['published']?'yes':'no' ?>"><?= $row['published']?'Veröffentlicht':'Entwurf' ?></span></td><td class="actions"><a class="button secondary" href="<?= h($script) ?>?page=pages&amp;edit=<?= (int)$row['id'] ?>">Bearbeiten</a><form method="post" data-confirm="Diese Seite wirklich löschen?"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="delete_page"><input type="hidden" name="id" value="<?= (int)$row['id'] ?>"><button class="danger" type="submit">Löschen</button></form></td></tr><?php endforeach; ?><?php if(!$rows): ?><tr><td colspan="4" class="empty">Noch keine Seiten angelegt.</td></tr><?php endif; ?></tbody></table></div></section></div>
 <?php elseif ($page === 'news'): ?>
 <?php $item=$editItem ?: ['id'=>0,'title'=>'','summary'=>'','content'=>'','image_url'=>'','published'=>0]; $rows=$db->query('SELECT * FROM news ORDER BY created_at DESC, id DESC')->fetchAll(); ?>

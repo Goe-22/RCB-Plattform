@@ -42,7 +42,7 @@
     el('strong', { text: MODE === 'edit' ? '✎ Bearbeiten' : '👁 Entwurfsvorschau' }), pageSelect, status, draftInfo,
     el('span', { class: 'rcb-ed-spacer' }),
     ...controls,
-    el('a', { class: 'rcb-ed-btn', href: adminUrl + '?page=pages', text: 'Zum Admin' }),
+    el('a', { class: 'rcb-ed-btn', href: adminUrl + (location.pathname === '/reglement.php' ? '?page=reglement' : '?page=pages'), text: 'Zum Admin' }),
   ]);
   document.body.prepend(bar);
   document.body.classList.add('rcb-editing');

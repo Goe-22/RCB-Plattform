@@ -67,22 +67,63 @@ $sections = [
     'or8' => ['OR8 Cup (Buggy Nitro)', '<ul><li>Zugelassen sind <strong>alle 1/8-Buggys mit Nitroantrieb</strong> und einem <strong>Mindestgewicht</strong> von 4WD <strong>3000 g</strong> oder 2WD <strong>2500 g</strong>.</li><li>2-Gang-Getriebe, Lenkhilfe, Bremskontrolle (ABS) und Traktionskontrolle sind nicht erlaubt.</li><li>Hilfsmittel an den Reifen (Spikes, Ketten …), die nicht aus Gummi sind, sind nicht erlaubt. Moosgummireifen sind nicht erlaubt.</li><li>Die Übertragung von <strong>Telemetriedaten</strong> ist <strong>verboten</strong>.</li><li>Zugelassen sind alle 2-Takt-<strong>Motoren</strong> mit <strong>maximal 3,5 cm³</strong>.</li><li><strong>Vergaser</strong> dürfen einen maximalen <strong>Durchlass</strong> von <strong>9,0 mm</strong> aufweisen.</li><li>Die <strong>Größe des Tanks</strong> einschließlich Tankstutzen und Anschlussschläuchen darf <strong>125 ml nicht überschreiten</strong>. Lose Teile im Tank, die nicht der Kraftstoffabsaugung dienen, sind nicht erlaubt.</li><li>Der <strong>Nitromethangehalt</strong> im <strong>Sprit</strong> darf <strong>nicht mehr</strong> als <strong>16 % by weight</strong> betragen.</li><li>' . $lipo . '</li></ul>' . $helfer . '
 <p><strong>Durchführung:</strong></p><ul><li>2–4 Vorläufe mit 5–7 Minuten</li><li>Subfinale (1/2- und 1/4-Finale) mit 8–10 Minuten</li><li>Jeder fährt 1 Hauptfinale A, B, C … mit 20–45 Minuten.</li></ul>' . $vorbehalt],
 ];
+$teaser = [
+    'funcup' => 'Gesamtwertung und Streichergebnisse',
+    '555' => 'Teamrennen · TT02 · Zeitplan und Startgebühr',
+    'tt02' => 'Onroad · Tamiya TT02 · Technik, Tuning und Ablauf',
+    'einsteiger' => 'Onroad · Tourenwagen für Einsteiger',
+    'tw175' => 'Onroad · 4WD-Tourenwagen 17,5t Stock',
+    'fwd' => 'Onroad · Frontantrieb nach RCK-Challenge',
+    'ore8' => 'Offroad · 1/8-Buggy Elektro',
+    'or8' => 'Offroad · 1/8-Buggy Nitro',
+];
 // Weitere Reglements, die früher als Inhaltsseite (Kennung reglement-…) angelegt wurden.
-$extra = rcb_rows("SELECT slug, title, content FROM pages WHERE published = 1 AND slug LIKE 'reglement-%' ORDER BY title");
+$extra = rcb_rows("SELECT slug, title FROM pages WHERE published = 1 AND slug LIKE 'reglement-%' ORDER BY title");
+
+$klasse = isset($_GET['klasse']) ? (string)$_GET['klasse'] : '';
+if ($klasse !== '') {
+    // ---------- Unterseite: Regelwerk einer Klasse ----------
+    if (!isset($sections[$klasse])) {
+        rcb_not_found();
+    }
+    [$title, $html] = $sections[$klasse];
+    rcb_header('rules');
+    echo '<section class="rcb-hero rcb-hero-compact"><div class="rcb-hero-inner"><p><a class="rcb-pill" href="/reglement.php">← Alle Klassen</a></p><h1>'
+        . rcb_text('reglement.' . $klasse . '.titel', $title) . '</h1><p>'
+        . rcb_text('reglement.' . $klasse . '.kurz', $teaser[$klasse] ?? '') . '</p></div></section>';
+    ?>
+<section class="rcb-section"><div class="rcb-wrap" style="max-width:960px">
+<article class="rcb-card rcb-rule"><div class="rcb-card-body">
+<?= rcb_rich('reglement.' . $klasse, $html) ?>
+</div></article>
+<?php $keys = array_keys($sections); $pos = array_search($klasse, $keys, true); ?>
+<nav class="rcb-rule-nav" aria-label="Weitere Klassen">
+<?php if ($pos > 0): $prev = $keys[$pos - 1]; ?><a class="rcb-btn" href="/reglement.php?klasse=<?= rcb_h($prev) ?>">← <?= rcb_h(rcb_block('reglement.' . $prev . '.titel', $sections[$prev][0])) ?></a><?php endif; ?>
+<a class="rcb-btn rcb-btn-light" href="/reglement.php">Alle Klassen</a>
+<?php if ($pos < count($keys) - 1): $next = $keys[$pos + 1]; ?><a class="rcb-btn" href="/reglement.php?klasse=<?= rcb_h($next) ?>"><?= rcb_h(rcb_block('reglement.' . $next . '.titel', $sections[$next][0])) ?> →</a><?php endif; ?>
+</nav>
+</div></section>
+<?php
+    rcb_footer();
+    exit;
+}
+
+// ---------- Hauptseite: allgemeiner Teil und Liste der Klassen ----------
 rcb_header('rules');
 echo rcb_page_hero('reglement', 'Reglement & Ranglisten', 'Regeln dienen der Sicherheit, Fairness und einem guten Miteinander auf der Strecke.');
 ?>
-<section class="rcb-section"><div class="rcb-wrap">
+<section class="rcb-section"><div class="rcb-wrap" style="max-width:960px">
+<?= rcb_rich('reglement.allgemein', '<h2>Allgemeine Hinweise</h2><ul><li>Den Anweisungen der Veranstaltungsleitung und Streckenaufsicht ist Folge zu leisten.</li><li>Fahrzeuge dürfen nur auf der freigegebenen Strecke betrieben werden.</li><li>Bei Bergung oder Arbeiten auf der Strecke muss sichergestellt sein, dass kein Fahrzeug fährt.</li><li>Rücksichtnahme, sportliches Verhalten und ein respektvoller Umgang sind für alle selbstverständlich.</li><li>Nach jedem Lauf stellt die fertige Gruppe die Helfer für die nächste Gruppe.</li><li>Das Laden und Lagern von LiPo-Akkus ist nur im LiPo-Safe-Bag oder Ähnlichem erlaubt.</li></ul>') ?>
 <?= rcb_rich('reglement.intro', '<p>Ergebnisse vergangener Meisterschaften und Rennen findest du unter <a href="/ergebnisse.php">Ergebnisse</a>.</p>') ?>
-<nav class="rcb-toc" aria-label="Klassen"><?php foreach ($sections as $key => [$title]): ?><a href="#reglement-<?= rcb_h($key) ?>"><?= rcb_h(rcb_block('reglement.' . $key . '.titel', $title)) ?></a><?php endforeach; ?></nav>
-<?php foreach ($sections as $key => [$title, $html]): ?>
-<?php if (!rcb_filled('reglement.' . $key, $html)) { continue; } ?>
-<article class="rcb-card rcb-rule" id="reglement-<?= rcb_h($key) ?>"><div class="rcb-card-body">
-<h2><?= rcb_text('reglement.' . $key . '.titel', $title) ?></h2>
-<?= rcb_rich('reglement.' . $key, $html) ?>
-</div></article>
+<h2 style="margin-top:30px"><?= rcb_text('reglement.klassen.titel', 'Klassen & Regelwerke') ?></h2>
+<p class="rcb-muted"><?= rcb_text('reglement.klassen.text', 'Wähle eine Klasse, um das vollständige Regelwerk zu öffnen.') ?></p>
+<div class="rcb-class-list">
+<?php foreach ($sections as $key => [$title]): ?>
+<a class="rcb-class" href="/reglement.php?klasse=<?= rcb_h($key) ?>"><span><strong><?= rcb_h(rcb_block('reglement.' . $key . '.titel', $title)) ?></strong><small><?= rcb_h(rcb_block('reglement.' . $key . '.kurz', $teaser[$key] ?? '')) ?></small></span><span aria-hidden="true">›</span></a>
 <?php endforeach; ?>
-<?php foreach ($extra as $page): ?><article class="rcb-card rcb-rule"><div class="rcb-card-body"><h2><?= rcb_h($page['title']) ?></h2><div class="rcb-content"><?= nl2br(rcb_h($page['content'])) ?></div></div></article><?php endforeach; ?>
-<?= rcb_rich('reglement.allgemein', '<h2>Allgemeine Hinweise</h2><ul><li>Den Anweisungen der Veranstaltungsleitung und Streckenaufsicht ist Folge zu leisten.</li><li>Fahrzeuge dürfen nur auf der freigegebenen Strecke betrieben werden.</li><li>Bei Bergung oder Arbeiten auf der Strecke muss sichergestellt sein, dass kein Fahrzeug fährt.</li><li>Rücksichtnahme, sportliches Verhalten und ein respektvoller Umgang sind für alle selbstverständlich.</li></ul>') ?>
+<?php foreach ($extra as $page): ?>
+<a class="rcb-class" href="/seite.php?slug=<?= rcb_h(rawurlencode((string)$page['slug'])) ?>"><span><strong><?= rcb_h($page['title']) ?></strong><small>Weiteres Regelwerk</small></span><span aria-hidden="true">›</span></a>
+<?php endforeach; ?>
+</div>
 </div></section>
 <?php rcb_footer(); ?>

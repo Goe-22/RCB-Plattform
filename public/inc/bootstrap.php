@@ -52,6 +52,22 @@ function rcb_setting(string $key, string $fallback = ''): string
     return isset($rows[0]['setting_value']) ? (string)$rows[0]['setting_value'] : $fallback;
 }
 
+/** Ist die Live-Timing-Seite in den Einstellungen veröffentlicht? */
+function rcb_live_published(): bool
+{
+    return rcb_setting('live_enabled', '0') === '1';
+}
+
+/** Gibt eine einfache 404-Seite aus und beendet die Ausgabe. */
+function rcb_not_found(): never
+{
+    http_response_code(404);
+    rcb_header();
+    echo '<section class="rcb-section"><div class="rcb-wrap"><h1>Seite nicht gefunden</h1><p>Diese Seite ist nicht (mehr) verfügbar.</p><a class="rcb-btn" href="/">Zur Startseite</a></div></section>';
+    rcb_footer();
+    exit;
+}
+
 /** Veröffentlichte Inhaltsseite (Titel/Text) zu einer Seitenkennung, z. B. 'strecken'. */
 function rcb_page_copy(string $slug): ?array
 {
@@ -131,6 +147,8 @@ function rcb_header(string $active = 'home'): void
     .rcb-content h2{margin:26px 0 10px}.rcb-content h2:first-child,.rcb-content h3:first-child{margin-top:0}.rcb-content h3{color:#062b55;margin:20px 0 8px}.rcb-content ul,.rcb-content ol{padding-left:1.3em;margin:6px 0 14px}.rcb-content li{margin:3px 0}.rcb-content p{margin:8px 0}.rcb-content img{max-width:100%;height:auto;border-radius:8px}.rcb-content a{color:#0d4777}.rcb-content table{border-collapse:collapse;width:100%}.rcb-content td,.rcb-content th{border:1px solid #dce3ea;padding:6px 8px}
     .rcb-toc{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0 26px}.rcb-toc a{padding:7px 12px;border-radius:99px;background:#e8eef5;color:#062b55;font-weight:bold;text-decoration:none;font-size:.92rem}.rcb-toc a:hover{background:#062b55;color:#fff}
     .rcb-rule{margin-bottom:20px;scroll-margin-top:110px}.rcb-rule h2{color:#062b55}
+    .rcb-class-list{display:flex;flex-direction:column;gap:10px;margin-top:16px}.rcb-class{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 20px;background:#fff;border:1px solid #dce3ea;border-radius:12px;color:#1d2733;text-decoration:none;box-shadow:0 4px 14px rgba(4,29,58,.05);transition:border-color .15s,transform .15s}.rcb-class:hover{border-color:#062b55;transform:translateX(3px)}.rcb-class strong{display:block;color:#062b55;font-size:1.12rem}.rcb-class small{display:block;color:#657383;margin-top:3px}.rcb-class>span:last-child{font-size:1.8rem;color:#c9272c;line-height:1}
+    .rcb-rule-nav{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px}.rcb-btn-light{background:#e8eef5;color:#062b55!important}.rcb-btn-light:hover{background:#d5e0eb}.rcb-hero .rcb-pill{text-decoration:none}.rcb-hero.rcb-hero-compact{min-height:0;padding:clamp(36px,6vw,64px) 20px}.rcb-hero-compact h1{margin-bottom:10px}
     .rcb-footer{padding:26px 16px;background:#041d3a;color:#dce5ee;text-align:center}
     .rcb-footer a{color:#fff}.rcb-nav{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap}.rcb-nav nav ul{flex-wrap:wrap;justify-content:flex-end}
     .logo-area{display:flex;align-items:center;gap:0;min-width:0;flex:0 1 auto}.logo-area .brand-mark{display:flex;align-items:center;justify-content:flex-start;width:auto;height:auto;min-width:0;margin:0;padding:0;border:0;border-radius:0;background:transparent}.logo-area .club-name{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}.logo-area .brand-mark img{display:block;max-width:min(250px,34vw);max-height:96px}
@@ -142,6 +160,10 @@ function rcb_header(string $active = 'home'): void
     echo '<a class="logo-area" href="/" aria-label="Zur Startseite"><span class="brand-mark">' . $logoMarkup . '</span><span class="club-name">' . rcb_h($siteName) . '<small>RC-Modellsport in Zwickau</small></span></a>';
     echo '<button class="rcb-menu-button" type="button" aria-controls="rcb-main-nav" aria-expanded="false" aria-label="Menü öffnen">☰</button>';
     echo '<nav id="rcb-main-nav" aria-label="Hauptnavigation"><ul>';
+    // Live-Timing erscheint erst im Menü, wenn es in den Einstellungen veröffentlicht ist (Admins sehen es im Editor).
+    if (!rcb_live_published() && !$editor) {
+        unset($links['live']);
+    }
     foreach ($links as $key => [$label, $url]) {
         $aria = $active === $key ? ' aria-current="page"' : '';
         echo '<li><a href="' . rcb_h($url) . '"' . $aria . '>' . rcb_h($label) . '</a></li>';

@@ -33,6 +33,7 @@ final class DatabaseSchema
             'event_date' => ["DATE NULL", "TEXT DEFAULT ''"],
             'end_date' => ["DATE NULL", "TEXT DEFAULT ''"],
             'start_time' => ["TIME NULL", "TEXT DEFAULT ''"],
+            'track_id' => ["INT UNSIGNED NULL", "INTEGER"],
             'registration_url' => ["VARCHAR(1000) NOT NULL DEFAULT ''", "TEXT DEFAULT ''"],
             'announcement_url' => ["VARCHAR(1000) NOT NULL DEFAULT ''", "TEXT DEFAULT ''"],
             'announcement_text' => ["MEDIUMTEXT NULL", "TEXT DEFAULT ''"],

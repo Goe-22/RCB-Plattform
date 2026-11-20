@@ -95,6 +95,23 @@ function rcb_event_classes(array $event): array
     return $out;
 }
 
+/** Streckenseite zu einer Strecken-ID (Onroad/Offroad), sonst ''. */
+function rcb_event_track_url(int $trackId): string
+{
+    static $tracks = null;
+    if ($trackId < 1) {
+        return '';
+    }
+    if ($tracks === null) {
+        $tracks = [];
+        foreach (rcb_rows('SELECT id, name FROM tracks') as $row) {
+            $tracks[(int)$row['id']] = (string)$row['name'];
+        }
+    }
+    $kind = rcb_track_kind($tracks[$trackId] ?? '');
+    return $kind !== '' && rcb_page_published($kind) ? '/' . $kind . '.php' : '';
+}
+
 /** Ergebnisse (veröffentlicht) je Termin-ID. */
 function rcb_event_result_ids(): array
 {
@@ -113,10 +130,12 @@ function rcb_event_card(array $event, string $variant = 'full'): string
     [$day, $monthYear] = rcb_event_date_parts($event['event_date'] ?? null, $event['end_date'] ?? null);
     $meta = [];
     if (!empty($event['start_time'])) {
-        $meta[] = 'ab ' . substr((string)$event['start_time'], 0, 5) . ' Uhr';
+        $meta[] = rcb_h('ab ' . substr((string)$event['start_time'], 0, 5) . ' Uhr');
     }
     if ((string)($event['location'] ?? '') !== '') {
-        $meta[] = (string)$event['location'];
+        // Bei Veranstaltungen auf unseren Strecken auf die Streckenseite verlinken.
+        $trackUrl = rcb_event_track_url((int)($event['track_id'] ?? 0));
+        $meta[] = $trackUrl !== '' ? '<a href="' . rcb_h($trackUrl) . '">' . rcb_h($event['location']) . '</a>' : rcb_h($event['location']);
     }
     $registration = (string)($event['registration_url'] ?? '');
     $announcementUrl = (string)($event['announcement_url'] ?? '');
@@ -143,7 +162,7 @@ function rcb_event_card(array $event, string $variant = 'full'): string
     $html .= '<div class="rcb-event-date"><span class="rcb-event-day">' . rcb_h($day) . '</span><span class="rcb-event-month">' . rcb_h($monthYear) . '</span></div>';
     $html .= '<div class="rcb-event-body"><h3>' . rcb_h($event['title']) . '</h3>';
     if ($meta) {
-        $html .= '<p class="rcb-event-meta">' . rcb_h(implode(' · ', $meta)) . '</p>';
+        $html .= '<p class="rcb-event-meta">' . implode(' · ', $meta) . '</p>';
     }
     if ($classes) {
         $html .= '<ul class="rcb-event-classes">';

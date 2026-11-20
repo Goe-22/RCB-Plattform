@@ -241,6 +241,25 @@ function admin_area_for_page(string $page): string {
     if ($page === 'reglement') { return 'pages'; }
     return $page;
 }
+function admin_draft_banner(PDO $db, string $returnPage, string $previewUrl): void {
+    $stmt = $db->query('SELECT block_key FROM content_drafts ORDER BY block_key');
+    $keys = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    $count = count($keys);
+    if ($returnPage === 'reglement') {
+        $own = count(array_filter($keys, static fn($k) => str_starts_with((string)$k, 'reglement.')));
+    }
+    $hidden = '<input type="hidden" name="csrf_token" value="' . h(csrf_token()) . '"><input type="hidden" name="return" value="' . h($returnPage) . '">';
+    if ($count === 0) {
+        echo '<p class="muted">Alle gespeicherten Änderungen sind online.</p>';
+        return;
+    }
+    echo '<section class="card draft-banner"><div><h2>Unveröffentlichter Entwurf</h2><p><strong>' . $count . '</strong> gespeicherte ' . ($count === 1 ? 'Änderung ist' : 'Änderungen sind') . ' noch nicht online'
+        . (isset($own) ? ' (davon <strong>' . $own . '</strong> im Reglement)' : '') . '. Besucher sehen weiterhin den bisherigen Stand.'
+        . (isset($own) && $own < $count ? ' Veröffentlichen stellt alle Änderungen online, auch die auf anderen Seiten.' : '') . '</p></div>'
+        . '<div class="form-actions"><form method="post">' . $hidden . '<input type="hidden" name="action" value="publish_drafts"><button type="submit">⬆ Jetzt veröffentlichen</button></form>'
+        . '<a class="button secondary" href="' . h($previewUrl) . '" target="_blank" rel="noopener">Entwurf ansehen</a>'
+        . '<form method="post" data-confirm="Alle unveröffentlichten Änderungen verwerfen?">' . $hidden . '<input type="hidden" name="action" value="discard_drafts"><button class="danger" type="submit">Entwurf verwerfen</button></form></div></section>';
+}
 function admin_area_for_action(string $action): string {
     $map = ['save_event'=>'events','delete_event'=>'events','save_track'=>'tracks','delete_track'=>'tracks','save_page'=>'pages','delete_page'=>'pages','save_sponsor'=>'sponsors','delete_sponsor'=>'sponsors','upload_media'=>'media','delete_media'=>'media','save_result'=>'results','delete_result'=>'results','save_news'=>'news','delete_news'=>'news','save_settings'=>'settings','create_user'=>'users','toggle_user'=>'users','delete_user'=>'users','backup_export'=>'backup','page_visibility'=>'pages','page_move'=>'pages','rule_class_add'=>'pages','rule_class_move'=>'pages','rule_class_toggle'=>'pages','rule_class_delete'=>'pages','delete_site_update'=>'news','custom_page_add'=>'pages','custom_page_menu'=>'pages','clear_site_updates'=>'news','toggle_auto_updates'=>'news'];
     return $map[$action] ?? 'dashboard';
@@ -262,7 +281,7 @@ if ($isEditorRequest) {
     header('Content-Type: application/json; charset=UTF-8');
     $respond = static function (int $code, array $data) use ($isEditorForm): never {
         if ($isEditorForm && ($data['ok'] ?? false)) {
-            redirect_to('pages', (string)($data['message'] ?? 'Gespeichert'));
+            redirect_to(($_POST['return'] ?? '') === 'reglement' ? 'reglement' : 'pages', (string)($data['message'] ?? 'Gespeichert'));
         }
         http_response_code($code);
         echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -1084,6 +1103,7 @@ $classRow = static fn(int $i, array $c): string => '<div class="class-row"><inpu
 <?php $ruleClasses = admin_rule_classes($db); ?>
 <div class="page-head"><div><p class="eyebrow">Website</p><h1>Reglement</h1><p>Allgemeine Regeln, Fun Cup und die einzelnen Klassen bzw. Rennen. Neue Klassen sind zuerst verborgen: Regelwerk im Editor ausfüllen, Entwurf veröffentlichen, dann die Klasse veröffentlichen.</p></div><div class="form-actions"><a class="button" href="/reglement.php?bearbeiten=1">✎ Allgemeinen Teil bearbeiten</a><a class="button secondary" href="/reglement.php" target="_blank" rel="noopener">Reglement ansehen</a></div></div>
 <?php if (in_array('reglement', rcb_hidden_pages(admin_setting($db, 'pages_hidden', '[]'), admin_setting($db, 'live_enabled', '0')), true)): ?><p class="alert">Die Reglement-Seite ist zurzeit verborgen. Veröffentlichen unter <a href="<?= h($script) ?>?page=pages">Seiten</a>.</p><?php endif; ?>
+<?php admin_draft_banner($db, 'reglement', '/reglement.php?vorschau=1'); ?>
 <h2>Klassen &amp; Rennen</h2>
 <section class="card"><div class="table-wrap"><table class="table"><thead><tr><th>#</th><th>Klasse</th><th>Status</th><th>Aktion</th></tr></thead><tbody>
 <?php foreach ($ruleClasses as $i => $class): $label = admin_rule_class_title($db, $class); $hf = '<input type="hidden" name="csrf_token" value="' . h(csrf_token()) . '"><input type="hidden" name="key" value="' . h($class['key']) . '">'; ?>
@@ -1102,8 +1122,7 @@ $classRow = static fn(int $i, array $c): string => '<div class="class-row"><inpu
 <?php elseif ($page === 'pages'): ?>
 <?php $item=$editItem ?: ['id'=>0,'slug'=>'','title'=>'','content'=>'','published'=>0]; $rows=$db->query('SELECT * FROM pages ORDER BY title')->fetchAll(); ?>
 <div class="page-head"><div><p class="eyebrow">Website</p><h1>Seiten bearbeiten</h1><p>Jede Seite wird so angezeigt, wie sie online ist. Mit „Bearbeiten“ öffnest du sie im Editor und änderst Texte und Bilder direkt an der richtigen Stelle. Gespeicherte Änderungen bleiben ein Entwurf, bis du sie veröffentlichst.</p></div></div>
-<?php $draftCount = (int)$db->query('SELECT COUNT(*) FROM content_drafts')->fetchColumn(); ?>
-<?php if ($draftCount > 0): ?><section class="card draft-banner"><div><h2>Unveröffentlichter Entwurf</h2><p><strong><?= $draftCount ?></strong> gespeicherte <?= $draftCount === 1 ? 'Änderung ist' : 'Änderungen sind' ?> noch nicht online. Besucher sehen weiterhin den bisherigen Stand.</p></div><div class="form-actions"><form method="post"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="publish_drafts"><button type="submit">⬆ Jetzt veröffentlichen</button></form><a class="button secondary" href="/?vorschau=1" target="_blank" rel="noopener">Entwurf ansehen</a><form method="post" data-confirm="Alle unveröffentlichten Änderungen verwerfen?"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="discard_drafts"><button class="danger" type="submit">Entwurf verwerfen</button></form></div></section><?php else: ?><p class="muted">Alle gespeicherten Änderungen sind online.</p><?php endif; ?>
+<?php admin_draft_banner($db, 'pages', '/?vorschau=1'); ?>
 <?php
 $allPages = rcb_site_pages();
 $groups = rcb_nav_groups();

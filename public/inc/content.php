@@ -185,3 +185,34 @@ function rcb_excerpt(string $text, int $length = 180): string
     }
     return strlen($text) > $length ? substr($text, 0, $length) . '…' : $text;
 }
+
+/** Veröffentlichte Strecken nach Art: ['onroad' => Zeile, 'offroad' => Zeile, 'andere' => [Zeilen]]. */
+function rcb_tracks_by_kind(): array
+{
+    static $result = null;
+    if ($result === null) {
+        $result = ['onroad' => null, 'offroad' => null, 'andere' => []];
+        foreach (rcb_rows('SELECT * FROM tracks WHERE published = 1 ORDER BY name ASC') as $track) {
+            $kind = rcb_track_kind((string)$track['name']);
+            if ($kind !== '' && $result[$kind] === null) {
+                $result[$kind] = $track;
+            } else {
+                $result['andere'][] = $track;
+            }
+        }
+    }
+    return $result;
+}
+
+/** Bild eines Bereichs; ist keins gesetzt, zeigt der Editor einen Platzhalter, Besucher sehen nichts. */
+function rcb_img_slot(string $key, string $alt, string $class = 'rcb-gallery-img'): string
+{
+    $url = trim(rcb_block($key, ''));
+    if ($url !== '') {
+        return '<div class="rcb-gallery-item"><img class="' . rcb_h($class) . '" src="' . rcb_h($url) . '" alt="' . rcb_h($alt) . '" loading="lazy"' . rcb_img_attr($key) . '></div>';
+    }
+    if (rcb_editor()) {
+        return '<div class="rcb-gallery-item rcb-gallery-empty"' . rcb_img_attr($key) . '><span>Bild hinzufügen</span></div>';
+    }
+    return '';
+}

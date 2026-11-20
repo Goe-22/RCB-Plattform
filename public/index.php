@@ -13,7 +13,6 @@ foreach (rcb_rows("SELECT id, title, url, created_at FROM site_updates ORDER BY 
 usort($feed, static fn(array $a, array $b): int => strcmp($b['date'], $a['date']));
 $feed = array_slice($feed, 0, 6);
 $events = rcb_rows("SELECT * FROM events WHERE published = 1 AND (event_date IS NULL OR CAST(event_date AS CHAR) = '' OR event_date >= ?) ORDER BY CASE WHEN event_date IS NULL OR CAST(event_date AS CHAR) = '' THEN 1 ELSE 0 END, event_date ASC, start_time ASC LIMIT 3", [rcb_today()]);
-$tracks = rcb_rows("SELECT * FROM tracks WHERE published = 1 ORDER BY name ASC");
 $sponsors = rcb_rows("SELECT * FROM sponsors WHERE published = 1 ORDER BY name ASC");
 $heroImage = rcb_img('startseite.hero.bild', rcb_media_url('hero', '/assets/images/startseite.jpg'));
 rcb_header('home');
@@ -60,23 +59,17 @@ rcb_header('home');
 
 <section class="rcb-section"><div class="rcb-wrap">
     <h2><?= rcb_text('startseite.strecken.titel', 'Unsere Strecken') ?></h2>
-    <p class="rcb-muted"><?= rcb_text('startseite.strecken.text', 'Alle veröffentlichten Streckeninformationen auf einen Blick.') ?></p>
-    <?php if ($tracks): ?><div class="rcb-grid">
-        <?php foreach ($tracks as $track): ?>
-        <?php $kind = rcb_track_kind((string)$track['name']); ?>
-        <article class="rcb-card"><?php if ($kind !== ''): ?><div><img class="rcb-card-image" src="<?= rcb_h(rcb_track_image($kind)) ?>" alt="<?= rcb_h($track['name']) ?>" loading="lazy"<?= rcb_img_attr('strecke.' . $kind . '.bild') ?>></div><?php endif; ?><div class="rcb-card-body">
-            <span class="rcb-pill"><?= rcb_h($track['surface'] ?: 'RC-Strecke') ?></span>
-            <h3><?= rcb_h($track['name']) ?></h3>
-            <?php if ((string)$track['description'] !== ''): ?><p><?= nl2br(rcb_h($track['description'])) ?></p><?php endif; ?>
-            <div class="rcb-facts">
-                <?php if ((string)$track['length'] !== ''): ?><span>Länge: <?= rcb_h($track['length']) ?></span><?php endif; ?>
-                <?php if ((string)$track['classes'] !== ''): ?><span><?= rcb_h($track['classes']) ?></span><?php endif; ?>
-                <?php if ((int)$track['guest_drivers'] === 1): ?><span>Gastfahrer willkommen</span><?php endif; ?>
-            </div>
-        </div></article>
-        <?php endforeach; ?>
-    </div><?php else: ?><div class="rcb-empty">Streckeninformationen werden hier angezeigt, sobald sie im Adminbereich veröffentlicht wurden.</div><?php endif; ?>
-    <a class="rcb-btn" href="/strecken.php"><?= rcb_text('startseite.strecken.button', 'Alle Strecken') ?></a>
+    <p class="rcb-muted"><?= rcb_text('startseite.strecken.text', 'Zwei Strecken, ein Gelände – mitten in Zwickau.') ?></p>
+    <div class="rcb-track-tiles">
+    <?php foreach (['onroad' => ['Onroad', 'Asphalt für Tourenwagen 1:10'], 'offroad' => ['Offroad', 'Kunstrasen für Buggys bis 1:8']] as $kind => [$label, $line]): ?>
+    <?php if (!rcb_page_published($kind) && !rcb_admin_viewer()) { continue; } ?>
+        <a class="rcb-track-tile" href="/<?= $kind ?>.php"<?= rcb_img_attr('strecke.' . $kind . '.bild') ?> style="background-image:linear-gradient(180deg,rgba(4,29,58,0) 35%,rgba(4,29,58,.88)),url('<?= rcb_h(rcb_track_image($kind)) ?>')">
+            <span class="rcb-track-tile-text"><strong><?= rcb_text('startseite.' . $kind . '.titel', $label) ?></strong><span><?= rcb_text('startseite.' . $kind . '.text', $line) ?></span></span>
+            <span class="rcb-btn"><?= rcb_text('startseite.' . $kind . '.button', 'Zur Strecke') ?></span>
+        </a>
+    <?php endforeach; ?>
+    </div>
+    <a class="rcb-btn rcb-btn-light" href="/strecken.php"><?= rcb_text('startseite.strecken.button', 'Alle Infos zu den Strecken') ?></a>
 </div></section>
 
 <section class="rcb-section" style="background:#eaf0f5"><div class="rcb-wrap">

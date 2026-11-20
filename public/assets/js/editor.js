@@ -34,7 +34,7 @@
   const controls = MODE === 'edit'
     ? [el('button', { type: 'button', class: 'rcb-ed-btn', text: 'Rückgängig', title: 'Ungespeicherte Änderungen auf dieser Seite verwerfen', onclick: () => { if (!dirty.size || confirm('Ungespeicherte Änderungen auf dieser Seite verwerfen?')) { dirty.clear(); location.reload(); } } }),
        saveBtn,
-       el('a', { class: 'rcb-ed-btn', href: withParam('vorschau=1'), target: '_blank', text: 'Vorschau', title: 'Entwurf ohne Bearbeitungsrahmen ansehen' }),
+       el('a', { class: 'rcb-ed-btn', href: withParam('vorschau=1'), target: 'rcb-vorschau', text: 'Vorschau', title: 'Speichert ungespeicherte Änderungen als Entwurf und zeigt die Seite ohne Bearbeitungsrahmen', onclick: openPreview }),
        publishBtn, discardBtn]
     : [el('a', { class: 'rcb-ed-btn rcb-ed-primary', href: withParam('bearbeiten=1'), text: '✎ Bearbeiten' }), publishBtn, discardBtn,
        el('a', { class: 'rcb-ed-btn', href: plainUrl, target: '_blank', text: 'Aktuell online' })];
@@ -77,6 +77,16 @@
     if (!data.ok) throw new Error(data.error || 'Aktion fehlgeschlagen.');
     return data;
   }
+  // Vorschau: ungespeicherte Änderungen zuerst als Entwurf sichern, dann die Vorschau (neu) laden.
+  async function openPreview(event) {
+    event.preventDefault();
+    const url = withParam('vorschau=1');
+    const win = window.open('', 'rcb-vorschau');
+    if (dirty.size && !(await save())) { if (win) win.close(); return; }
+    if (win) { win.location.href = url + (url.includes('?') ? '&' : '?') + 't=' + Date.now(); win.focus(); }
+    else { location.href = url; }
+  }
+
   async function publish() {
     if (dirty.size && !(await save())) return;
     if (!pending) { setStatus('Es gibt keine Änderungen zum Veröffentlichen.'); return; }

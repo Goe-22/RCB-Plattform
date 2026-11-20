@@ -18,3 +18,18 @@ document.addEventListener('click', (event) => {
   rows.insertAdjacentHTML('beforeend', html);
   rows.lastElementChild?.querySelector('input')?.focus();
 });
+
+// Termine: „bis“-Datum beginnt beim ersten Tag statt beim heutigen Datum.
+(() => {
+  const start = document.getElementById('event_date');
+  const end = document.getElementById('end_date');
+  if (!start || !end) return;
+  const sync = () => {
+    if (!start.value) { end.removeAttribute('min'); return; }
+    end.min = start.value;
+    if (!end.value || end.value < start.value) end.value = start.value;
+  };
+  start.addEventListener('change', sync);
+  end.addEventListener('focus', () => { if (start.value && !end.value) end.value = start.value; });
+  if (start.value) end.min = start.value;
+})();

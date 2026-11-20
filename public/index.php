@@ -2,17 +2,20 @@
 declare(strict_types=1);
 require_once __DIR__ . '/inc/bootstrap.php';
 
+// Anzahl je Bereich (Admin → Einstellungen → Startseite), 0 blendet den Bereich aus.
+$newsCount = max(0, min(20, (int)rcb_setting('home_news_count', '6')));
+$eventsCount = max(0, min(20, (int)rcb_setting('home_events_count', '3')));
 // Neuigkeiten: eigene Meldungen (Admin → Neuigkeiten) und automatische Hinweise auf neue Inhalte, neueste zuerst.
 $feed = [];
-foreach (rcb_rows("SELECT id, title, summary, content, image_url, created_at FROM news WHERE published = 1 ORDER BY created_at DESC, id DESC LIMIT 6") as $item) {
+foreach (rcb_rows("SELECT id, title, summary, content, image_url, created_at FROM news WHERE published = 1 ORDER BY created_at DESC, id DESC LIMIT " . max(1, $newsCount)) as $item) {
     $feed[] = ['type' => 'news', 'date' => (string)$item['created_at'], 'item' => $item];
 }
-foreach (rcb_rows("SELECT id, title, url, created_at FROM site_updates ORDER BY created_at DESC, id DESC LIMIT 6") as $item) {
+foreach (rcb_rows("SELECT id, title, url, created_at FROM site_updates ORDER BY created_at DESC, id DESC LIMIT " . max(1, $newsCount)) as $item) {
     $feed[] = ['type' => 'update', 'date' => (string)$item['created_at'], 'item' => $item];
 }
 usort($feed, static fn(array $a, array $b): int => strcmp($b['date'], $a['date']));
-$feed = array_slice($feed, 0, 6);
-$events = rcb_rows("SELECT * FROM events WHERE published = 1 AND (event_date IS NULL OR CAST(event_date AS CHAR) = '' OR (CASE WHEN end_date IS NOT NULL AND CAST(end_date AS CHAR) <> '' THEN end_date ELSE event_date END) >= ?) ORDER BY CASE WHEN event_date IS NULL OR CAST(event_date AS CHAR) = '' THEN 1 ELSE 0 END, event_date ASC, start_time ASC LIMIT 3", [rcb_today()]);
+$feed = array_slice($feed, 0, $newsCount);
+$events = rcb_rows("SELECT * FROM events WHERE published = 1 AND (event_date IS NULL OR CAST(event_date AS CHAR) = '' OR (CASE WHEN end_date IS NOT NULL AND CAST(end_date AS CHAR) <> '' THEN end_date ELSE event_date END) >= ?) ORDER BY CASE WHEN event_date IS NULL OR CAST(event_date AS CHAR) = '' THEN 1 ELSE 0 END, event_date ASC, start_time ASC LIMIT " . max(1, $eventsCount), [rcb_today()]);
 $sponsors = rcb_rows("SELECT * FROM sponsors WHERE published = 1 ORDER BY name ASC");
 $heroImage = rcb_img('startseite.hero.bild', rcb_media_url('hero', '/assets/images/startseite.jpg'));
 rcb_header('home');
@@ -35,6 +38,7 @@ rcb_header('home');
 </div></section>
 <?php endif; ?>
 
+<?php if ($newsCount > 0): ?>
 <section class="rcb-section" id="neuigkeiten" style="background:#eaf0f5"><div class="rcb-wrap">
     <h2><?= rcb_text('startseite.news.titel', 'Neuigkeiten – hier hat sich was getan') ?></h2>
     <?php if ($feed): ?><div class="rcb-news-list">
@@ -56,6 +60,7 @@ rcb_header('home');
     </div>
     <?php else: ?><div class="rcb-empty"><?= rcb_text('startseite.news.leer', 'Hier erscheinen Neuigkeiten und Hinweise, sobald sich auf der Seite etwas tut.') ?></div><?php endif; ?>
 </div></section>
+<?php endif; ?>
 
 <section class="rcb-section" id="strecken"><div class="rcb-wrap">
     <h2><?= rcb_text('startseite.strecken.titel', 'Unsere Strecken') ?></h2>
@@ -71,6 +76,7 @@ rcb_header('home');
     </div>
 </div></section>
 
+<?php if ($eventsCount > 0): ?>
 <section class="rcb-section" style="background:#eaf0f5"><div class="rcb-wrap">
     <h2><?= rcb_text('startseite.termine.titel', 'Kommende Termine') ?></h2>
     <p class="rcb-muted"><?= rcb_text('startseite.termine.text', 'Rennen, Trainings und Vereinsveranstaltungen.') ?></p>
@@ -78,6 +84,7 @@ rcb_header('home');
     <?php else: ?><div class="rcb-empty"><?= rcb_text('startseite.termine.leer', 'Aktuell sind keine kommenden Termine veröffentlicht. Schau später wieder vorbei.') ?></div><?php endif; ?>
     <a class="rcb-btn" href="/termine.php"><?= rcb_text('startseite.termine.button', 'Alle Termine ansehen') ?></a>
 </div></section>
+<?php endif; ?>
 
 <?php if ($sponsors): ?>
 <section class="rcb-section"><div class="rcb-wrap">

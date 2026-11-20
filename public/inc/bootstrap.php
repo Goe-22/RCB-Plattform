@@ -84,7 +84,7 @@ function rcb_not_found(): never
     exit;
 }
 
-/** Veröffentlichte Inhaltsseite (Titel/Text) zu einer Seitenkennung, z. B. 'strecken'. */
+/** Veröffentlichte Inhaltsseite (Titel/Text) zu einer Seitenkennung, z. B. 'verein'. */
 function rcb_page_copy(string $slug): ?array
 {
     $rows = rcb_rows('SELECT title, content FROM pages WHERE slug = ? AND published = 1 LIMIT 1', [$slug]);
@@ -127,7 +127,7 @@ function rcb_header(string $active = 'home'): void
     if ($currentSlug !== '' && !rcb_page_published($currentSlug) && !$editor && http_response_code() !== 404) {
         rcb_not_found();
     }
-    $activeSlug = ['club' => 'verein', 'tracks' => 'strecken', 'events' => 'termine', 'rules' => 'reglement', 'results' => 'ergebnisse', 'join' => 'mitglied', 'contact' => 'kontakt'][$active] ?? $active;
+    $activeSlug = ['club' => 'verein', 'tracks' => $currentSlug, 'events' => 'termine', 'rules' => 'reglement', 'results' => 'ergebnisse', 'join' => 'mitglied', 'contact' => 'kontakt'][$active] ?? $active;
     $pages = rcb_site_pages();
     $links = [];
     foreach (rcb_nav_order(rcb_setting('nav_order', '[]')) as $slug) {

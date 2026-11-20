@@ -44,7 +44,7 @@ function rcb_track_page(string $kind): void
 <?php if ((int)$track['show_status'] === 1): ?><dt>Status</dt><dd><strong><?= rcb_h(['open' => 'Geöffnet', 'closed' => 'Geschlossen', 'maintenance' => 'Wartung'][(string)$track['status']] ?? 'Bitte beim Verein erfragen') ?></strong></dd><?php endif; ?>
 </dl>
 <?php else: ?><p class="rcb-muted">Die Streckendaten werden im Adminbereich unter „Strecken“ gepflegt.</p><?php endif; ?>
-<p><a class="rcb-btn" href="/strecken.php#besuch"><?= rcb_text($kind . '.steckbrief.button', 'Anfahrt & Besuch') ?></a></p>
+<p><a class="rcb-btn" href="#besuch"><?= rcb_text($kind . '.steckbrief.button', 'Anfahrt & Besuch') ?></a></p>
 </div></aside>
 </div>
 <?php
@@ -56,7 +56,12 @@ function rcb_track_page(string $kind): void
 <h2 style="margin-top:34px"><?= rcb_text($kind . '.galerie.titel', 'Bilder') ?></h2>
 <div class="rcb-gallery"><?= $gallery ?></div>
 <?php endif; ?>
-<p style="margin-top:28px"><a class="rcb-btn rcb-btn-light" href="/strecken.php">← Alle Strecken</a></p>
+<div class="rcb-grid" id="besuch" style="margin-top:34px">
+<article class="rcb-card"><div class="rcb-card-body"><?= rcb_rich('strecken.hinweis', '<h2>Wichtig vor dem Besuch</h2><ul><li>Trainiert werden kann nach Absprache und unter Einhaltung der Fahrzeiten fast immer.</li><li>Organisierte Trainings finden bei passendem Wetter statt – bitte vorher anmelden.</li><li>Gastfahrer sind willkommen, bitte meldet euch vorher über <a href="/kontakt.php">Kontakt</a> oder Facebook.</li></ul>') ?></div></article>
+<article class="rcb-card"><div class="rcb-card-body"><?= rcb_rich('strecken.anfahrt', '<h2>Anfahrt</h2><p><strong>Streckengelände der RC Bande Zwickau</strong><br>Reichenbacher Straße 125A<br>08056 Zwickau</p><p>Onroad- und Offroad-Strecke liegen auf demselben Gelände.</p><p><a href="https://www.openstreetmap.org/search?query=Reichenbacher%20Stra%C3%9Fe%20125A%2C%2008056%20Zwickau">Auf der Karte anzeigen</a></p>') ?></div></article>
+</div>
+<?php $other = $kind === 'onroad' ? 'offroad' : 'onroad'; ?>
+<div class="rcb-rule-nav" style="margin-top:28px"><a class="rcb-btn rcb-btn-light" href="/#strecken">← Zur Startseite</a><?php if (rcb_page_published($other) || rcb_admin_viewer()): ?><a class="rcb-btn" href="/<?= $other ?>.php">Zur <?= $other === 'onroad' ? 'Onroad' : 'Offroad' ?>-Strecke →</a><?php endif; ?></div>
 </div></section>
 <?php
     rcb_footer();

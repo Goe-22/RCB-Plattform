@@ -10,7 +10,7 @@ echo rcb_page_hero('verein', 'Unser Verein', 'Gemeinsam fahren, gemeinsam lernen
 <p>Dank unserer zahlreichen Mitglieder haben wir ein weites Spektrum an Wissen im Bereich Modellbau – von Technik und Fahrzeugaufbau über Abstimmung bis zum Rennbetrieb –, das an euch weitergegeben werden kann.</p>
 <p>Zu unserem Verein gehören zwei Bereiche: <strong>Onroad</strong> auf Asphalt und <strong>Offroad</strong> auf Kunstrasen, jeweils mit eigener Strecke.</p>') ?>
 <div class="rcb-grid">
-<article class="rcb-card"><div class="rcb-card-body"><h3><?= rcb_text('verein.karte1.titel', 'Fahren & trainieren') ?></h3><p><?= rcb_text('verein.karte1.text', 'Entdecke unsere Strecken und die kommenden Trainingsmöglichkeiten.') ?></p><a class="rcb-btn" href="/strecken.php">Strecken ansehen</a></div></article>
+<article class="rcb-card"><div class="rcb-card-body"><h3><?= rcb_text('verein.karte1.titel', 'Fahren & trainieren') ?></h3><p><?= rcb_text('verein.karte1.text', 'Entdecke unsere Strecken und die kommenden Trainingsmöglichkeiten.') ?></p><a class="rcb-btn" href="/#strecken">Strecken ansehen</a></div></article>
 <article class="rcb-card"><div class="rcb-card-body"><h3><?= rcb_text('verein.karte2.titel', 'Gemeinschaft') ?></h3><p><?= rcb_text('verein.karte2.text', 'Erlebe den RC-Modellsport zusammen mit anderen Fahrerinnen und Fahrern.') ?></p><a class="rcb-btn" href="/termine.php">Termine ansehen</a></div></article>
 <article class="rcb-card"><div class="rcb-card-body"><h3><?= rcb_text('verein.karte3.titel', 'Mitmachen') ?></h3><p><?= rcb_text('verein.karte3.text', 'Du möchtest den Verein kennenlernen oder Mitglied werden? Nimm Kontakt mit uns auf.') ?></p><a class="rcb-btn" href="/mitglied-werden.php">Mitglied werden</a></div></article>
 </div>

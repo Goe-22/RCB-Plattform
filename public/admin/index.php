@@ -114,7 +114,7 @@ function admin_rule_class_title(PDO $db, array $class): string {
 /** Welche Seite betrifft ein Seitenbereich? [Bezeichnung, Adresse] oder null (nicht ankündigen). */
 function describe_block_key(PDO $db, string $key, array $hidden): ?array {
     $parts = explode('.', $key);
-    $map = ['startseite' => 'home', 'verein' => 'verein', 'strecken' => 'strecken', 'strecke' => 'strecken', 'onroad' => 'onroad', 'offroad' => 'offroad', 'termine' => 'termine', 'ergebnisse' => 'ergebnisse', 'live' => 'live', 'mitglied' => 'mitglied', 'kontakt' => 'kontakt', 'downloads' => 'downloads', 'reglement' => 'reglement'];
+    $map = ['startseite' => 'home', 'verein' => 'verein', 'strecken' => 'home', 'strecke' => 'home', 'onroad' => 'onroad', 'offroad' => 'offroad', 'termine' => 'termine', 'ergebnisse' => 'ergebnisse', 'live' => 'live', 'mitglied' => 'mitglied', 'kontakt' => 'kontakt', 'downloads' => 'downloads', 'reglement' => 'reglement'];
     $slug = $map[$parts[0]] ?? '';
     if ($slug === '' || in_array($slug, $hidden, true)) {
         return null;

@@ -12,15 +12,14 @@ function rcb_site_pages(): array
     return [
         'home' => ['Startseite', '/', true, false],
         'verein' => ['Verein', '/verein.php', true, true],
-        'strecken' => ['Strecken', '/strecken.php', true, true],
+        'onroad' => ['Onroad', '/onroad.php', true, true],
+        'offroad' => ['Offroad', '/offroad.php', true, true],
         'termine' => ['Termine', '/termine.php', true, true],
         'reglement' => ['Reglement', '/reglement.php', true, true],
         'ergebnisse' => ['Ergebnisse', '/ergebnisse.php', true, true],
         'live' => ['Live-Timing', '/live.php', true, true],
         'mitglied' => ['Mitglied werden', '/mitglied-werden.php', true, true],
         'kontakt' => ['Kontakt', '/kontakt.php', true, true],
-        'onroad' => ['Onroad', '/onroad.php', false, true],
-        'offroad' => ['Offroad', '/offroad.php', false, true],
         'downloads' => ['Downloads', '/downloads.php', false, true],
         'impressum' => ['Impressum', '/impressum.php', false, false],
         'datenschutz' => ['Datenschutz', '/datenschutz.php', false, false],
@@ -48,7 +47,12 @@ function rcb_nav_order(string $storedJson): array
     $navSlugs = array_keys(array_filter(rcb_site_pages(), static fn(array $p): bool => $p[2]));
     $stored = json_decode($storedJson, true);
     $order = [];
+    // Früher gab es die Übersichtsseite „Strecken“: an ihrer Stelle stehen jetzt Onroad und Offroad.
+    $expanded = [];
     foreach (is_array($stored) ? $stored : [] as $slug) {
+        array_push($expanded, ...($slug === 'strecken' ? ['onroad', 'offroad'] : [$slug]));
+    }
+    foreach ($expanded as $slug) {
         if (is_string($slug) && in_array($slug, $navSlugs, true) && !in_array($slug, $order, true)) {
             $order[] = $slug;
         }

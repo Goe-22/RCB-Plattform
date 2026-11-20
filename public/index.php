@@ -21,7 +21,7 @@ rcb_header('home');
     <p class="rcb-pill"><?= rcb_text('startseite.hero.zeile', 'RC-Modellsport in Zwickau') ?></p>
     <h1><?= rcb_text('startseite.hero.titel', rcb_setting('site_name', 'RC Bande Zwickau e.V.')) ?></h1>
     <p><?= rcb_text('startseite.hero.text', 'Herzlich willkommen bei der RC Bande Zwickau. Entdecke unsere Strecken, Veranstaltungen und das Vereinsleben.') ?></p>
-    <a class="rcb-btn" href="/strecken.php"><?= rcb_text('startseite.hero.button', 'Unsere Strecken entdecken') ?></a>
+    <a class="rcb-btn" href="#strecken"><?= rcb_text('startseite.hero.button', 'Unsere Strecken entdecken') ?></a>
 </div></section>
 
 <?php if (rcb_filled('startseite.intro', '-')): ?>
@@ -57,19 +57,18 @@ rcb_header('home');
     <?php else: ?><div class="rcb-empty"><?= rcb_text('startseite.news.leer', 'Hier erscheinen Neuigkeiten und Hinweise, sobald sich auf der Seite etwas tut.') ?></div><?php endif; ?>
 </div></section>
 
-<section class="rcb-section"><div class="rcb-wrap">
+<section class="rcb-section" id="strecken"><div class="rcb-wrap">
     <h2><?= rcb_text('startseite.strecken.titel', 'Unsere Strecken') ?></h2>
     <p class="rcb-muted"><?= rcb_text('startseite.strecken.text', 'Zwei Strecken, ein Gelände – mitten in Zwickau.') ?></p>
     <div class="rcb-track-tiles">
-    <?php foreach (['onroad' => ['Onroad', 'Asphalt für Tourenwagen 1:10'], 'offroad' => ['Offroad', 'Kunstrasen für Buggys bis 1:8']] as $kind => [$label, $line]): ?>
+    <?php foreach (['onroad' => ['Onroad', 'Asphalt · 210 m · Tourenwagen 1:10'], 'offroad' => ['Offroad', 'Kunstrasen · 270 m · Buggys bis 1:8']] as $kind => [$label, $line]): ?>
     <?php if (!rcb_page_published($kind) && !rcb_admin_viewer()) { continue; } ?>
         <a class="rcb-track-tile" href="/<?= $kind ?>.php"<?= rcb_img_attr('strecke.' . $kind . '.bild') ?> style="background-image:linear-gradient(180deg,rgba(4,29,58,0) 35%,rgba(4,29,58,.88)),url('<?= rcb_h(rcb_track_image($kind)) ?>')">
             <span class="rcb-track-tile-text"><strong><?= rcb_text('startseite.' . $kind . '.titel', $label) ?></strong><span><?= rcb_text('startseite.' . $kind . '.text', $line) ?></span></span>
-            <span class="rcb-btn"><?= rcb_text('startseite.' . $kind . '.button', 'Zur Strecke') ?></span>
+            <span class="rcb-btn"><?= rcb_text('startseite.' . $kind . '.button', 'Strecke & Daten ansehen') ?></span>
         </a>
     <?php endforeach; ?>
     </div>
-    <a class="rcb-btn rcb-btn-light" href="/strecken.php"><?= rcb_text('startseite.strecken.button', 'Alle Infos zu den Strecken') ?></a>
 </div></section>
 
 <section class="rcb-section" style="background:#eaf0f5"><div class="rcb-wrap">

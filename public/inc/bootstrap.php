@@ -335,15 +335,15 @@ function rcb_header(string $active = 'home'): void
     .site-header .logo-area .brand-mark{display:block;width:auto;height:auto;flex:none;border:0;border-radius:0;background:transparent}
     .site-header .logo-area .rcb-logo-img{display:block;height:78px;width:auto;max-width:170px;object-fit:contain}
     .site-header .logo-area .rcb-logo-img{filter:brightness(0) invert(1) drop-shadow(0 1px 2px rgba(0,0,0,.25))}
-    .site-header .logo-area .club-name{position:static;width:auto;height:auto;overflow:visible;clip:auto;color:#fff;font-size:22px;font-weight:800;line-height:1.15;letter-spacing:.005em;white-space:nowrap}
-    .site-header .logo-area .club-name small{display:block;margin-top:6px;color:rgba(255,255,255,.78);font-size:12.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase}
+    .site-header .logo-area .club-name{position:static;width:auto;height:auto;overflow:visible;clip:auto;color:#fff;font-size:18px;font-weight:800;line-height:1.15;letter-spacing:.005em;white-space:nowrap}
+    .site-header .logo-area .club-name small{display:block;margin-top:5px;color:rgba(255,255,255,.78);font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase}
     .site-header nav ul{gap:6px;flex-wrap:nowrap}
     .site-header nav a,.site-header .rcb-sub-toggle{padding:11px 14px;border-radius:9px;font-size:16px;font-weight:700;line-height:1.2}
     .site-header nav a[aria-current="page"],.rcb-has-sub.is-active>.rcb-sub-toggle{background:rgba(255,255,255,.16);box-shadow:none}
     .site-header nav a.rcb-nav-cta{margin-left:8px;padding:11px 18px;background:#c9272c;color:#fff;box-shadow:0 4px 14px rgba(201,39,44,.35)}
     .site-header nav a.rcb-nav-cta:hover,.site-header nav a.rcb-nav-cta[aria-current="page"]{background:#a81d22;box-shadow:0 4px 14px rgba(201,39,44,.45)}
     body.rcb-editing .site-header .logo-area .rcb-logo-img{outline-offset:2px}
-    @media(max-width:1280px){.site-header nav a,.site-header .rcb-sub-toggle{padding:10px 10px;font-size:15px}.site-header .logo-area .club-name{font-size:19px}.site-header .logo-area .rcb-logo-img{height:68px}}
+    @media(max-width:1280px){.site-header nav a,.site-header .rcb-sub-toggle{padding:10px 10px;font-size:15px}.site-header .logo-area .club-name{font-size:16px}.site-header .logo-area .rcb-logo-img{height:68px}}
     @media(max-width:1180px){
       .site-header .header-inner.rcb-nav{min-height:84px;flex-wrap:wrap}
       .rcb-menu-button{display:block;margin-left:auto}
@@ -355,7 +355,7 @@ function rcb_header(string $active = 'home'): void
       .site-header nav ul.rcb-sub{display:flex;position:static;min-width:0;padding:0 0 0 14px;background:transparent;box-shadow:none}
       .site-header nav a.rcb-nav-cta{margin:8px 0 0;text-align:center}
     }
-    @media(max-width:560px){.site-header .header-inner.rcb-nav{width:calc(100% - 24px);min-height:72px;gap:10px}.site-header a.logo-area{gap:10px}.site-header .logo-area .rcb-logo-img{height:52px;max-width:90px}.site-header .logo-area .club-name{font-size:16px}.site-header .logo-area .club-name small{font-size:10px;letter-spacing:.12em;margin-top:3px}}
+    @media(max-width:560px){.site-header .header-inner.rcb-nav{width:calc(100% - 24px);min-height:72px;gap:10px}.site-header a.logo-area{gap:10px}.site-header .logo-area .rcb-logo-img{height:52px;max-width:90px}.site-header .logo-area .club-name{font-size:14px}.site-header .logo-area .club-name small{font-size:9.5px;letter-spacing:.12em;margin-top:3px}}
     </style></head><body>';
     echo '<header class="site-header"><div class="header-inner rcb-nav">';
     echo '<a class="logo-area" href="/" aria-label="Zur Startseite"><span class="brand-mark">' . $logoMarkup . '</span><span class="club-name">' . rcb_h($siteName) . '<small>Modellsport in Zwickau</small></span></a>';

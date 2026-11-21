@@ -145,11 +145,11 @@ function rcb_event_card(array $event, string $variant = 'full'): string
 
     $actions = '';
     if ($variant !== 'past' && rcb_safe_url($registration)) {
-        $actions .= '<a class="rcb-btn" href="' . rcb_h($registration) . '" target="_blank" rel="noopener noreferrer">Nennung bei ' . rcb_h(rcb_link_label($registration)) . ' ↗</a>';
+        $actions .= '<a class="rcb-btn rcb-btn-nennung" href="' . rcb_h($registration) . '" target="_blank" rel="noopener noreferrer"><span class="rcb-btn-icon" aria-hidden="true">✎</span><span>Jetzt nennen<small>bei ' . rcb_h(rcb_link_label($registration)) . ' ↗</small></span></a>';
     }
     if ($variant !== 'compact' && rcb_safe_url($announcementUrl)) {
         $isPdf = str_ends_with(strtolower((string)parse_url($announcementUrl, PHP_URL_PATH)), '.pdf');
-        $actions .= '<a class="rcb-btn rcb-btn-light" href="' . rcb_h($announcementUrl) . '" target="_blank" rel="noopener">Ausschreibung' . ($isPdf ? ' (PDF)' : ' ↗') . '</a>';
+        $actions .= '<a class="rcb-btn rcb-btn-doc" href="' . rcb_h($announcementUrl) . '" target="_blank" rel="noopener"><span class="rcb-btn-icon" aria-hidden="true">📄</span><span>Ausschreibung<small>' . ($isPdf ? 'PDF öffnen' : 'öffnen ↗') . '</small></span></a>';
     }
     if ($hasResult) {
         $actions .= '<a class="rcb-btn rcb-btn-light" href="/ergebnisse.php#termin-' . (int)$event['id'] . '">Ergebnis</a>';
@@ -171,7 +171,7 @@ function rcb_event_card(array $event, string $variant = 'full'): string
             $html .= '<li><span class="rcb-event-class">' . rcb_h($class['name']) . '</span>'
                 . ($class['guest'] ? ' <span class="rcb-tag">Gastklasse</span>' : '')
                 . ($variant !== 'compact' && $rules !== '' ? ' <a href="' . rcb_h($rules) . '">Reglement</a>' : '')
-                . ($variant === 'full' && rcb_safe_url($class['url']) ? ' <a href="' . rcb_h($class['url']) . '" target="_blank" rel="noopener noreferrer">Nennung ↗</a>' : '')
+                . ($variant === 'full' && rcb_safe_url($class['url']) ? ' <a class="rcb-class-nennung" href="' . rcb_h($class['url']) . '" target="_blank" rel="noopener noreferrer">✎ Nennung ↗</a>' : '')
                 . '</li>';
         }
         $html .= '</ul>';
@@ -180,7 +180,7 @@ function rcb_event_card(array $event, string $variant = 'full'): string
         $html .= '<p>' . nl2br(rcb_h($event['description'])) . '</p>';
     }
     if ($variant === 'full' && $announcementText !== '') {
-        $html .= '<details class="rcb-event-announcement"><summary>Ausschreibung anzeigen</summary><div class="rcb-content">' . nl2br(rcb_h($announcementText)) . '</div></details>';
+        $html .= '<details class="rcb-event-announcement"><summary><span aria-hidden="true">📄</span> Ausschreibung lesen</summary><div class="rcb-content">' . nl2br(rcb_h($announcementText)) . '</div></details>';
     }
     $html .= '</div>';
     if ($actions !== '') {

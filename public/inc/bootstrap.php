@@ -142,7 +142,7 @@ function rcb_header(string $active = 'home'): void
         exit;
     }
     $logoUrl = rcb_img('global.logo', rcb_media_url('logo', '/assets/images/rcb-logo.png'));
-    $logoMarkup = '<img src="' . rcb_h($logoUrl) . '" alt="' . rcb_h($siteName) . '"' . rcb_img_attr('global.logo') . ' style="width:min(250px,34vw);height:96px;object-fit:contain;object-position:left center">';
+    $logoMarkup = '<img src="' . rcb_h($logoUrl) . '" alt="' . rcb_h($siteName) . '"' . rcb_img_attr('global.logo') . ' class="rcb-logo-img">';
     // Verborgene Seiten sind für Besucher nicht erreichbar; angemeldete Admins sehen sie im Editor/in der Vorschau.
     $currentSlug = rcb_page_slug_for_path((string)parse_url((string)($_SERVER['SCRIPT_NAME'] ?? ''), PHP_URL_PATH));
     if ($currentSlug !== '' && !rcb_page_published($currentSlug) && !$editor && http_response_code() !== 404) {
@@ -245,13 +245,45 @@ function rcb_header(string $active = 'home'): void
     .rcb-card-image{display:block;width:100%;height:220px;object-fit:cover}
     .rcb-menu-button{display:none;border:1px solid rgba(255,255,255,.55);border-radius:7px;background:transparent;color:#fff;font-size:25px;line-height:1;padding:8px 11px;cursor:pointer}
     @media(max-width:900px){.rcb-nav{align-items:center}.rcb-menu-button{display:block;margin-left:auto}.rcb-nav nav{display:none;flex-basis:100%;width:100%}.rcb-nav nav.open{display:block}.rcb-nav nav ul{display:flex;flex-direction:column;align-items:stretch;gap:2px}.rcb-nav nav a{padding:10px 12px}.rcb-nav nav a[aria-current="page"]{background:rgba(255,255,255,.14)}}
+    /* Kopfleiste: Logo mit Vereinsname, größere Menüpunkte, „Mitglied werden“ als Knopf */
+    .site-header .header-inner.rcb-nav{width:min(100% - 40px,1320px);min-height:96px;padding:10px 0;flex-wrap:nowrap;gap:24px}
+    .site-header a.logo-area{display:flex;align-items:center;gap:18px;flex:0 0 auto;text-decoration:none}
+    .site-header .logo-area .brand-mark{display:block;width:auto;height:auto;flex:none;border:0;border-radius:0;background:transparent}
+    .site-header .logo-area .rcb-logo-img{display:block;height:78px;width:auto;max-width:170px;object-fit:contain}
+    .site-header .logo-area .club-name{position:static;width:auto;height:auto;overflow:visible;clip:auto;color:#fff;font-size:22px;font-weight:800;line-height:1.15;letter-spacing:.005em;white-space:nowrap}
+    .site-header .logo-area .club-name small{display:block;margin-top:6px;color:rgba(255,255,255,.78);font-size:12.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase}
+    .site-header nav ul{gap:6px;flex-wrap:nowrap}
+    .site-header nav a,.site-header .rcb-sub-toggle{padding:11px 14px;border-radius:9px;font-size:16px;font-weight:700;line-height:1.2}
+    .site-header nav a[aria-current="page"],.rcb-has-sub.is-active>.rcb-sub-toggle{background:rgba(255,255,255,.16);box-shadow:none}
+    .site-header nav a.rcb-nav-cta{margin-left:8px;padding:11px 18px;background:#c9272c;color:#fff;box-shadow:0 4px 14px rgba(201,39,44,.35)}
+    .site-header nav a.rcb-nav-cta:hover,.site-header nav a.rcb-nav-cta[aria-current="page"]{background:#a81d22;box-shadow:0 4px 14px rgba(201,39,44,.45)}
+    body.rcb-editing .site-header .logo-area .rcb-logo-img{outline-offset:2px}
+    @media(max-width:1280px){.site-header nav a,.site-header .rcb-sub-toggle{padding:10px 10px;font-size:15px}.site-header .logo-area .club-name{font-size:19px}.site-header .logo-area .rcb-logo-img{height:68px}}
+    @media(max-width:1180px){
+      .site-header .header-inner.rcb-nav{min-height:84px;flex-wrap:wrap}
+      .rcb-menu-button{display:block;margin-left:auto}
+      .site-header nav,.rcb-nav nav{display:none;position:absolute;top:100%;left:0;right:0;width:100%;padding:8px 20px 18px;background:#062b55;box-shadow:0 8px 12px rgba(0,0,0,.18)}
+      .site-header nav.open,.rcb-nav nav.open{display:block}
+      .site-header nav ul{flex-direction:column;align-items:stretch;gap:2px}
+      .site-header nav a,.site-header .rcb-sub-toggle{width:100%;text-align:left;padding:12px 14px;font-size:16px;white-space:normal}
+      .rcb-sub-toggle{opacity:.75;cursor:default;pointer-events:none}.rcb-sub-toggle span{display:none}
+      .site-header nav ul.rcb-sub{display:flex;position:static;min-width:0;padding:0 0 0 14px;background:transparent;box-shadow:none}
+      .site-header nav a.rcb-nav-cta{margin:8px 0 0;text-align:center}
+    }
+    @media(max-width:560px){.site-header .header-inner.rcb-nav{width:calc(100% - 24px);min-height:72px;gap:10px}.site-header a.logo-area{gap:10px}.site-header .logo-area .rcb-logo-img{height:52px;max-width:90px}.site-header .logo-area .club-name{font-size:16px}.site-header .logo-area .club-name small{font-size:10px;letter-spacing:.12em;margin-top:3px}}
     </style></head><body>';
     echo '<header class="site-header"><div class="header-inner rcb-nav">';
-    echo '<a class="logo-area" href="/" aria-label="Zur Startseite"><span class="brand-mark">' . $logoMarkup . '</span><span class="club-name">' . rcb_h($siteName) . '<small>RC-Modellsport in Zwickau</small></span></a>';
+    echo '<a class="logo-area" href="/" aria-label="Zur Startseite"><span class="brand-mark">' . $logoMarkup . '</span><span class="club-name">' . rcb_h($siteName) . '<small>Modellsport in Zwickau</small></span></a>';
     echo '<button class="rcb-menu-button" type="button" aria-controls="rcb-main-nav" aria-expanded="false" aria-label="Menü öffnen">☰</button>';
     echo '<nav id="rcb-main-nav" aria-label="Hauptnavigation"><ul>';
     $hiddenMark = ' class="rcb-nav-hidden" title="Nicht veröffentlicht – nur für Admins sichtbar"';
+    $cta = '';
     foreach ($links as $key => [$label, $url, $isHidden, $children]) {
+        if ($key === 'mitglied' && !$children) {
+            // „Mitglied werden“ als hervorgehobener Knopf ganz rechts.
+            $cta = '<li class="rcb-nav-cta-item"><a class="rcb-nav-cta" href="' . rcb_h($url) . '"' . ($activeSlug === $key ? ' aria-current="page"' : '') . ($isHidden ? $hiddenMark : '') . '>' . rcb_h($label) . '</a></li>';
+            continue;
+        }
         if ($children) {
             $groupActive = isset($children[$activeSlug]);
             echo '<li class="rcb-has-sub' . ($groupActive ? ' is-active' : '') . '"><button type="button" class="rcb-sub-toggle" aria-expanded="false" aria-controls="rcb-sub-' . rcb_h($key) . '"' . ($groupActive ? ' aria-current="true"' : '') . '>' . rcb_h($label) . ' <span aria-hidden="true">▾</span></button><ul class="rcb-sub" id="rcb-sub-' . rcb_h($key) . '">';
@@ -264,7 +296,7 @@ function rcb_header(string $active = 'home'): void
         $aria = $activeSlug === $key ? ' aria-current="page"' : '';
         echo '<li><a href="' . rcb_h($url) . '"' . $aria . ($isHidden ? $hiddenMark : '') . '>' . rcb_h($label) . '</a></li>';
     }
-    echo '</ul></nav></div></header><main>';
+    echo $cta . '</ul></nav></div></header><main>';
 }
 
 function rcb_footer(): void

@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+// Alle Zeitangaben (Anfragen, Protokoll, Links) in deutscher Zeit.
+date_default_timezone_set('Europe/Berlin');
+
 /**
  * Datenbankverbindung für Website und Adminbereich.
  *

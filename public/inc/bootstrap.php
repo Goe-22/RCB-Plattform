@@ -22,6 +22,26 @@ if (is_file(Database::configFile()) || is_readable(Database::sqlitePath())) {
     }
 }
 
+/** Führt einen Schreibvorgang aus (z. B. Formular-Eingang); die öffentliche Seite ist sonst nur lesend verbunden. */
+function rcb_db_write(callable $write): bool
+{
+    global $rcbDb;
+    if (!$rcbDb instanceof PDO) {
+        return false;
+    }
+    $sqlite = !Database::isMysql();
+    try {
+        if ($sqlite) { $rcbDb->exec('PRAGMA query_only = OFF'); }
+        $write($rcbDb);
+        return true;
+    } catch (Throwable $e) {
+        error_log('RCB public write error: ' . $e->getMessage());
+        return false;
+    } finally {
+        if ($sqlite) { $rcbDb->exec('PRAGMA query_only = ON'); }
+    }
+}
+
 require_once __DIR__ . '/pages.php';
 require_once __DIR__ . '/content.php';
 require_once __DIR__ . '/events.php';
@@ -131,8 +151,54 @@ function rcb_date(?string $date, bool $withYear = true): string
     }
 }
 
+/** Kennung der aufgerufenen Seite für zugeordnete Dateien, z. B. 'mitglied', 'reglement:tt02', 'seite:jugend'. */
+function rcb_page_key_for_request(string $active): string
+{
+    if (str_starts_with($active, 'seite:')) {
+        return $active;
+    }
+    $script = (string)($_SERVER['SCRIPT_NAME'] ?? '/');
+    $slug = rcb_page_slug_for_path($script === '/index.php' ? '/' : $script);
+    $klasse = (string)($_GET['klasse'] ?? '');
+    if ($slug === 'reglement' && preg_match('/^[a-z0-9][a-z0-9-]{0,40}$/', $klasse)) {
+        return 'reglement:' . $klasse;
+    }
+    return $slug;
+}
+
+/** Veröffentlichte Dateien einer Seite. */
+function rcb_page_files(string $key): array
+{
+    return $key === '' ? [] : rcb_rows('SELECT id, title, description, path, size FROM files WHERE published = 1 AND page_key = ? ORDER BY sort_order, title', [$key]);
+}
+
+/** Download-Kasten einer Seite (leer, wenn keine Dateien zugeordnet sind). */
+function rcb_page_downloads(string $key, string $heading = 'Downloads'): string
+{
+    $GLOBALS['rcb_downloads_done'][$key] = true;
+    $files = rcb_page_files($key);
+    if (!$files) {
+        return '';
+    }
+    $html = '<div class="rcb-downloads"><h2>' . rcb_h($heading) . '</h2><div class="rcb-download-list">';
+    foreach ($files as $file) {
+        $ext = strtolower(pathinfo((string)$file['path'], PATHINFO_EXTENSION));
+        $type = ['pdf' => 'PDF', 'doc' => 'Word', 'docx' => 'Word', 'odt' => 'Text', 'xls' => 'Excel', 'xlsx' => 'Excel', 'ods' => 'Tabelle'][$ext] ?? strtoupper($ext);
+        $size = (int)$file['size'] >= 1048576 ? number_format((int)$file['size'] / 1048576, 1, ',', '.') . ' MB' : max(1, (int)round((int)$file['size'] / 1024)) . ' KB';
+        $download = $ext === 'pdf' ? ' target="_blank" rel="noopener"' : ' download="' . rcb_h(preg_replace('/[^\p{L}\p{N} ._-]+/u', '', (string)$file['title']) . '.' . $ext) . '"';
+        $html .= '<a class="rcb-download" href="' . rcb_h($file['path']) . '"' . $download . '>'
+            . '<span class="rcb-download-icon" aria-hidden="true">' . ($ext === 'pdf' ? 'PDF' : '📄') . '</span>'
+            . '<span class="rcb-download-text"><strong>' . rcb_h($file['title']) . '</strong>'
+            . ((string)$file['description'] !== '' ? '<span>' . rcb_h($file['description']) . '</span>' : '')
+            . '<small>' . rcb_h($type . ' · ' . $size) . '</small></span>'
+            . '<span class="rcb-download-arrow" aria-hidden="true">⬇</span></a>';
+    }
+    return $html . '</div></div>';
+}
+
 function rcb_header(string $active = 'home'): void
 {
+    $GLOBALS['rcb_page_key'] = rcb_page_key_for_request($active);
     $siteName = rcb_setting('site_name', 'RC Bande Zwickau e.V.');
     $editor = rcb_admin_viewer();
     if (rcb_setting('site_enabled', '1') === '0' && !$editor) {
@@ -245,6 +311,24 @@ function rcb_header(string $active = 'home'): void
     .rcb-card-image{display:block;width:100%;height:220px;object-fit:cover}
     .rcb-menu-button{display:none;border:1px solid rgba(255,255,255,.55);border-radius:7px;background:transparent;color:#fff;font-size:25px;line-height:1;padding:8px 11px;cursor:pointer}
     @media(max-width:900px){.rcb-nav{align-items:center}.rcb-menu-button{display:block;margin-left:auto}.rcb-nav nav{display:none;flex-basis:100%;width:100%}.rcb-nav nav.open{display:block}.rcb-nav nav ul{display:flex;flex-direction:column;align-items:stretch;gap:2px}.rcb-nav nav a{padding:10px 12px}.rcb-nav nav a[aria-current="page"]{background:rgba(255,255,255,.14)}}
+    .rcb-downloads h2{margin:0 0 14px;color:#062b55}.rcb-download-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+    .rcb-download{display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid #dce3ea;border-radius:12px;background:#fff;color:#062b55;text-decoration:none;box-shadow:0 4px 14px rgba(4,29,58,.05);transition:transform .12s,box-shadow .12s,border-color .12s}
+    .rcb-download:hover{transform:translateY(-1px);border-color:#c9272c;box-shadow:0 8px 20px rgba(4,29,58,.1)}
+    .rcb-download-icon{display:grid;place-items:center;flex:none;width:48px;height:56px;border-radius:6px;background:#c9272c;color:#fff;font-size:.8rem;font-weight:800;letter-spacing:.04em}
+    .rcb-download-text{flex:1;min-width:0}.rcb-download-text strong{display:block;font-size:1.02rem}.rcb-download-text span{display:block;color:#3b4b5c;font-size:.9rem;margin-top:2px}.rcb-download-text small{display:block;color:#657383;margin-top:4px}
+    .rcb-download-arrow{flex:none;font-size:1.3rem;color:#c9272c}
+    .rcb-downloads-section{padding-top:0}
+    .rcb-join-grid{align-items:stretch}.rcb-join-grid .rcb-download-list{grid-template-columns:1fr}.rcb-join-form{margin-top:24px;scroll-margin-top:120px}.rcb-join-form .rcb-card-body{max-width:820px}
+    .rcb-form{display:flex;flex-direction:column;gap:6px;margin-top:10px}.rcb-form label{font-weight:700;color:#062b55;margin-top:8px}
+    .rcb-form input:not([type=checkbox]),.rcb-form select,.rcb-form textarea{width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid #b9c6d3;border-radius:8px;background:#fff;color:#1d2733;font:inherit}
+    .rcb-form input:focus,.rcb-form select:focus,.rcb-form textarea:focus{outline:3px solid rgba(201,39,44,.25);border-color:#c9272c}
+    .rcb-form-row{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px}.rcb-form-row>div{display:flex;flex-direction:column;gap:6px}@media(max-width:640px){.rcb-form-row{grid-template-columns:1fr}}
+    .rcb-form .rcb-check{display:flex;gap:10px;align-items:flex-start;font-weight:400;color:#1d2733;margin:14px 0 6px}.rcb-check input{margin-top:4px;width:18px;height:18px;flex:none}
+    .rcb-form .rcb-btn{align-self:flex-start;margin-top:8px;border:0;cursor:pointer;font-size:1.05rem}.rcb-form-note{color:#657383;font-size:.88rem;margin:8px 0 0}
+    .rcb-hp{position:absolute!important;left:-10000px;width:1px;height:1px;overflow:hidden}
+    .rcb-form-errors{margin:12px 0;padding:12px 16px;border-left:4px solid #c9272c;border-radius:0 8px 8px 0;background:#fdecec;color:#7a1518}.rcb-form-errors ul{margin:0;padding-left:18px}
+    .rcb-form-success{padding:8px 0}.rcb-form-success h2{color:#1f7a4d}
+    .rcb-admin-hint{padding:10px 12px;border:1px dashed #c9272c;border-radius:8px;background:#fff7f7;font-size:.9rem}
     /* Kopfleiste: Logo mit Vereinsname, größere Menüpunkte, „Mitglied werden“ als Knopf */
     .site-header .header-inner.rcb-nav{width:min(100% - 40px,1320px);min-height:96px;padding:10px 0;flex-wrap:nowrap;gap:24px}
     .site-header a.logo-area{display:flex;align-items:center;gap:18px;flex:0 0 auto;text-decoration:none}
@@ -304,6 +388,14 @@ function rcb_footer(): void
 {
     $email = rcb_setting('contact_email');
     $phone = rcb_setting('contact_phone');
+    // Dateien, die dieser Seite zugeordnet sind, erscheinen automatisch unten auf der Seite.
+    $pageKey = (string)($GLOBALS['rcb_page_key'] ?? '');
+    if ($pageKey !== '' && empty($GLOBALS['rcb_downloads_done'][$pageKey])) {
+        $downloads = rcb_page_downloads($pageKey);
+        if ($downloads !== '') {
+            echo '<section class="rcb-section rcb-downloads-section"><div class="rcb-wrap">' . $downloads . '</div></section>';
+        }
+    }
     echo '</main><footer class="rcb-footer"><p><strong>' . rcb_h(rcb_setting('site_name', 'RC Bande Zwickau e.V.')) . '</strong></p>';
     if ($email !== '') {
         echo '<p><a href="mailto:' . rcb_h($email) . '">' . rcb_h($email) . '</a></p>';
@@ -312,7 +404,7 @@ function rcb_footer(): void
         echo '<p>Telefon: ' . rcb_h($phone) . '</p>';
     }
     $footerLinks = [];
-    foreach (['impressum', 'datenschutz', 'haftungsausschluss', 'downloads'] as $slug) {
+    foreach (['impressum', 'datenschutz', 'haftungsausschluss'] as $slug) {
         if (rcb_page_published($slug)) {
             [$label, $url] = rcb_site_pages()[$slug];
             $footerLinks[] = '<a href="' . rcb_h($url) . '">' . rcb_h($label) . '</a>';

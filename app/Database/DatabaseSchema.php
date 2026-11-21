@@ -119,6 +119,16 @@ final class DatabaseSchema
             'url' => ["VARCHAR(500) NOT NULL DEFAULT ''", "TEXT DEFAULT ''"],
             'created_at' => ["TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP", "TEXT DEFAULT CURRENT_TIMESTAMP"],
         ],
+        'admin_tokens' => [
+            'token_hash' => ["CHAR(64) NOT NULL UNIQUE", "TEXT NOT NULL UNIQUE"],
+            'kind' => ["VARCHAR(20) NOT NULL DEFAULT 'invite'", "TEXT NOT NULL DEFAULT 'invite'"],
+            'user_id' => ["INT UNSIGNED NULL", "INTEGER"],
+            'permissions' => ["VARCHAR(500) NOT NULL DEFAULT '[]'", "TEXT NOT NULL DEFAULT '[]'"],
+            'note' => ["VARCHAR(190) NOT NULL DEFAULT ''", "TEXT DEFAULT ''"],
+            'created_by' => ["INT UNSIGNED NULL", "INTEGER"],
+            'expires_at' => ["INT UNSIGNED NOT NULL DEFAULT 0", "INTEGER NOT NULL DEFAULT 0"],
+            'used_at' => ["INT UNSIGNED NULL", "INTEGER"],
+        ],
         'admin_login_attempts' => [
             'ip_hash' => ["CHAR(64) NOT NULL", "TEXT NOT NULL"],
             'attempted_at' => ["INT UNSIGNED NOT NULL", "INTEGER NOT NULL"],

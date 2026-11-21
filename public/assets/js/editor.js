@@ -26,7 +26,10 @@
   const saveBtn = el('button', { type: 'button', class: 'rcb-ed-btn rcb-ed-primary', text: 'Entwurf speichern', disabled: 'disabled', title: 'Speichert die Änderungen als Entwurf – noch nicht online (Strg+S)', onclick: () => save() });
   const publishBtn = el('button', { type: 'button', class: 'rcb-ed-btn rcb-ed-publish', text: '⬆ Veröffentlichen', title: 'Alle Entwurfsänderungen online stellen', onclick: publish });
   const discardBtn = el('button', { type: 'button', class: 'rcb-ed-btn', text: 'Entwurf verwerfen', title: 'Alle gespeicherten, noch nicht veröffentlichten Änderungen löschen', onclick: discardDraft });
-  const here = location.pathname === '/index.php' ? '/' : location.pathname + (location.pathname === '/seite.php' ? '?slug=' + (new URLSearchParams(location.search).get('slug') || '') : '');
+  const SCOPE = document.currentScript?.dataset.scope || 'all';
+  const hereParams = new URLSearchParams(location.search);
+  const hereKey = location.pathname === '/seite.php' ? 'slug' : (location.pathname === '/reglement.php' ? 'klasse' : '');
+  const here = location.pathname === '/index.php' ? '/' : location.pathname + (hereKey && hereParams.get(hereKey) ? '?' + hereKey + '=' + encodeURIComponent(hereParams.get(hereKey)) : (location.pathname === '/seite.php' ? '?slug=' : ''));
   const pageSelect = el('select', { class: 'rcb-ed-select', 'aria-label': 'Seite wechseln', onchange: (e) => go(e.target.value) },
     PAGES.map(([url, label]) => { const o = el('option', { value: url, text: label }); if (url === here) o.selected = true; return o; }));
   const plainUrl = location.pathname + location.search.replace(/[?&](bearbeiten|vorschau)=1/g, '').replace(/^&/, '?');
@@ -121,7 +124,7 @@
   }
   async function discardDraft() {
     if (!pending) return;
-    if (!confirm('Alle ' + pending + ' gespeicherten, noch nicht veröffentlichten Änderungen verwerfen? Das betrifft alle Seiten.')) return;
+    if (!confirm('Alle ' + pending + ' gespeicherten, noch nicht veröffentlichten Änderungen verwerfen? ' + (SCOPE === 'reglement' ? 'Das betrifft das ganze Reglement.' : 'Das betrifft alle Seiten.'))) return;
     try { await post('discard_drafts'); dirty.clear(); location.reload(); } catch (err) { setStatus(err.message, 'error'); }
   }
 

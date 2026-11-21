@@ -10,7 +10,9 @@ $feed = [];
 foreach (rcb_rows("SELECT id, title, summary, content, image_url, created_at FROM news WHERE published = 1 ORDER BY created_at DESC, id DESC LIMIT " . max(1, $newsCount)) as $item) {
     $feed[] = ['type' => 'news', 'date' => (string)$item['created_at'], 'item' => $item];
 }
-foreach (rcb_rows("SELECT id, title, url, created_at FROM site_updates ORDER BY created_at DESC, id DESC LIMIT " . max(1, $newsCount)) as $item) {
+$autoDays = (int)rcb_setting('auto_updates_days', '30');
+$autoCutoff = $autoDays > 0 ? date('Y-m-d H:i:s', time() - $autoDays * 86400) : '1970-01-02 00:00:00';
+foreach (rcb_rows("SELECT id, title, url, created_at FROM site_updates WHERE created_at >= ? ORDER BY created_at DESC, id DESC LIMIT " . max(1, $newsCount), [$autoCutoff]) as $item) {
     $feed[] = ['type' => 'update', 'date' => (string)$item['created_at'], 'item' => $item];
 }
 usort($feed, static fn(array $a, array $b): int => strcmp($b['date'], $a['date']));

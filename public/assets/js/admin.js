@@ -33,3 +33,15 @@ document.addEventListener('click', (event) => {
   end.addEventListener('focus', () => { if (start.value && !end.value) end.value = start.value; });
   if (start.value) end.min = start.value;
 })();
+
+// Einladungs-/Passwort-Link in die Zwischenablage kopieren.
+document.addEventListener('click', async (event) => {
+  const button = event.target.closest('[data-copy]');
+  if (!button) return;
+  const field = document.getElementById(button.dataset.copy);
+  if (!field) return;
+  field.select();
+  try { await navigator.clipboard.writeText(field.value); } catch (e) { document.execCommand('copy'); }
+  const old = button.textContent; button.textContent = 'Kopiert ✓';
+  setTimeout(() => { button.textContent = old; }, 2000);
+});

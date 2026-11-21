@@ -201,9 +201,16 @@ function rcb_header(string $active = 'home'): void
         foreach (rcb_custom_pages() as $row) {
             $editorPages[] = ['/seite.php?slug=' . rawurlencode((string)$row['slug']), (string)$row['title'] . ((int)$row['published'] === 1 ? '' : ' (verborgen)')];
         }
+        if ($editor['scope'] === 'reglement') {
+            // Nur-Reglement-Admins: Auswahl auf das Reglement und seine Klassen beschränken.
+            $editorPages = [['/reglement.php', 'Reglement – allgemeiner Teil']];
+            foreach (rcb_rule_classes(rcb_setting('reglement_klassen', '')) as $class) {
+                $editorPages[] = ['/reglement.php?klasse=' . rawurlencode((string)$class['key']), 'Reglement – ' . (string)($class['title'] ?? $class['key']) . (empty($class['published']) ? ' (verborgen)' : '')];
+            }
+        }
         echo '<script type="application/json" id="rcb-pages">' . json_encode($editorPages, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) . '</script>';
         echo '<link rel="stylesheet" href="/assets/css/editor.css">';
-        echo '<script src="/assets/js/editor.js" data-mode="' . rcb_h($editor['mode']) . '" defer></script>';
+        echo '<script src="/assets/js/editor.js" data-mode="' . rcb_h($editor['mode']) . '" data-scope="' . rcb_h($editor['scope']) . '" defer></script>';
     }
     echo '<style>
     main{padding:0}.rcb-wrap{width:min(100% - 32px,1200px);margin:0 auto}

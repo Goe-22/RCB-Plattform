@@ -43,7 +43,12 @@ function rcb_admin_viewer(): ?array
         return null;
     }
     $permissions = json_decode((string)($user['permissions'] ?? '[]'), true);
-    if (($user['role'] ?? '') !== 'superadmin' && !in_array('pages', is_array($permissions) ? $permissions : [], true)) {
+    $permissions = is_array($permissions) ? $permissions : [];
+    if (($user['role'] ?? '') === 'superadmin' || in_array('pages', $permissions, true)) {
+        $user['scope'] = 'all';
+    } elseif (in_array('reglement', $permissions, true) && basename((string)($_SERVER['SCRIPT_NAME'] ?? '')) === 'reglement.php') {
+        $user['scope'] = 'reglement'; // darf nur die Reglement-Texte ändern
+    } else {
         return null;
     }
     header('Cache-Control: no-store, private');
@@ -59,6 +64,13 @@ function rcb_editor(): ?array
 {
     $viewer = rcb_admin_viewer();
     return $viewer && $viewer['mode'] === 'edit' ? $viewer : null;
+}
+
+/** Darf der angemeldete Admin diesen Bereich gerade im Editor ändern? */
+function rcb_can_edit(string $key): bool
+{
+    $editor = rcb_editor();
+    return $editor !== null && ($editor['scope'] === 'all' || str_starts_with($key, 'reglement.'));
 }
 
 /** Werden unveröffentlichte Entwürfe angezeigt (Bearbeitungsmodus oder Entwurfsvorschau)? */
@@ -101,7 +113,7 @@ function rcb_text(string $key, string $default = ''): string
 {
     $value = rcb_block($key, $default);
     $html = nl2br(rcb_h($value), false);
-    if (rcb_editor()) {
+    if (rcb_can_edit($key)) {
         return '<span class="rcb-edit" data-rcb-key="' . rcb_h($key) . '" data-rcb-type="text">' . $html . '</span>';
     }
     return $html;
@@ -111,7 +123,7 @@ function rcb_text(string $key, string $default = ''): string
 function rcb_rich(string $key, string $defaultHtml = '', string $class = 'rcb-content'): string
 {
     $value = rcb_block($key, $defaultHtml);
-    if (rcb_editor()) {
+    if (rcb_can_edit($key)) {
         return '<div class="' . rcb_h($class) . ' rcb-edit rcb-edit-rich" data-rcb-key="' . rcb_h($key) . '" data-rcb-type="rich">' . $value . '</div>';
     }
     return trim(strip_tags($value, '<img>')) === '' ? '' : '<div class="' . rcb_h($class) . '">' . $value . '</div>';
@@ -120,7 +132,7 @@ function rcb_rich(string $key, string $defaultHtml = '', string $class = 'rcb-co
 /** Ist ein Bereich gefüllt (oder wird bearbeitet)? Für optionale Abschnitte. */
 function rcb_filled(string $key, string $default = ''): bool
 {
-    return rcb_editor() !== null || trim(strip_tags(rcb_block($key, $default), '<img>')) !== '';
+    return rcb_can_edit($key) || trim(strip_tags(rcb_block($key, $default), '<img>')) !== '';
 }
 
 /** Bild-URL eines Bereichs. */
@@ -133,7 +145,7 @@ function rcb_img(string $key, string $defaultUrl): string
 /** Zusätzliche Attribute, damit ein Bild (oder Hintergrundbild) im Bearbeitungsmodus austauschbar ist. */
 function rcb_img_attr(string $key): string
 {
-    return rcb_editor() ? ' data-rcb-key="' . rcb_h($key) . '" data-rcb-type="image"' : '';
+    return rcb_can_edit($key) ? ' data-rcb-key="' . rcb_h($key) . '" data-rcb-type="image"' : '';
 }
 
 /** Neuestes veröffentlichtes Bild einer Medienkategorie, sonst der mitgelieferte Standard. */
@@ -211,7 +223,7 @@ function rcb_img_slot(string $key, string $alt, string $class = 'rcb-gallery-img
     if ($url !== '') {
         return '<div class="rcb-gallery-item"><img class="' . rcb_h($class) . '" src="' . rcb_h($url) . '" alt="' . rcb_h($alt) . '" loading="lazy"' . rcb_img_attr($key) . '></div>';
     }
-    if (rcb_editor()) {
+    if (rcb_can_edit($key)) {
         return '<div class="rcb-gallery-item rcb-gallery-empty"' . rcb_img_attr($key) . '><span>Bild hinzufügen</span></div>';
     }
     return '';

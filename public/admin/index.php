@@ -49,6 +49,14 @@ try {
             $db->exec("UPDATE users SET role='subadmin', permissions='[\"events\",\"tracks\",\"pages\",\"sponsors\",\"media\",\"results\",\"news\"]' WHERE id <> " . (int)$firstAdminId . " AND role NOT IN ('superadmin','subadmin')");
         }
     }
+    // Klarnamen aus angenommenen Einladungen nachtragen (Einladungen vor Einführung des Namensfelds).
+    foreach ($db->query("SELECT id, username FROM users WHERE display_name = '' OR display_name IS NULL")->fetchAll() as $u) {
+        $stmt = $db->prepare("SELECT details FROM logs WHERE action = 'invite_accepted' AND user_id = ? ORDER BY id DESC LIMIT 1");
+        $stmt->execute([(int)$u['id']]);
+        if (preg_match('/über Einladungslink \((.+)\)$/u', (string)$stmt->fetchColumn(), $m)) {
+            $db->prepare('UPDATE users SET display_name = ? WHERE id = ?')->execute([mb_substr(trim(preg_replace('/\s+[–-]\s+.*$/u', '', $m[1])), 0, 190), (int)$u['id']]);
+        }
+    }
     if (!Database::isMysql()) {
         @chmod(Database::sqlitePath(), 0640);
     }
@@ -278,6 +286,11 @@ function admin_use_token(PDO $db, int $id): bool {
 function admin_token_url(string $script, string $kind, string $token): string {
     return admin_origin() . $script . '?' . ($kind === 'invite' ? 'einladung' : 'passwort') . '=' . $token;
 }
+/** „Klarname (benutzername)“ bzw. nur der Benutzername, wenn kein Name hinterlegt ist. */
+function admin_user_label(array $user): string {
+    $name = trim((string)($user['display_name'] ?? ''));
+    return $name !== '' ? $name . ' (' . $user['username'] . ')' : (string)$user['username'];
+}
 function admin_email_taken(PDO $db, string $email, int $exceptId): bool {
     $stmt = $db->prepare('SELECT COUNT(*) FROM users WHERE LOWER(email) = LOWER(?) AND id <> ?');
     $stmt->execute([$email, $exceptId]);
@@ -328,7 +341,7 @@ function admin_draft_banner(PDO $db, string $returnPage, string $previewUrl, boo
         . '<form method="post" data-confirm="Alle unveröffentlichten Änderungen verwerfen?">' . $hidden . '<input type="hidden" name="action" value="discard_drafts"><button class="danger" type="submit">Entwurf verwerfen</button></form></div></section>';
 }
 function admin_area_for_action(string $action): string {
-    $map = ['save_event'=>'events','delete_event'=>'events','save_track'=>'tracks','delete_track'=>'tracks','save_page'=>'pages','delete_page'=>'pages','save_sponsor'=>'sponsors','delete_sponsor'=>'sponsors','upload_media'=>'media','delete_media'=>'media','save_result'=>'results','delete_result'=>'results','save_news'=>'news','delete_news'=>'news','save_settings'=>'settings','toggle_user'=>'users','delete_user'=>'users','backup_export'=>'backup','page_visibility'=>'pages','page_move'=>'pages','rule_class_add'=>'reglement','rule_class_move'=>'reglement','rule_class_toggle'=>'reglement','rule_class_delete'=>'reglement','delete_site_update'=>'news','custom_page_add'=>'pages','custom_page_menu'=>'pages','clear_site_updates'=>'news','toggle_auto_updates'=>'news','create_invite'=>'users','create_reset_link'=>'users','revoke_token'=>'users'];
+    $map = ['save_event'=>'events','delete_event'=>'events','save_track'=>'tracks','delete_track'=>'tracks','save_page'=>'pages','delete_page'=>'pages','save_sponsor'=>'sponsors','delete_sponsor'=>'sponsors','upload_media'=>'media','delete_media'=>'media','save_result'=>'results','delete_result'=>'results','save_news'=>'news','delete_news'=>'news','save_settings'=>'settings','toggle_user'=>'users','delete_user'=>'users','backup_export'=>'backup','page_visibility'=>'pages','page_move'=>'pages','rule_class_add'=>'reglement','rule_class_move'=>'reglement','rule_class_toggle'=>'reglement','rule_class_delete'=>'reglement','delete_site_update'=>'news','custom_page_add'=>'pages','custom_page_menu'=>'pages','clear_site_updates'=>'news','toggle_auto_updates'=>'news','create_invite'=>'users','update_user'=>'users','create_reset_link'=>'users','revoke_token'=>'users'];
     return $map[$action] ?? 'dashboard';
 }
 
@@ -494,9 +507,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (!hash_equals($password, $confirm)) {
             $error = 'Die Passwörter stimmen nicht überein.';
         } else {
-            $stmt = $db->prepare('INSERT INTO users (username, email, password_hash, role, permissions, active) VALUES (?, ?, ?, ?, ?, 1)');
+            $stmt = $db->prepare('INSERT INTO users (username, email, display_name, password_hash, role, permissions, active) VALUES (?, ?, ?, ?, ?, ?, 1)');
             try {
-                $stmt->execute([$username, $email, password_hash($password, PASSWORD_DEFAULT), 'superadmin', '[]']);
+                $stmt->execute([$username, $email, post_string('display_name', 190), password_hash($password, PASSWORD_DEFAULT), 'superadmin', '[]']);
                 $newId = (int)$db->lastInsertId();
                 log_action($db, $newId, 'initial_setup', 'Erstes Administratorkonto erstellt');
                 session_regenerate_id(true);
@@ -546,6 +559,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!$row) { throw new RuntimeException('Diese Einladung ist ungültig, abgelaufen oder wurde schon benutzt.'); }
                 $username = post_string('username', 60);
                 $email = post_string('email', 190);
+                $displayName = post_string('display_name', 190);
+                if ($displayName === '') { throw new RuntimeException('Bitte deinen Namen eintragen.'); }
                 if (!preg_match('/^[a-zA-Z0-9._-]{3,60}$/', $username)) { throw new RuntimeException('Der Benutzername muss 3–60 Zeichen haben (Buchstaben, Zahlen, Punkt, Unterstrich oder Bindestrich).'); }
                 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) { throw new RuntimeException('Bitte eine gültige E-Mail-Adresse eingeben. Sie wird für „Passwort vergessen“ gebraucht.'); }
                 if (admin_email_taken($db, $email, 0)) { throw new RuntimeException('Diese E-Mail-Adresse gehört schon zu einem anderen Zugang.'); }
@@ -556,9 +571,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $permissions = array_values(array_intersect((array)json_decode((string)$row['permissions'], true), array_keys(admin_permission_labels())));
                 $db->beginTransaction();
                 if (!admin_use_token($db, (int)$row['id'])) { $db->rollBack(); throw new RuntimeException('Diese Einladung wurde gerade schon benutzt.'); }
-                $db->prepare('INSERT INTO users (username,email,password_hash,role,permissions,active) VALUES (?,?,?,?,?,1)')
-                   ->execute([$username, $email, password_hash((string)$_POST['password'], PASSWORD_DEFAULT), 'subadmin', json_encode($permissions, JSON_THROW_ON_ERROR)]);
+                $db->prepare('INSERT INTO users (username,email,display_name,password_hash,role,permissions,active) VALUES (?,?,?,?,?,?,1)')
+                   ->execute([$username, $email, $displayName, password_hash((string)$_POST['password'], PASSWORD_DEFAULT), 'subadmin', json_encode($permissions, JSON_THROW_ON_ERROR)]);
                 $newId = (int)$db->lastInsertId();
+                $db->prepare('UPDATE admin_tokens SET user_id = ? WHERE id = ?')->execute([$newId, (int)$row['id']]);
                 $db->commit();
                 log_action($db, $newId, 'invite_accepted', $username . ' über Einladungslink' . ($row['note'] !== '' ? ' (' . $row['note'] . ')' : ''));
                 admin_start_session(['id' => $newId, 'username' => $username, 'role' => 'subadmin']);
@@ -632,7 +648,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } elseif (!empty($_SESSION['admin_user_id'])) {
         $uid = (int)$_SESSION['admin_user_id'];
-        $authStmt = $db->prepare('SELECT id, username, email, role, permissions, active FROM users WHERE id = ? LIMIT 1');
+        $authStmt = $db->prepare('SELECT id, username, email, display_name, role, permissions, active FROM users WHERE id = ? LIMIT 1');
         $authStmt->execute([$uid]);
         $currentUser = $authStmt->fetch();
         if (!$currentUser || (int)$currentUser['active'] !== 1) { http_response_code(403); exit('Benutzerkonto ist nicht aktiv.'); }
@@ -1087,7 +1103,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $email = post_string('email', 190);
                 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) { throw new RuntimeException('Bitte eine gültige E-Mail-Adresse eingeben.'); }
                 if (admin_email_taken($db, $email, $uid)) { throw new RuntimeException('Diese E-Mail-Adresse gehört schon zu einem anderen Zugang.'); }
-                $db->prepare('UPDATE users SET email = ? WHERE id = ?')->execute([$email, $uid]);
+                $displayName = post_string('display_name', 190);
+                if ($displayName === '') { throw new RuntimeException('Bitte deinen Namen eintragen.'); }
+                $db->prepare('UPDATE users SET email = ?, display_name = ? WHERE id = ?')->execute([$email, $displayName, $uid]);
                 $newPassword = (string)($_POST['password'] ?? '');
                 if ($newPassword !== '') {
                     admin_check_new_password($newPassword, (string)($_POST['password_confirm'] ?? ''));
@@ -1096,8 +1114,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 log_action($db, $uid, 'own_account_updated', $newPassword !== '' ? 'E-Mail/Passwort geändert' : 'E-Mail geändert');
                 redirect_to('dashboard', $newPassword !== '' ? 'E-Mail und Passwort gespeichert' : 'E-Mail gespeichert');
             }
-            if (in_array($action, ['create_invite', 'create_reset_link', 'revoke_token'], true) && ($currentUser['role'] ?? '') !== 'superadmin') {
+            if (in_array($action, ['create_invite', 'create_reset_link', 'revoke_token', 'update_user'], true) && ($currentUser['role'] ?? '') !== 'superadmin') {
                 throw new RuntimeException('Nur der Hauptadmin darf Zugänge verwalten.');
+            }
+            if ($action === 'update_user') {
+                $stmt = $db->prepare('SELECT id, username, role FROM users WHERE id = ? LIMIT 1');
+                $stmt->execute([(int)($_POST['id'] ?? 0)]);
+                $target = $stmt->fetch();
+                if (!$target) { throw new RuntimeException('Benutzer nicht gefunden.'); }
+                $displayName = post_string('display_name', 190);
+                if ($displayName === '') { throw new RuntimeException('Bitte einen Namen eintragen.'); }
+                if ($target['role'] === 'superadmin') {
+                    $db->prepare('UPDATE users SET display_name = ? WHERE id = ?')->execute([$displayName, (int)$target['id']]);
+                } else {
+                    $permissions = array_values(array_intersect((array)($_POST['permissions'] ?? []), array_keys(admin_permission_labels())));
+                    if (!$permissions) { throw new RuntimeException('Bitte mindestens einen Bereich freigeben – oder den Zugang deaktivieren.'); }
+                    $db->prepare('UPDATE users SET display_name = ?, permissions = ? WHERE id = ?')->execute([$displayName, json_encode($permissions, JSON_THROW_ON_ERROR), (int)$target['id']]);
+                }
+                log_action($db, $uid, 'user_updated', $target['username'] . ': ' . $displayName . (isset($permissions) ? ' – ' . implode(', ', $permissions) : ''));
+                redirect_to('users', 'Zugang von ' . $displayName . ' gespeichert');
             }
             if ($action === 'create_invite') {
                 $permissions = array_values(array_intersect((array)($_POST['permissions'] ?? []), array_keys(admin_permission_labels())));
@@ -1105,18 +1140,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $days = (int)($_POST['days'] ?? 7);
                 if (!in_array($days, [1, 3, 7, 14], true)) { $days = 7; }
                 $note = post_string('note', 190);
+                if ($note === '') { throw new RuntimeException('Bitte den Namen der eingeladenen Person eintragen.'); }
                 $token = admin_create_token($db, 'invite', null, $permissions, $note, $days * 86400, $uid);
                 $_SESSION['token_link'] = ['kind' => 'invite', 'url' => admin_token_url($script, 'invite', $token), 'label' => $note, 'expires' => time() + $days * 86400];
                 log_action($db, $uid, 'invite_created', ($note !== '' ? $note . ': ' : '') . implode(', ', $permissions));
                 redirect_to('users', 'Einladungslink erstellt');
             }
             if ($action === 'create_reset_link') {
-                $stmt = $db->prepare('SELECT id, username FROM users WHERE id = ? LIMIT 1');
+                $stmt = $db->prepare('SELECT id, username, display_name FROM users WHERE id = ? LIMIT 1');
                 $stmt->execute([(int)($_POST['id'] ?? 0)]);
                 $target = $stmt->fetch();
                 if (!$target) { throw new RuntimeException('Benutzer nicht gefunden.'); }
                 $token = admin_create_token($db, 'reset', (int)$target['id'], [], 'für ' . $target['username'], 86400, $uid);
-                $_SESSION['token_link'] = ['kind' => 'reset', 'url' => admin_token_url($script, 'reset', $token), 'label' => (string)$target['username'], 'expires' => time() + 86400];
+                $_SESSION['token_link'] = ['kind' => 'reset', 'url' => admin_token_url($script, 'reset', $token), 'label' => admin_user_label($target), 'expires' => time() + 86400];
                 log_action($db, $uid, 'reset_link_created', (string)$target['username']);
                 redirect_to('users', 'Link zum Passwort-Zurücksetzen erstellt');
             }
@@ -1158,7 +1194,7 @@ $userCount = (int)$db->query('SELECT COUNT(*) FROM users')->fetchColumn();
 $setupMode = $userCount === 0;
 $loggedIn = !empty($_SESSION['admin_user_id']);
 if ($loggedIn) {
-    $stmt = $db->prepare('SELECT id, username, email, role, permissions, active FROM users WHERE id = ? LIMIT 1');
+    $stmt = $db->prepare('SELECT id, username, email, display_name, role, permissions, active FROM users WHERE id = ? LIMIT 1');
     $stmt->execute([(int)$_SESSION['admin_user_id']]);
     $currentUser = $stmt->fetch();
     if (!$currentUser || (int)$currentUser['active'] !== 1) {
@@ -1235,6 +1271,7 @@ td.actions form{display:inline-block;margin:2px 4px 2px 0}table.table td.actions
 <form class="stack" method="post" action="<?= h($script) ?>">
 <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="initial_setup">
 <?php if ($setupKeyRequired): ?><label for="initial_setup_key">Einmaliger Einrichtungsschlüssel</label><input id="initial_setup_key" name="initial_setup_key" type="password" required minlength="10" autocomplete="off"><p class="hint">Steht in <code>config/database.php</code> beim Eintrag <code>initial_setup_key</code>. Das ist nicht das Datenbank-Passwort.</p><?php endif; ?>
+<label for="display_name">Dein Name (Vor- und Nachname)</label><input id="display_name" name="display_name" required maxlength="190" autocomplete="name">
 <label for="username">Benutzername</label><input id="username" name="username" required minlength="3" maxlength="60" pattern="[a-zA-Z0-9._-]+" autocomplete="username">
 <label for="email">E-Mail</label><input id="email" name="email" type="email" required maxlength="190" autocomplete="email"><p class="hint">Wird für „Passwort vergessen“ gebraucht.</p>
 <label for="password">Eigenes Passwort (mindestens 12 Zeichen)</label><input id="password" name="password" type="password" required minlength="12" autocomplete="new-password">
@@ -1259,7 +1296,8 @@ td.actions form{display:inline-block;margin:2px 4px 2px 0}table.table td.actions
 <?php if ($error !== ''): ?><div class="alert" role="alert"><?= h($error) ?></div><?php endif; ?>
 <form class="stack" method="post" action="<?= h($script) ?>?einladung=<?= h((string)$_GET['einladung']) ?>">
 <input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="accept_invite">
-<label for="username">Benutzername</label><input id="username" name="username" required minlength="3" maxlength="60" pattern="[a-zA-Z0-9._-]+" autocomplete="username" value="<?= h($_POST['username'] ?? '') ?>">
+<label for="display_name">Dein Name (Vor- und Nachname)</label><input id="display_name" name="display_name" required maxlength="190" autocomplete="name" value="<?= h($_POST['display_name'] ?? $tokenRow['note']) ?>">
+<label for="username">Benutzername (zum Anmelden)</label><input id="username" name="username" required minlength="3" maxlength="60" pattern="[a-zA-Z0-9._-]+" autocomplete="username" value="<?= h($_POST['username'] ?? '') ?>">
 <label for="email">E-Mail</label><input id="email" name="email" type="email" required maxlength="190" autocomplete="email" value="<?= h($_POST['email'] ?? '') ?>"><p class="hint">Wird für „Passwort vergessen“ gebraucht.</p>
 <label for="password">Passwort (mindestens 12 Zeichen)</label><input id="password" name="password" type="password" required minlength="12" autocomplete="new-password">
 <label for="password_confirm">Passwort wiederholen</label><input id="password_confirm" name="password_confirm" type="password" required minlength="12" autocomplete="new-password">
@@ -1325,13 +1363,14 @@ td.actions form{display:inline-block;margin:2px 4px 2px 0}table.table td.actions
 <?php if ($error !== ''): ?><div class="alert" role="alert"><?= h($error) ?></div><?php endif; ?>
 <?php if ($notice !== ''): ?><div class="notice" role="status"><?= h($notice) ?></div><?php endif; ?>
 <?php if ($page === 'dashboard'): ?>
-<div class="page-head"><div><p class="eyebrow">Übersicht</p><h1>Willkommen, <?= h($currentUser['username']) ?>!</h1><p>Hier verwaltest du die Inhalte der RC Bande Zwickau.</p></div></div>
+<div class="page-head"><div><p class="eyebrow">Übersicht</p><h1>Willkommen, <?= h(trim((string)($currentUser['display_name'] ?? '')) !== '' ? $currentUser['display_name'] : $currentUser['username']) ?>!</h1><p>Hier verwaltest du die Inhalte der RC Bande Zwickau.</p></div></div>
 <?php if (trim((string)($currentUser['email'] ?? '')) === ''): ?><div class="alert" role="alert">Für deinen Zugang ist noch keine E-Mail-Adresse hinterlegt. Bitte unten unter „Mein Zugang“ eintragen – sonst funktioniert „Passwort vergessen“ nicht.</div><?php endif; ?>
 <div class="grid"><?php foreach (['events'=>'Termine','tracks'=>'Strecken','pages'=>'Seiten','sponsors'=>'Sponsoren','news'=>'Neuigkeiten','users'=>'Benutzer'] as $key=>$label): if (!admin_can($currentUser, $key)) { continue; } ?><a class="card" href="<?= h($script) ?>?page=<?= h($key) ?>"><div class="stat"><?= (int)$counts[$key] ?></div><div class="stat-label"><?= h($label) ?> angelegt</div></a><?php endforeach; ?></div>
 <div class="tiles"><?php foreach (['events'=>['📅','Termine','Veranstaltungen anlegen und bearbeiten.'],'tracks'=>['🏁','Strecken','Onroad- und Offroad-Strecken pflegen.'],'reglement'=>['📋','Reglement','Regelwerk und Klassen pflegen.'],'results'=>['🏆','Ergebnisse','Rennberichte veröffentlichen.'],'media'=>['🖼️','Bilder','Streckenspezifische Bilder und Vereinslogo verwalten.'],'pages'=>['📄','Vereinsseiten','Texte und Veröffentlichungsstatus verwalten.'],'sponsors'=>['🤝','Sponsoren','Sponsoren und Weblinks eintragen.'],'news'=>['📰','Neuigkeiten','Vereinsmeldungen erstellen und veröffentlichen.'],'settings'=>['⚙️','Einstellungen','Name, Kontakt, Wartungsmodus und Live-Anzeige.'],'users'=>['🔐','Benutzer','Adminzugänge verwalten.'],'backup'=>['⬇️','Datenbank-Backup','SQL-Export der Plattformdaten herunterladen.']] as $key=>$tile): if (!admin_can($currentUser, $key)) { continue; } ?><a class="tile" href="<?= h($script) ?>?page=<?= h($key) ?>"><div class="tile-icon"><?= $tile[0] ?></div><h2><?= h($tile[1]) ?></h2><p><?= h($tile[2]) ?></p></a><?php endforeach; ?></div>
 <section class="card" id="mein-zugang" style="max-width:760px;margin-top:22px"><h2>Mein Zugang</h2><p class="hint">Angemeldet als <strong><?= h($currentUser['username']) ?></strong>. Die E-Mail-Adresse wird für „Passwort vergessen“ gebraucht.</p>
 <form class="stack" method="post"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="update_own_account">
 <input type="text" name="username" value="<?= h($currentUser['username']) ?>" autocomplete="username" hidden>
+<label for="own_name">Name (Vor- und Nachname)</label><input id="own_name" name="display_name" required maxlength="190" autocomplete="name" value="<?= h($currentUser['display_name'] ?? '') ?>">
 <label for="own_email">E-Mail</label><input id="own_email" name="email" type="email" required maxlength="190" autocomplete="email" value="<?= h($currentUser['email'] ?? '') ?>">
 <label for="own_password">Neues Passwort (leer lassen, wenn es bleiben soll)</label><input id="own_password" name="password" type="password" minlength="12" autocomplete="new-password">
 <label for="own_password_confirm">Neues Passwort wiederholen</label><input id="own_password_confirm" name="password_confirm" type="password" minlength="12" autocomplete="new-password">
@@ -1521,24 +1560,32 @@ $csrf = '<input type="hidden" name="csrf_token" value="' . h(csrf_token()) . '">
 <div class="page-head"><div><p class="eyebrow">System</p><h1>Einstellungen</h1><p>Grundlegende Angaben für die Plattform.</p></div></div><section class="card" style="max-width:760px"><form class="stack" method="post"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="save_settings"><label for="site_name">Name der Webseite</label><input id="site_name" name="site_name" maxlength="190" value="<?= h($settings['site_name']??'RC Bande Zwickau e.V.') ?>"><label for="site_description">Kurzbeschreibung</label><textarea id="site_description" name="site_description" maxlength="1000"><?= h($settings['site_description']??'') ?></textarea><label for="contact_email">Kontakt-E-Mail</label><input id="contact_email" name="contact_email" type="email" maxlength="190" value="<?= h($settings['contact_email']??'') ?>"><label for="contact_phone">Telefon</label><input id="contact_phone" name="contact_phone" maxlength="190" value="<?= h($settings['contact_phone']??'') ?>"><fieldset><legend>Startseite</legend><div class="field-row" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div><label for="home_news_count">Anzahl Neuigkeiten</label><input id="home_news_count" name="home_news_count" type="number" min="0" max="20" required value="<?= h($settings['home_news_count'] ?? '6') ?>"></div><div><label for="home_events_count">Anzahl Termine</label><input id="home_events_count" name="home_events_count" type="number" min="0" max="20" required value="<?= h($settings['home_events_count'] ?? '3') ?>"></div></div><p class="hint">Wie viele der neuesten Neuigkeiten (eigene Meldungen und automatische Hinweise zusammen) und wie viele der nächsten Termine auf der Startseite stehen. 0 blendet den Bereich aus.</p><label for="auto_updates_days">Automatische Hinweise anzeigen für (Tage)</label><input id="auto_updates_days" name="auto_updates_days" type="number" min="0" max="365" required value="<?= h($settings['auto_updates_days'] ?? '30') ?>" style="max-width:160px"><p class="hint">Danach verschwindet ein Hinweis wie „Reglement wurde aktualisiert“ von selbst von der Startseite. 0 = unbegrenzt. Eigene Neuigkeiten bleiben davon unberührt.</p></fieldset>
 <label class="check"><input type="checkbox" name="site_enabled" value="1"<?= checked($settings['site_enabled']??1) ?>> Webseite aktiv (deaktiviert den öffentlichen Bereich für Wartungsarbeiten)</label><label class="check"><input type="checkbox" name="live_enabled" value="1"<?= checked($settings['live_enabled']??0) ?>> Live-Timing veröffentlichen (Seite und Menüpunkt für Besucher sichtbar)</label><div class="form-actions"><button type="submit">Einstellungen speichern</button></div></form><p class="hint">Kontaktangaben und Wartungsmodus werden von den öffentlichen PHP-Seiten verwendet. Die Aktivierung von Live-Timing schaltet noch keine Zeitnahme-Schnittstelle frei.</p></section>
 <?php elseif ($page === 'users'): ?>
-<?php $rows=$db->query('SELECT id,username,email,role,permissions,active,created_at FROM users ORDER BY id')->fetchAll(); ?>
+<?php $rows=$db->query('SELECT id,username,email,display_name,role,permissions,active,created_at FROM users ORDER BY id')->fetchAll(); ?>
 <div class="page-head"><div><p class="eyebrow">Sicherheit</p><h1>Benutzerverwaltung</h1><p>Administratorkonten erstellen, einladen, deaktivieren oder entfernen.</p></div></div>
 <?php $flashLink = $_SESSION['token_link'] ?? null; unset($_SESSION['token_link']); if (is_array($flashLink)): ?>
 <section class="card link-flash"><h2><?= $flashLink['kind'] === 'invite' ? '✉ Einladungslink' : '🔑 Link zum Passwort-Zurücksetzen' ?><?= $flashLink['label'] !== '' ? ' – ' . h($flashLink['label']) : '' ?></h2>
 <p>Schick diesen Link z. B. per WhatsApp, Signal oder E-Mail. Er funktioniert <strong>nur einmal</strong> und nur bis <strong><?= h(date('d.m.Y H:i', (int)$flashLink['expires'])) ?> Uhr</strong>. <strong>Er wird nur jetzt angezeigt</strong> – bei Bedarf einfach einen neuen erstellen.</p>
 <div class="form-actions"><input id="flash-link" class="link-field" readonly value="<?= h($flashLink['url']) ?>"><button type="button" data-copy="flash-link">Kopieren</button></div></section>
 <?php endif; ?>
+<?php if (($currentUser['role'] ?? '') === 'superadmin' && $editId > 0): $eu = $db->prepare('SELECT id, username, email, display_name, role, permissions FROM users WHERE id = ? LIMIT 1'); $eu->execute([$editId]); $eu = $eu->fetch(); if ($eu): $euPerms = admin_permissions($eu); ?>
+<section class="card" id="bearbeiten" style="margin-bottom:22px;border-color:#f6c76b"><h2>✎ <?= h(admin_user_label($eu)) ?> bearbeiten</h2>
+<form class="stack" method="post" action="<?= h($script) ?>?page=users"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="update_user"><input type="hidden" name="id" value="<?= (int)$eu['id'] ?>">
+<label for="eu_name">Name (Vor- und Nachname)</label><input id="eu_name" name="display_name" required maxlength="190" value="<?= h($eu['display_name']) ?>">
+<?php if ($eu['role'] === 'superadmin'): ?><p class="hint">Hauptadmin – hat immer Zugriff auf alle Bereiche.</p>
+<?php else: ?><fieldset class="stack"><legend>Freigegebene Bereiche</legend><?php foreach (admin_permission_labels() as $perm=>$permLabel): ?><label class="check"><input type="checkbox" name="permissions[]" value="<?= h($perm) ?>"<?= in_array($perm, $euPerms, true) ? ' checked' : '' ?>> <?= h($permLabel) ?></label><?php endforeach; ?><p class="hint">„Reglement“ erlaubt nur das Regelwerk. „Seiten“ schließt das Reglement mit ein.</p></fieldset><?php endif; ?>
+<div class="form-actions"><button type="submit">Speichern</button><a class="button secondary" href="<?= h($script) ?>?page=users">Abbrechen</a></div></form></section>
+<?php endif; endif; ?>
 <div class="columns"><?php if (($currentUser['role'] ?? '') === 'superadmin'): ?><section class="card"><h2>✉ Neuen Admin einladen</h2><p class="hint">Erstellt einen Link, mit dem die Person ihren Zugang selbst anlegt (Benutzername und Passwort wählt sie selbst). Der Link funktioniert nur einmal und nur mit den hier gewählten Freigaben.</p>
 <form class="stack" method="post"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="create_invite">
-<label for="invite_note">Für wen? (nur zur Erinnerung)</label><input id="invite_note" name="note" maxlength="190" placeholder="z. B. Max – Reglement TT02">
+<label for="invite_note">Name der Person</label><input id="invite_note" name="note" required maxlength="190" placeholder="z. B. Thomas Thamm"><p class="hint">Wird als Klarname beim Zugang angezeigt, egal welchen Benutzernamen die Person wählt.</p>
 <fieldset class="stack"><legend>Freigegebene Bereiche</legend><?php foreach (admin_permission_labels() as $perm=>$permLabel): ?><label class="check"><input type="checkbox" name="permissions[]" value="<?= h($perm) ?>"> <?= h($permLabel) ?></label><?php endforeach; ?></fieldset>
 <label for="invite_days">Link gültig für</label><select id="invite_days" name="days"><option value="1">1 Tag</option><option value="3">3 Tage</option><option value="7" selected>7 Tage</option><option value="14">14 Tage</option></select>
 <button type="submit">Einladungslink erstellen</button></form></section>
-<?php endif; ?><section class="card"><h2>Vorhandene Benutzer</h2><div class="table-wrap"><table class="table"><thead><tr><th>Benutzer</th><th>Rolle / Rechte</th><th>Status</th><th>Aktion</th></tr></thead><tbody><?php foreach($rows as $row): ?><tr><td><strong><?= h($row['username']) ?></strong><br><span class="muted"><?= h($row['email']) ?></span><br><span class="hint">Seit <?= h($row['created_at']) ?></span></td><td><strong><?= ($row['role'] === 'superadmin') ? 'Hauptadmin' : 'Unteradmin' ?></strong><br><span class="hint"><?= h($row['role'] === 'superadmin' ? 'Alle Bereiche' : implode(', ', array_map(static fn($p) => admin_permission_labels()[$p] ?? $p, admin_permissions($row)))) ?></span></td><td><span class="badge <?= $row['active']?'yes':'no' ?>"><?= $row['active']?'Aktiv':'Deaktiviert' ?></span></td><td class="actions"><?php if (($currentUser['role'] ?? '') === 'superadmin'): ?><form method="post"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="create_reset_link"><input type="hidden" name="id" value="<?= (int)$row['id'] ?>"><button class="secondary" type="submit" title="Erstellt einen Einmal-Link, mit dem dieser Benutzer ein neues Passwort festlegt (24 Stunden gültig)">🔑 Passwort-Link</button></form><?php endif; ?><?php if((int)$row['id'] !== (int)$currentUser['id']): ?><form method="post"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="toggle_user"><input type="hidden" name="id" value="<?= (int)$row['id'] ?>"><button class="secondary" type="submit"><?= $row['active']?'Deaktivieren':'Aktivieren' ?></button></form><form method="post" data-confirm="Diesen Benutzer unwiderruflich löschen?"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="delete_user"><input type="hidden" name="id" value="<?= (int)$row['id'] ?>"><button class="danger" type="submit">Löschen</button></form><?php else: ?><span class="hint">Aktuelle Sitzung</span><?php endif; ?></td></tr><?php endforeach; ?></tbody></table></div></section></div>
+<?php endif; ?><section class="card"><h2>Vorhandene Benutzer</h2><div class="table-wrap"><table class="table"><thead><tr><th>Benutzer</th><th>Rolle / Rechte</th><th>Status</th><th>Aktion</th></tr></thead><tbody><?php foreach($rows as $row): ?><tr><td><strong><?= h(trim((string)$row['display_name']) !== '' ? $row['display_name'] : $row['username']) ?></strong><br><span class="hint">Benutzer: <?= h($row['username']) ?></span><br><span class="muted"><?= h($row['email']) ?></span><br><span class="hint">Seit <?= h($row['created_at']) ?></span></td><td><strong><?= ($row['role'] === 'superadmin') ? 'Hauptadmin' : 'Unteradmin' ?></strong><br><span class="hint"><?= h($row['role'] === 'superadmin' ? 'Alle Bereiche' : implode(', ', array_map(static fn($p) => admin_permission_labels()[$p] ?? $p, admin_permissions($row)))) ?></span></td><td><span class="badge <?= $row['active']?'yes':'no' ?>"><?= $row['active']?'Aktiv':'Deaktiviert' ?></span></td><td class="actions"><?php if (($currentUser['role'] ?? '') === 'superadmin'): ?><a class="button secondary" href="<?= h($script) ?>?page=users&amp;edit=<?= (int)$row['id'] ?>#bearbeiten">✎ Bearbeiten</a><form method="post"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="create_reset_link"><input type="hidden" name="id" value="<?= (int)$row['id'] ?>"><button class="secondary" type="submit" title="Erstellt einen Einmal-Link, mit dem dieser Benutzer ein neues Passwort festlegt (24 Stunden gültig)">🔑 Passwort-Link</button></form><?php endif; ?><?php if((int)$row['id'] !== (int)$currentUser['id']): ?><form method="post"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="toggle_user"><input type="hidden" name="id" value="<?= (int)$row['id'] ?>"><button class="secondary" type="submit"><?= $row['active']?'Deaktivieren':'Aktivieren' ?></button></form><form method="post" data-confirm="Diesen Benutzer unwiderruflich löschen?"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="delete_user"><input type="hidden" name="id" value="<?= (int)$row['id'] ?>"><button class="danger" type="submit">Löschen</button></form><?php else: ?><span class="hint">Aktuelle Sitzung</span><?php endif; ?></td></tr><?php endforeach; ?></tbody></table></div></section></div>
 <?php if (($currentUser['role'] ?? '') === 'superadmin'): ?>
-<?php $openLinks = $db->prepare('SELECT t.id, t.kind, t.permissions, t.note, t.expires_at, u.username FROM admin_tokens t LEFT JOIN users u ON u.id = t.user_id WHERE t.used_at IS NULL AND t.expires_at >= ? ORDER BY t.expires_at'); $openLinks->execute([time()]); $openLinks = $openLinks->fetchAll(); ?>
+<?php $openLinks = $db->prepare('SELECT t.id, t.kind, t.permissions, t.note, t.expires_at, u.username, u.display_name FROM admin_tokens t LEFT JOIN users u ON u.id = t.user_id WHERE t.used_at IS NULL AND t.expires_at >= ? ORDER BY t.expires_at'); $openLinks->execute([time()]); $openLinks = $openLinks->fetchAll(); ?>
 <div style="margin-top:22px"><section class="card"><h2>Offene Links</h2><?php if (!$openLinks): ?><p class="muted">Keine offenen Einladungen oder Passwort-Links.</p><?php else: ?><div class="table-wrap"><table class="table"><thead><tr><th>Art</th><th>Für</th><th>Gültig bis</th><th></th></tr></thead><tbody>
-<?php foreach ($openLinks as $link): ?><tr><td><?= $link['kind'] === 'invite' ? '✉ Einladung' : '🔑 Passwort' ?></td><td><?= h($link['kind'] === 'reset' ? (string)($link['username'] ?? '–') . ($link['note'] === 'Passwort vergessen (E-Mail)' ? ' (per E-Mail angefordert)' : '') : ($link['note'] !== '' ? $link['note'] : '–')) ?><?php if ($link['kind'] === 'invite'): ?><br><span class="hint"><?= h(implode(', ', array_intersect_key(admin_permission_labels(), array_flip((array)json_decode((string)$link['permissions'], true))))) ?></span><?php endif; ?></td><td><?= h(date('d.m.Y H:i', (int)$link['expires_at'])) ?></td><td><form method="post" data-confirm="Diesen Link ungültig machen?"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="revoke_token"><input type="hidden" name="id" value="<?= (int)$link['id'] ?>"><button class="danger" type="submit">Widerrufen</button></form></td></tr><?php endforeach; ?>
+<?php foreach ($openLinks as $link): ?><tr><td><?= $link['kind'] === 'invite' ? '✉ Einladung' : '🔑 Passwort' ?></td><td><?= h($link['kind'] === 'reset' ? ($link['username'] !== null ? admin_user_label($link) : '–') . ($link['note'] === 'Passwort vergessen (E-Mail)' ? ' (per E-Mail angefordert)' : '') : ($link['note'] !== '' ? $link['note'] : '–')) ?><?php if ($link['kind'] === 'invite'): ?><br><span class="hint"><?= h(implode(', ', array_intersect_key(admin_permission_labels(), array_flip((array)json_decode((string)$link['permissions'], true))))) ?></span><?php endif; ?></td><td><?= h(date('d.m.Y H:i', (int)$link['expires_at'])) ?></td><td><form method="post" data-confirm="Diesen Link ungültig machen?"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="revoke_token"><input type="hidden" name="id" value="<?= (int)$link['id'] ?>"><button class="danger" type="submit">Widerrufen</button></form></td></tr><?php endforeach; ?>
 </tbody></table></div><?php endif; ?><p class="hint">Aus Sicherheitsgründen wird ein Link nur direkt nach dem Erstellen angezeigt. Ist er verloren gegangen: widerrufen und neu erstellen.</p></section></div>
 <?php endif; ?>
 <?php elseif ($page === 'logs'): ?>

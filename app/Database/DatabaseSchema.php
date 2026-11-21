@@ -16,6 +16,7 @@ final class DatabaseSchema
         'users' => [
             'username' => ["VARCHAR(190) NOT NULL UNIQUE", "TEXT NOT NULL UNIQUE"],
             'email' => ["VARCHAR(190) NOT NULL DEFAULT ''", "TEXT DEFAULT ''"],
+            'display_name' => ["VARCHAR(190) NOT NULL DEFAULT ''", "TEXT DEFAULT ''"],
             'password_hash' => ["VARCHAR(255) NOT NULL", "TEXT NOT NULL"],
             'role' => ["VARCHAR(32) NOT NULL DEFAULT 'subadmin'", "TEXT NOT NULL DEFAULT 'subadmin'"],
             'permissions' => ["VARCHAR(500) NOT NULL DEFAULT '[]'", "TEXT NOT NULL DEFAULT '[]'"],

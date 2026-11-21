@@ -250,6 +250,7 @@ function rcb_header(string $active = 'home'): void
     .site-header a.logo-area{display:flex;align-items:center;gap:18px;flex:0 0 auto;text-decoration:none}
     .site-header .logo-area .brand-mark{display:block;width:auto;height:auto;flex:none;border:0;border-radius:0;background:transparent}
     .site-header .logo-area .rcb-logo-img{display:block;height:78px;width:auto;max-width:170px;object-fit:contain}
+    .site-header .logo-area .rcb-logo-img{filter:brightness(0) invert(1) drop-shadow(0 1px 2px rgba(0,0,0,.25))}
     .site-header .logo-area .club-name{position:static;width:auto;height:auto;overflow:visible;clip:auto;color:#fff;font-size:22px;font-weight:800;line-height:1.15;letter-spacing:.005em;white-space:nowrap}
     .site-header .logo-area .club-name small{display:block;margin-top:6px;color:rgba(255,255,255,.78);font-size:12.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase}
     .site-header nav ul{gap:6px;flex-wrap:nowrap}

@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 /**
  * Detailseite einer Strecke (Onroad/Offroad): ausführliche Beschreibung, Steckbrief aus der
- * Streckenverwaltung, Klassen, Galerie. Startseite und Streckenübersicht zeigen nur Kurzfassungen.
+ * Streckenverwaltung, Galerie, Anfahrt. Startseite und Streckenübersicht zeigen nur Kurzfassungen.
  */
 function rcb_track_page(string $kind): void
 {
@@ -12,13 +12,13 @@ function rcb_track_page(string $kind): void
             'titel' => 'Onroad-Strecke',
             'zeile' => 'Asphalt · 210 m · Tourenwagen 1:10',
             'inhalt' => '<h2>Über die Strecke</h2><p>Unsere Onroad-Strecke ist eine rund 210 m lange Asphaltstrecke, die wir vom 1. RC-MSC Kirchberg übernommen haben. Am Fahrerstand haben bis zu 10 Fahrerinnen und Fahrer Platz.</p><p>Gefahren werden hier vor allem Tourenwagen im Maßstab 1:10 – vom Einsteiger bis zur Rennklasse.</p>',
-            'klassen' => '<h2>Diese Klassen fahren hier</h2><ul><li><a href="/reglement.php?klasse=tt02">TT02 Cup</a></li><li><a href="/reglement.php?klasse=einsteiger">Einsteiger</a></li><li><a href="/reglement.php?klasse=tw175">TW 17,5t Stock</a></li><li><a href="/reglement.php?klasse=fwd">FWD Cup</a></li><li><a href="/reglement.php?klasse=555">555 Runden Team-Rennen</a></li></ul>',
+            'anfahrt' => '<h2>Anfahrt</h2><p><strong>Onroad-Strecke der RC Bande Zwickau</strong><br>Neuplanitzer Straße, 08056 Zwickau<br>neben dem Jugendclub „Airport Zwickau“</p><p>Von der Ampel Reichenbacher Straße (B173) / Neuplanitzer Straße aus liegt die Onroad-Strecke <strong>rechts</strong>.</p><p>Die Offroad-Strecke liegt nicht auf demselben Gelände, sondern auf der anderen Straßenseite: <a href="/offroad.php">zur Offroad-Strecke</a>.</p><p><a href="https://www.google.com/maps/search/?api=1&amp;query=50.70669%2C12.45999" target="_blank" rel="noopener">In Google Maps öffnen</a> · <a href="https://www.openstreetmap.org/?mlat=50.70669&amp;mlon=12.45999#map=18/50.70669/12.45999" target="_blank" rel="noopener">OpenStreetMap</a></p>',
         ],
         'offroad' => [
             'titel' => 'Offroad-Strecke',
             'zeile' => 'Kunstrasen · 270 m · Buggys bis 1:8',
             'inhalt' => '<h2>Über die Strecke</h2><p>Unsere Offroad-Strecke ist rund 270 m lang und mit Kunstrasen belegt. Sie ist für Modelle im Maßstab 1:8 und kleiner geeignet. Am Fahrerstand haben bis zu 10 Fahrerinnen und Fahrer Platz.</p><p>Hier sind vor allem Elektro- und Nitro-Buggys unterwegs.</p>',
-            'klassen' => '<h2>Diese Klassen fahren hier</h2><ul><li><a href="/reglement.php?klasse=ore8">ORE8 Cup (Buggy Elektro)</a></li><li><a href="/reglement.php?klasse=or8">OR8 Cup (Buggy Nitro)</a></li></ul>',
+            'anfahrt' => '<h2>Anfahrt</h2><p><strong>Offroad-Strecke der RC Bande Zwickau</strong><br>Neuplanitzer Straße, 08056 Zwickau<br>auf der Flugplatz-Seite</p><p>Von der Ampel Reichenbacher Straße (B173) / Neuplanitzer Straße aus liegt die Offroad-Strecke <strong>links</strong>.</p><p>Die Onroad-Strecke liegt nicht auf demselben Gelände, sondern auf der anderen Straßenseite: <a href="/onroad.php">zur Onroad-Strecke</a>.</p><p><a href="https://www.google.com/maps/search/?api=1&amp;query=50.70579%2C12.45868" target="_blank" rel="noopener">In Google Maps öffnen</a> · <a href="https://www.openstreetmap.org/?mlat=50.70579&amp;mlon=12.45868#map=18/50.70579/12.45868" target="_blank" rel="noopener">OpenStreetMap</a></p>',
         ],
     ][$kind];
     $track = rcb_tracks_by_kind()[$kind];
@@ -29,7 +29,6 @@ function rcb_track_page(string $kind): void
 <section class="rcb-section"><div class="rcb-wrap"><div class="rcb-detail">
 <div class="rcb-detail-main">
 <?= rcb_rich($kind . '.inhalt', $defaults['inhalt']) ?>
-<?= rcb_rich($kind . '.klassen', $defaults['klassen']) ?>
 </div>
 <aside class="rcb-card rcb-steckbrief"><div class="rcb-card-body">
 <h2><?= rcb_text($kind . '.steckbrief.titel', 'Steckbrief') ?></h2>
@@ -58,7 +57,7 @@ function rcb_track_page(string $kind): void
 <?php endif; ?>
 <div class="rcb-grid" id="besuch" style="margin-top:34px">
 <article class="rcb-card"><div class="rcb-card-body"><?= rcb_rich('strecken.hinweis', '<h2>Wichtig vor dem Besuch</h2><ul><li>Trainiert werden kann nach Absprache und unter Einhaltung der Fahrzeiten fast immer.</li><li>Organisierte Trainings finden bei passendem Wetter statt – bitte vorher anmelden.</li><li>Gastfahrer sind willkommen, bitte meldet euch vorher über <a href="/kontakt.php">Kontakt</a> oder Facebook.</li></ul>') ?></div></article>
-<article class="rcb-card"><div class="rcb-card-body"><?= rcb_rich('strecken.anfahrt', '<h2>Anfahrt</h2><p><strong>Streckengelände der RC Bande Zwickau</strong><br>Reichenbacher Straße 125A<br>08056 Zwickau</p><p>Onroad- und Offroad-Strecke liegen auf demselben Gelände.</p><p><a href="https://www.openstreetmap.org/search?query=Reichenbacher%20Stra%C3%9Fe%20125A%2C%2008056%20Zwickau">Auf der Karte anzeigen</a></p>') ?></div></article>
+<article class="rcb-card"><div class="rcb-card-body"><?= rcb_rich($kind . '.anfahrt', $defaults['anfahrt']) ?></div></article>
 </div>
 <?php $other = $kind === 'onroad' ? 'offroad' : 'onroad'; ?>
 <div class="rcb-rule-nav" style="margin-top:28px"><a class="rcb-btn rcb-btn-light" href="/#strecken">← Zur Startseite</a><?php if (rcb_page_published($other) || rcb_admin_viewer()): ?><a class="rcb-btn" href="/<?= $other ?>.php">Zur <?= $other === 'onroad' ? 'Onroad' : 'Offroad' ?>-Strecke →</a><?php endif; ?></div>

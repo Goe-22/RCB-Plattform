@@ -19,8 +19,7 @@ echo rcb_page_hero('ergebnisse', 'Rennergebnisse', 'Meisterschaftswertungen und 
 <?php endforeach; ?>
 </div>
 <?php endif; ?>
-<div class="rcb-grid" style="margin-top:24px">
-<article class="rcb-card"><div class="rcb-card-body"><?= rcb_rich('ergebnisse.meisterschaft', '<h2>Meisterschaftswertung</h2><ul><li><a href="https://www.myrcm.ch/myrcm/championship/de/12821">TT02 Cup 2024/2025</a></li><li><a href="https://www.myrcm.ch/myrcm/championship/de/13938">TT02 Cup 2025</a></li><li><a href="https://www.myrcm.ch/myrcm/championship/de/12819">TW 17,5t Stock</a></li><li><a href="https://www.myrcm.ch/myrcm/championship/de/12792">FWD Cup</a></li></ul>') ?></div></article>
+<div style="margin-top:24px">
 <article class="rcb-card"><div class="rcb-card-body"><?= rcb_rich('ergebnisse.rennen', '<h2>Rennergebnisse</h2><ul>
 <li><a href="https://www.myrcm.ch/myrcm/main?dId[O]=48536&amp;pLa=de&amp;dId[E]=94707&amp;tId=E&amp;hId[1]=org">14.06.2026 Tamiya Euro Cup</a></li>
 <li><a href="https://www.myrcm.ch/myrcm/main?dId[O]=48536&amp;pLa=de&amp;dId[E]=97360&amp;tId=E&amp;hId[1]=org">16.–17.05.2026 RCK-Challenge</a></li>

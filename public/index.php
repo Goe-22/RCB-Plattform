@@ -66,7 +66,7 @@ rcb_header('home');
 
 <section class="rcb-section" id="strecken"><div class="rcb-wrap">
     <h2><?= rcb_text('startseite.strecken.titel', 'Unsere Strecken') ?></h2>
-    <p class="rcb-muted"><?= rcb_text('startseite.strecken.text', 'Zwei Strecken, ein Gelände – mitten in Zwickau.') ?></p>
+    <p class="rcb-muted"><?= rcb_text('startseite.strecken.text', 'Zwei Strecken an der Neuplanitzer Straße – mitten in Zwickau.') ?></p>
     <div class="rcb-track-tiles">
     <?php foreach (['onroad' => ['Onroad', 'Asphalt · 210 m · Tourenwagen 1:10'], 'offroad' => ['Offroad', 'Kunstrasen · 270 m · Buggys bis 1:8']] as $kind => [$label, $line]): ?>
     <?php if (!rcb_page_published($kind) && !rcb_admin_viewer()) { continue; } ?>

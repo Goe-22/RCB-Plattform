@@ -140,6 +140,7 @@ final class DatabaseSchema
             'interest' => ["VARCHAR(60) NOT NULL DEFAULT ''", "TEXT DEFAULT ''"],
             'vehicle' => ["VARCHAR(300) NOT NULL DEFAULT ''", "TEXT DEFAULT ''"],
             'message' => ["TEXT NULL", "TEXT DEFAULT ''"],
+            'details' => ["TEXT NULL", "TEXT DEFAULT ''"],
             'status' => ["VARCHAR(20) NOT NULL DEFAULT 'neu'", "TEXT NOT NULL DEFAULT 'neu'"],
             'mail_sent' => ["TINYINT NOT NULL DEFAULT 0", "INTEGER NOT NULL DEFAULT 0"],
             'ip_hash' => ["CHAR(64) NOT NULL DEFAULT ''", "TEXT DEFAULT ''"],

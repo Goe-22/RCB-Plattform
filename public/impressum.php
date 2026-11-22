@@ -13,7 +13,7 @@ rcb_header();
 <h3>Kontakt</h3>
 <p>E-Mail: <a href="mailto:rcb.zwickau@gmail.com">rcb.zwickau@gmail.com</a></p>
 <h3>Registereintrag</h3>
-<p>Eingetragen im Vereinsregister<br>Registergericht: Amtsgericht Chemnitz<br>Registernummer: VR [bitte ergänzen]</p>
+<p>Eingetragen im Vereinsregister<br>Registergericht: Amtsgericht Chemnitz<br>Registernummer: VR 4910</p>
 <h3>Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV</h3>
 <p>Stephan Thamm<br>Lassallestraße 51<br>08058 Zwickau</p>
 <h3>Streckengelände</h3>

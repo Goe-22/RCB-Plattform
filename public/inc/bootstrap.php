@@ -320,14 +320,28 @@ function rcb_header(string $active = 'home'): void
     .rcb-downloads-section{padding-top:0}
     .rcb-join-grid{align-items:stretch}.rcb-join-grid .rcb-download-list{grid-template-columns:1fr}.rcb-join-form{margin-top:24px;scroll-margin-top:120px}.rcb-join-form .rcb-card-body{max-width:820px}
     .rcb-form{display:flex;flex-direction:column;gap:6px;margin-top:10px}.rcb-form label{font-weight:700;color:#062b55;margin-top:8px}
-    .rcb-form input:not([type=checkbox]),.rcb-form select,.rcb-form textarea{width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid #b9c6d3;border-radius:8px;background:#fff;color:#1d2733;font:inherit}
+    .rcb-form input:not([type=checkbox]):not([type=radio]),.rcb-form select,.rcb-form textarea{width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid #b9c6d3;border-radius:8px;background:#fff;color:#1d2733;font:inherit}
     .rcb-form input:focus,.rcb-form select:focus,.rcb-form textarea:focus{outline:3px solid rgba(201,39,44,.25);border-color:#c9272c}
     .rcb-form-row{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px}.rcb-form-row>div{display:flex;flex-direction:column;gap:6px}@media(max-width:640px){.rcb-form-row{grid-template-columns:1fr}}
-    .rcb-form .rcb-check{display:flex;gap:10px;align-items:flex-start;font-weight:400;color:#1d2733;margin:14px 0 6px}.rcb-check input{margin-top:4px;width:18px;height:18px;flex:none}
+    .rcb-form .rcb-check{display:flex;gap:10px;align-items:flex-start;font-weight:400;color:#1d2733;margin:14px 0 6px}.rcb-check input{margin-top:4px;width:18px;height:18px;flex:none;accent-color:#c9272c}
     .rcb-form .rcb-btn{align-self:flex-start;margin-top:8px;border:0;cursor:pointer;font-size:1.05rem}.rcb-form-note{color:#657383;font-size:.88rem;margin:8px 0 0}
     .rcb-hp{position:absolute!important;left:-10000px;width:1px;height:1px;overflow:hidden}
     .rcb-form-errors{margin:12px 0;padding:12px 16px;border-left:4px solid #c9272c;border-radius:0 8px 8px 0;background:#fdecec;color:#7a1518}.rcb-form-errors ul{margin:0;padding-left:18px}
     .rcb-form-success{padding:8px 0}.rcb-form-success h2{color:#1f7a4d}
+    .rcb-form fieldset{margin:18px 0 4px;padding:16px 18px 14px;border:1px solid #dce3ea;border-radius:12px;display:flex;flex-direction:column;gap:6px}
+    .rcb-form legend{padding:0 8px;font-weight:800;color:#062b55;font-size:1.05rem}.rcb-form label small{font-weight:400;color:#657383}
+    .rcb-form .rcb-check{margin:4px 0}.rcb-inline{display:flex;gap:24px}.rcb-q{margin:0;color:#1d2733}
+    .rcb-fee-list{display:flex;flex-direction:column;gap:4px}.rcb-form .rcb-fee{display:flex;align-items:flex-start;gap:10px;padding:9px 12px;border:1px solid #e3e9ef;border-radius:8px;margin:0}
+    .rcb-fee span{flex:1}.rcb-fee strong{white-space:nowrap;color:#062b55}.rcb-fee:has(input:checked){border-color:#c9272c;background:#fff7f7}
+    .rcb-yesno{display:flex;flex-wrap:wrap;align-items:center;gap:6px 22px;padding:6px 0;border-bottom:1px solid #eef2f5}.rcb-yesno>span{flex:1 1 260px;color:#1d2733}.rcb-yesno .rcb-check{margin:0}
+    .rcb-form-row-zip{grid-template-columns:160px 1fr}@media(max-width:640px){.rcb-form-row-zip{grid-template-columns:1fr}}
+    .rcb-antrag-doc{background:#fff;border:1px solid #dce3ea;border-radius:12px;padding:32px 36px;color:#111}
+    .rcb-antrag-doc header{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;border-bottom:2px solid #062b55;padding-bottom:12px;margin-bottom:16px}
+    .rcb-antrag-doc header h1{margin:0;font-size:1.7rem;color:#062b55}.rcb-antrag-doc header p{margin:4px 0 0;color:#555}.rcb-antrag-doc header img{height:80px;width:auto}
+    .rcb-antrag-doc table{width:100%;border-collapse:collapse;margin-bottom:16px}.rcb-antrag-doc th,.rcb-antrag-doc td{text-align:left;vertical-align:top;padding:6px 8px;border-bottom:1px solid #e3e9ef}.rcb-antrag-doc th{width:38%;font-weight:600;color:#444}
+    .rcb-sign-row{display:grid;grid-template-columns:1fr 1fr;gap:36px;margin:30px 0 6px}.rcb-sign-row>div{font-size:.85rem;color:#444}.rcb-sign-row span{display:block;border-bottom:1.5px solid #111;height:34px;margin-bottom:4px}
+    .rcb-bank{margin-top:22px;padding:10px 12px;background:#f4f6f8;border-radius:8px;font-size:.92rem}.rcb-board{margin-top:22px;padding:12px 14px;border:1.5px dashed #888;border-radius:8px}.rcb-board .rcb-sign-row{margin-top:22px}.rcb-small{font-size:.8rem;color:#666;margin-top:16px}
+    @media print{.site-header,.rcb-footer,.rcb-no-print,.rcb-downloads-section{display:none!important}body{background:#fff}.rcb-print-page{padding:0}.rcb-print-page .rcb-wrap{max-width:none!important;width:100%}.rcb-antrag-doc{border:0;padding:0}.rcb-antrag-doc table{font-size:10.5pt}@page{margin:14mm}}
     .rcb-admin-hint{padding:10px 12px;border:1px dashed #c9272c;border-radius:8px;background:#fff7f7;font-size:.9rem}
     /* Kopfleiste: Logo mit Vereinsname, größere Menüpunkte, „Mitglied werden“ als Knopf */
     .site-header .header-inner.rcb-nav{width:min(100% - 40px,1320px);min-height:96px;padding:10px 0;flex-wrap:nowrap;gap:24px}

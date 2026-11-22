@@ -40,3 +40,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
+// Druck-Knopf (z. B. ausgefüllter Aufnahmeantrag)
+document.addEventListener('click', (event) => {
+  if (event.target.closest('[data-print]')) { window.print(); }
+});

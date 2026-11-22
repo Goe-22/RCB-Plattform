@@ -4,9 +4,32 @@ require_once __DIR__ . '/inc/bootstrap.php';
 require_once __DIR__ . '/inc/membership.php';
 
 $email = rcb_setting('contact_email', 'rcb.zwickau@gmail.com');
+$config = rcb_membership_config_from_json(rcb_setting('membership_config', ''));
+$fees = rcb_fee_options($config);
+$rules = array_values(array_filter(array_map('strval', $config['rules']), static fn($r) => trim($r) !== ''));
 $formErrors = [];
-$fields = ['kind' => 'aufnahme', 'member_no' => '', 'last_name' => '', 'first_name' => '', 'birth_date' => '', 'street' => '', 'zip' => '', 'city' => '', 'phone' => '', 'mobile' => '', 'email' => '', 'family' => 'nein', 'family_name' => '', 'fee' => '', 'monthly' => '', 'guardian' => '', 'satzung' => '', 'bahnordnung' => '', 'gelaendeordnung' => '', 'message' => ''];
-$form = $fields;
+$form = ['kind' => 'aufnahme', 'member_no' => '', 'last_name' => '', 'first_name' => '', 'birth_date' => '', 'street' => '', 'zip' => '', 'city' => '', 'phone' => '', 'mobile' => '', 'email' => '', 'family' => 'nein', 'family_name' => '', 'fee' => '', 'monthly' => '', 'guardian' => '', 'message' => ''];
+$ruleAnswers = array_fill(0, count($rules), '');
+
+/** Zur Seite hochgeladene Datei, deren Titel den Namen enthält (z. B. „Satzung“) – für Links im Formular. */
+function rcb_member_file_for(string $name): ?array
+{
+    foreach (rcb_page_files('mitglied') as $file) {
+        if ($name !== '' && mb_stripos((string)$file['title'], $name) !== false) {
+            return $file;
+        }
+    }
+    return null;
+}
+function rcb_bank_html(array $config): string
+{
+    if (trim($config['bank_iban']) === '') {
+        return '';
+    }
+    return '<h3>Bankverbindung für den Beitrag</h3><p>' . rcb_h($config['bank_holder']) . '<br>IBAN: ' . rcb_h($config['bank_iban'])
+        . ($config['bank_bic'] !== '' ? '<br>BIC: ' . rcb_h($config['bank_bic']) : '')
+        . ($config['bank_purpose'] !== '' ? '<br>Verwendungszweck: ' . rcb_h($config['bank_purpose']) : '') . '</p>';
+}
 
 /** Geheimnis für Zeitstempel und Druck-Links, wird einmalig erzeugt. */
 function rcb_form_secret(): string
@@ -70,12 +93,12 @@ if (isset($_GET['antrag'])) {
 <header><div><h1><?= ($d['kind'] ?? '') === 'aenderung' ? 'Änderungsmeldung' : 'Aufnahmeantrag' ?></h1><p>RC Bande Zwickau e.V. · Online ausgefüllt am <?= rcb_h(date('d.m.Y', strtotime((string)$row['created_at']))) ?></p></div><img src="<?= rcb_h($logo) ?>" alt="RC Bande Zwickau e.V."></header>
 <table><?php foreach (rcb_membership_summary($row) as [$label, $value]): ?><tr><th><?= rcb_h($label) ?></th><td><?= nl2br(rcb_h($value)) ?></td></tr><?php endforeach; ?></table>
 <p>Durch meine Unterschrift erkenne ich die Satzung, Gelände- und Platzordnungen sowie Beitragsordnung als für mich verbindlich an. Außerdem bestätige ich, dass ich die Informationen zum Datenschutz / zu den Persönlichkeitsrechten gelesen und verstanden habe.</p>
-<?php if ($minor): ?><p>Mit der Unterschriftsleistung erkläre(n) ich/wir mich/uns als gesetzliche(r) Vertreter bereit, für Forderungen des Vereins aus dem Mitgliedschaftsverhältnis einzutreten.</p><?php endif; ?>
+<?php if ($minor && $config['guardian_text'] !== ''): ?><p><?= rcb_h($config['guardian_text']) ?></p><?php endif; ?>
 <div class="rcb-sign-row"><div><span></span>Datum, Ort</div><div><span></span>Unterschrift Mitglied</div></div>
 <?php if ($minor): ?><div class="rcb-sign-row"><div><span></span>Datum, Ort</div><div><span></span>Unterschrift gesetzliche(r) Vertreter</div></div><?php endif; ?>
-<div class="rcb-bank"><strong>Bankverbindung:</strong> RC Bande Zwickau e.V. · IBAN DE90 8705 5000 1020 0383 10 · BIC WELADED1ZWI<br>Verwendungszweck: Mitgliedernummer(n), Beitragsjahr (z. B. 50, 52 // 2026)</div>
+<?php if (trim($config['bank_iban']) !== ''): ?><div class="rcb-bank"><strong>Bankverbindung:</strong> <?= rcb_h($config['bank_holder']) ?> · IBAN <?= rcb_h($config['bank_iban']) ?><?= $config['bank_bic'] !== '' ? ' · BIC ' . rcb_h($config['bank_bic']) : '' ?><?php if ($config['bank_purpose'] !== ''): ?><br>Verwendungszweck: <?= rcb_h($config['bank_purpose']) ?><?php endif; ?></div><?php endif; ?>
 <div class="rcb-board"><strong>Wird vom Vorstand ausgefüllt</strong><div class="rcb-sign-row"><div><span></span>Mitgliedernummer</div><div><span></span>Unterschrift Vorstand</div></div><div class="rcb-sign-row"><div><span></span>bei Ablehnung, Grund angeben</div><div><span></span>Unterschrift Vorstand</div></div></div>
-<p class="rcb-small">Vereinsregister Chemnitz · VR 4910 RC-Bande Zwickau e.V.</p>
+<?php if ($config['print_footer'] !== ''): ?><p class="rcb-small"><?= rcb_h($config['print_footer']) ?></p><?php endif; ?>
 </article></div></section>
 <?php
     rcb_footer();
@@ -83,17 +106,20 @@ if (isset($_GET['antrag'])) {
 }
 
 // ---------------------------------------------------------------- Antrag absenden
-if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && $config['form_enabled']) {
     foreach (['member_no' => 20, 'last_name' => 120, 'first_name' => 120, 'birth_date' => 10, 'street' => 190, 'zip' => 10, 'city' => 120, 'phone' => 60, 'mobile' => 60, 'email' => 190, 'family_name' => 190, 'guardian' => 300] as $field => $max) {
         $form[$field] = rcb_clean_line((string)($_POST[$field] ?? ''), $max);
     }
-    foreach (['kind' => ['aufnahme', 'aenderung'], 'family' => ['ja', 'nein'], 'satzung' => ['ja', 'nein'], 'bahnordnung' => ['ja', 'nein'], 'gelaendeordnung' => ['ja', 'nein']] as $field => $allowed) {
-        $value = (string)($_POST[$field] ?? '');
-        $form[$field] = in_array($value, $allowed, true) ? $value : ($field === 'kind' ? 'aufnahme' : '');
+    $form['kind'] = $config['allow_change'] && ($_POST['kind'] ?? '') === 'aenderung' ? 'aenderung' : 'aufnahme';
+    $form['family'] = $config['show_family'] && ($_POST['family'] ?? '') === 'ja' ? 'ja' : 'nein';
+    if (!$config['show_family']) { $form['family_name'] = ''; }
+    foreach ($rules as $i => $rule) {
+        $answer = (string)($_POST['rule'][$i] ?? '');
+        $ruleAnswers[$i] = in_array($answer, ['ja', 'nein'], true) ? $answer : '';
     }
-    $form['fee'] = isset(rcb_fee_options()[(string)($_POST['fee'] ?? '')]) ? (string)$_POST['fee'] : '';
-    $form['monthly'] = !empty($_POST['monthly']) ? '1' : '';
-    $form['message'] = mb_substr(trim(str_replace("\r", '', (string)($_POST['message'] ?? ''))), 0, 3000);
+    $form['fee'] = isset($fees[(string)($_POST['fee'] ?? '')]) ? (string)$_POST['fee'] : '';
+    $form['monthly'] = $config['monthly_enabled'] && !empty($_POST['monthly']) ? '1' : '';
+    $form['message'] = $config['show_message'] ? mb_substr(trim(str_replace("\r", '', (string)($_POST['message'] ?? ''))), 0, 3000) : '';
     $isChange = $form['kind'] === 'aenderung';
 
     // Spamschutz: verstecktes Feld leer, Formular frühestens nach 3 Sekunden und höchstens nach 1 Tag abgeschickt.
@@ -110,12 +136,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
     if (!$isChange) {
         if ($form['birth_date'] === '') { $formErrors[] = 'Bitte den Geburtstag angeben.'; }
         if ($form['street'] === '' || $form['zip'] === '' || $form['city'] === '') { $formErrors[] = 'Bitte die vollständige Anschrift angeben (Straße, Postleitzahl, Ort).'; }
-        if ($form['fee'] === '') { $formErrors[] = 'Bitte den passenden Jahresbeitrag auswählen.'; }
+        if ($form['fee'] === '' && $fees) { $formErrors[] = 'Bitte den passenden Jahresbeitrag auswählen.'; }
         if ($age !== null && $age < 18 && $form['guardian'] === '') { $formErrors[] = 'Bei Minderjährigen bitte den Namen des/der gesetzlichen Vertreter(s) angeben.'; }
-        if (empty($_POST['accept'])) { $formErrors[] = 'Bitte bestätigen, dass du Satzung, Gelände-, Platz- und Beitragsordnung anerkennst.'; }
+        if ($config['accept_text'] !== '' && empty($_POST['accept'])) { $formErrors[] = 'Bitte bestätigen, dass du Satzung, Gelände-, Platz- und Beitragsordnung anerkennst.'; }
     }
     if ($form['family'] === 'ja' && $form['family_name'] === '') { $formErrors[] = 'Bitte den Namen des Familienmitglieds angeben, das schon Mitglied ist.'; }
-    if ($form['monthly'] !== '' && $form['fee'] !== 'erwachsen') { $formErrors[] = 'Die monatliche Zahlung (12 × 7,50 €) gibt es nur beim Beitrag für Erwachsene.'; }
+    if ($form['monthly'] !== '' && $config['monthly_fee'] !== '' && $form['fee'] !== $config['monthly_fee']) { $formErrors[] = 'Die monatliche Zahlung gibt es nur beim Beitrag „' . ($fees[$config['monthly_fee']][0] ?? '') . '“.'; }
     if (empty($_POST['privacy'])) { $formErrors[] = 'Bitte der Verarbeitung deiner Angaben zustimmen (Datenschutz).'; }
 
     $ipHash = hash('sha256', (string)($_SERVER['REMOTE_ADDR'] ?? '') . 'rcb-mitglied');
@@ -128,7 +154,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         exit;
     }
     if (!$formErrors) {
-        $details = array_intersect_key($form, array_flip(['kind', 'member_no', 'street', 'zip', 'city', 'mobile', 'family', 'family_name', 'fee', 'monthly', 'guardian', 'satzung', 'bahnordnung', 'gelaendeordnung']));
+        $details = array_intersect_key($form, array_flip(['kind', 'member_no', 'street', 'zip', 'city', 'mobile', 'family', 'family_name', 'fee', 'monthly', 'guardian']));
+        // Wortlaut von Beitrag und Ordnungen festhalten, falls er später im Admin geändert wird.
+        $details['fee_label'] = $form['fee'] !== '' ? $fees[$form['fee']][0] : '';
+        $details['fee_price'] = $form['fee'] !== '' ? $fees[$form['fee']][1] : '';
+        $details['monthly_label'] = $form['monthly'] !== '' ? $config['monthly_label'] : '';
+        $details['rules'] = array_map(static fn($name, $answer) => ['name' => $name, 'answer' => $answer], $rules, $ruleAnswers);
+        if (!$config['show_family']) { unset($details['family'], $details['family_name']); }
         $createdAt = date('Y-m-d H:i:s');
         $row = ['first_name' => $form['first_name'], 'last_name' => $form['last_name'], 'birth_date' => $form['birth_date'], 'email' => $form['email'], 'phone' => $form['phone'], 'message' => $form['message'], 'details' => json_encode($details, JSON_UNESCAPED_UNICODE)];
         $summary = rcb_membership_summary($row);
@@ -180,11 +212,12 @@ $check = static fn(string $field, string $value) => $form[$field] === $value ? '
 <?php if ($downloads !== ''): ?><?= $downloads ?>
 <?php else: ?><h2>Aufnahmeantrag als PDF</h2><p>Den Antrag zum Ausdrucken bekommst du beim Training oder auf Anfrage per E-Mail.</p><?php if (rcb_admin_viewer()): ?><p class="rcb-admin-hint">Admin-Hinweis: Lade das PDF im Admin unter <a href="/admin/index.php?page=files&amp;seite=mitglied">📎 Dateien</a> hoch und ordne es „Mitglied werden“ zu.</p><?php endif; ?>
 <?php endif; ?>
-<?= rcb_rich('mitglied.bank', '<h3>Bankverbindung für den Beitrag</h3><p>RC Bande Zwickau e.V.<br>IBAN: DE90 8705 5000 1020 0383 10<br>BIC: WELADED1ZWI<br>Verwendungszweck: Mitgliedernummer(n), Beitragsjahr</p>') ?>
+<?= rcb_bank_html($config) ?><?php if (rcb_admin_viewer()): ?><p class="rcb-admin-hint">Admin: Bankverbindung, Beiträge und Formular änderst du unter <a href="/admin/index.php?page=membership">🪪 Mitgliedschaft</a>.</p><?php endif; ?>
 <?php if ($email !== ''): ?><p><strong>Fragen?</strong> <a href="mailto:<?= rcb_h($email) ?>"><?= rcb_h($email) ?></a></p><?php endif; ?>
 </div></article>
 </div>
 
+<?php if ($config['form_enabled'] || $sentKey !== ''): ?>
 <article class="rcb-card rcb-join-form" id="antrag"><div class="rcb-card-body">
 <?php if ($sentKey !== ''): ?>
 <div class="rcb-form-success" role="status"><h2>Danke – dein Antrag ist angekommen!</h2>
@@ -198,11 +231,11 @@ $check = static fn(string $field, string $value) => $form[$field] === $value ? '
 <input type="hidden" name="token" value="<?= rcb_h(rcb_form_token()) ?>">
 <div class="rcb-hp" aria-hidden="true"><label for="website">Webseite</label><input id="website" name="website" tabindex="-1" autocomplete="off"></div>
 
-<fieldset><legend>Was möchtest du tun?</legend>
+<?php if ($config['allow_change']): ?><fieldset><legend>Was möchtest du tun?</legend>
 <label class="rcb-check"><input type="radio" name="kind" value="aufnahme"<?= $check('kind', 'aufnahme') ?>> <span>Ich beantrage hiermit die Aufnahme in die RC Bande Zwickau e.V.</span></label>
 <label class="rcb-check"><input type="radio" name="kind" value="aenderung"<?= $check('kind', 'aenderung') ?>> <span>Ich möchte die Änderung meiner Mitgliedsdaten melden</span></label>
 <label for="member_no">Mitgliedernummer <small>(nur bei Änderung, falls bekannt)</small></label><input id="member_no" name="member_no" maxlength="20" inputmode="numeric" value="<?= rcb_h($form['member_no']) ?>" style="max-width:220px">
-</fieldset>
+</fieldset><?php endif; ?>
 
 <fieldset><legend>Persönliche Angaben</legend>
 <div class="rcb-form-row"><div><label for="last_name">Name *</label><input id="last_name" name="last_name" required maxlength="120" autocomplete="family-name" value="<?= rcb_h($form['last_name']) ?>"></div>
@@ -214,43 +247,44 @@ $check = static fn(string $field, string $value) => $form[$field] === $value ? '
 <div class="rcb-form-row"><div><label for="phone">Telefon</label><input id="phone" name="phone" type="tel" maxlength="60" autocomplete="tel" value="<?= rcb_h($form['phone']) ?>"></div>
 <div><label for="mobile">Mobil</label><input id="mobile" name="mobile" type="tel" maxlength="60" autocomplete="tel" value="<?= rcb_h($form['mobile']) ?>"></div></div>
 <label for="email">E-Mail *</label><input id="email" name="email" type="email" required maxlength="190" autocomplete="email" value="<?= rcb_h($form['email']) ?>">
-<p class="rcb-form-note">* Pflichtfelder für die Aufnahme. Bei einer Änderungsmeldung genügen Name, Vorname, E-Mail und die geänderten Angaben.</p>
+<p class="rcb-form-note">* Pflichtfelder<?= $config['allow_change'] ? ' für die Aufnahme. Bei einer Änderungsmeldung genügen Name, Vorname, E-Mail und die geänderten Angaben.' : '.' ?></p>
 </fieldset>
 
-<fieldset><legend>Familie</legend>
+<?php if ($config['show_family']): ?><fieldset><legend>Familie</legend>
 <p class="rcb-q">Sind bereits andere Familienmitglieder Mitglied der RC Bande Zwickau?</p>
 <div class="rcb-inline"><label class="rcb-check"><input type="radio" name="family" value="ja"<?= $check('family', 'ja') ?>> <span>Ja</span></label><label class="rcb-check"><input type="radio" name="family" value="nein"<?= $check('family', 'nein') ?>> <span>Nein</span></label></div>
 <label for="family_name">Name des Familienmitglieds</label><input id="family_name" name="family_name" maxlength="190" value="<?= rcb_h($form['family_name']) ?>">
-</fieldset>
+</fieldset><?php endif; ?>
 
-<fieldset><legend>Jahresbeitrag *</legend>
-<div class="rcb-fee-list"><?php foreach (rcb_fee_options() as $key => [$label, $price]): ?>
-<label class="rcb-check rcb-fee"><input type="radio" name="fee" value="<?= rcb_h($key) ?>"<?= $check('fee', $key) ?>> <span><?= rcb_h($label) ?></span><strong><?= $price > 0 ? $price . ' €' : 'frei' ?></strong></label>
+<?php if ($fees): ?><fieldset><legend>Jahresbeitrag *</legend>
+<div class="rcb-fee-list"><?php foreach ($fees as $key => [$label, $price]): ?>
+<label class="rcb-check rcb-fee"><input type="radio" name="fee" value="<?= rcb_h($key) ?>"<?= $check('fee', $key) ?>> <span><?= rcb_h($label) ?></span><strong><?= rcb_h(rcb_price_label($price)) ?></strong></label>
 <?php endforeach; ?></div>
-<label class="rcb-check"><input type="checkbox" name="monthly" value="1"<?= $form['monthly'] !== '' ? ' checked' : '' ?>> <span>Monatliche Zahlung: 12 Monate à 7,50 € (für Erwachsene)</span></label>
-<p class="rcb-form-note">Kinder unter 8 Jahre sind von der Beitragszahlung befreit. Der ermäßigte Beitrag gilt nur mit Nachweis.</p>
-</fieldset>
+<?php if ($config['monthly_enabled']): ?><label class="rcb-check"><input type="checkbox" name="monthly" value="1"<?= $form['monthly'] !== '' ? ' checked' : '' ?>> <span><?= rcb_h($config['monthly_label']) ?><?= isset($fees[$config['monthly_fee']]) ? ' (nur bei „' . rcb_h($fees[$config['monthly_fee']][0]) . '“)' : '' ?></span></label><?php endif; ?>
+<?php if ($config['fee_note'] !== ''): ?><p class="rcb-form-note"><?= nl2br(rcb_h($config['fee_note'])) ?></p><?php endif; ?>
+</fieldset><?php endif; ?>
 
 <fieldset><legend>Bei Minderjährigen</legend>
 <label for="guardian">Name des/der gesetzlichen Vertreter(s)</label><input id="guardian" name="guardian" maxlength="300" placeholder="z. B. Maria und Thomas Muster" value="<?= rcb_h($form['guardian']) ?>">
-<p class="rcb-form-note">Mit der Unterschrift erklären sich die gesetzlichen Vertreter bereit, für Forderungen des Vereins aus dem Mitgliedschaftsverhältnis einzutreten.</p>
+<?php if ($config['guardian_text'] !== ''): ?><p class="rcb-form-note"><?= rcb_h($config['guardian_text']) ?></p><?php endif; ?>
 </fieldset>
 
-<fieldset><legend>Vereinsordnungen</legend>
-<?php foreach (['satzung' => 'Satzung', 'bahnordnung' => 'Bahnordnung', 'gelaendeordnung' => 'Geländeordnung'] as $field => $label): ?>
-<div class="rcb-yesno"><span><?= rcb_h($label) ?> gelesen und verstanden</span><label class="rcb-check"><input type="radio" name="<?= $field ?>" value="ja"<?= $check($field, 'ja') ?>> <span>Ja</span></label><label class="rcb-check"><input type="radio" name="<?= $field ?>" value="nein"<?= $check($field, 'nein') ?>> <span>Nein</span></label></div>
+<?php if ($rules): ?><fieldset><legend>Vereinsordnungen</legend>
+<?php foreach ($rules as $i => $rule): $ruleFile = rcb_member_file_for($rule); ?>
+<div class="rcb-yesno"><span><?= rcb_h($rule) ?> gelesen und verstanden<?php if ($ruleFile): ?> · <a href="<?= rcb_h($ruleFile['path']) ?>" target="_blank" rel="noopener">lesen</a><?php endif; ?></span><label class="rcb-check"><input type="radio" name="rule[<?= $i ?>]" value="ja"<?= $ruleAnswers[$i] === 'ja' ? ' checked' : '' ?>> <span>Ja</span></label><label class="rcb-check"><input type="radio" name="rule[<?= $i ?>]" value="nein"<?= $ruleAnswers[$i] === 'nein' ? ' checked' : '' ?>> <span>Nein</span></label></div>
 <?php endforeach; ?>
-<p class="rcb-form-note">Die Ordnungen bekommst du beim Training oder auf Anfrage per E-Mail.</p>
-</fieldset>
+<?php if ($config['rules_note'] !== ''): ?><p class="rcb-form-note"><?= nl2br(rcb_h($config['rules_note'])) ?></p><?php endif; ?>
+</fieldset><?php endif; ?>
 
-<label for="message">Bemerkung</label><textarea id="message" name="message" rows="4" maxlength="3000"><?= rcb_h($form['message']) ?></textarea>
+<?php if ($config['show_message']): ?><label for="message">Bemerkung</label><textarea id="message" name="message" rows="4" maxlength="3000"><?= rcb_h($form['message']) ?></textarea><?php endif; ?>
 
-<label class="rcb-check"><input type="checkbox" name="accept" value="1"<?= !empty($_POST['accept']) ? ' checked' : '' ?>> <span>Ich erkenne die Satzung, Gelände- und Platzordnungen sowie die Beitragsordnung als für mich verbindlich an. *</span></label>
+<?php if ($config['accept_text'] !== ''): ?><label class="rcb-check"><input type="checkbox" name="accept" value="1"<?= !empty($_POST['accept']) ? ' checked' : '' ?>> <span><?= rcb_h($config['accept_text']) ?> *</span></label><?php endif; ?>
 <label class="rcb-check"><input type="checkbox" name="privacy" value="1"<?= !empty($_POST['privacy']) ? ' checked' : '' ?>> <span>Ich bin einverstanden, dass meine Angaben zur Bearbeitung des Antrags gespeichert und an den Vorstand weitergegeben werden. Mehr dazu in der <a href="/datenschutz.php" target="_blank">Datenschutzerklärung</a>. *</span></label>
 <button class="rcb-btn" type="submit">Antrag absenden</button>
-<p class="rcb-form-note">Bitte keine Bankdaten eintragen – den Beitrag überweist du an die oben genannte Bankverbindung.</p>
+<p class="rcb-form-note">Bitte keine eigenen Bankdaten eintragen<?= trim($config['bank_iban']) !== '' ? ' – den Beitrag überweist du an die oben genannte Bankverbindung' : '' ?>.</p>
 </form>
 <?php endif; ?>
 </div></article>
+<?php endif; ?>
 </div></section>
 <?php rcb_footer(); ?>

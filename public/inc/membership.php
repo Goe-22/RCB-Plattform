@@ -3,20 +3,76 @@ declare(strict_types=1);
 
 /**
  * Digitaler Aufnahmeantrag / Änderungsmeldung (nach dem Papierformular vom 12.04.2023).
- * Gemeinsame Definitionen für die öffentliche Seite, die E-Mail und den Adminbereich.
+ * Alle Inhalte (Beiträge, Vereinsordnungen, Texte, Bankverbindung) werden im Adminbereich
+ * unter „Mitgliedschaft“ gepflegt und in der Einstellung membership_config gespeichert.
  */
 
-/** Beitragsstufen laut Aufnahmeantrag: Schlüssel => [Bezeichnung, Jahresbeitrag in €]. */
-function rcb_fee_options(): array
+/** Standardinhalte – gelten, solange im Admin nichts gespeichert wurde. */
+function rcb_membership_defaults(): array
 {
     return [
-        'erwachsen' => ['Erwachsene aktive Mitglieder', 90],
-        'kinder' => ['Kinder (7–12 Jahre)', 15],
-        'jugend1' => ['Jugend 1 (13–15 Jahre)', 25],
-        'jugend2' => ['Jugend 2 (16–18 Jahre)', 50],
-        'ermaessigt' => ['Schüler, Geringverdiener, geringfügig Beschäftigte (über 18 Jahre, mit Nachweis)', 45],
-        'frei' => ['Kinder unter 8 Jahre (beitragsfrei)', 0],
+        'form_enabled' => true,
+        'allow_change' => true,
+        'show_family' => true,
+        'show_message' => true,
+        'fees' => [
+            ['id' => 'erwachsen', 'label' => 'Erwachsene aktive Mitglieder', 'price' => '90'],
+            ['id' => 'kinder', 'label' => 'Kinder (7–12 Jahre)', 'price' => '15'],
+            ['id' => 'jugend1', 'label' => 'Jugend 1 (13–15 Jahre)', 'price' => '25'],
+            ['id' => 'jugend2', 'label' => 'Jugend 2 (16–18 Jahre)', 'price' => '50'],
+            ['id' => 'ermaessigt', 'label' => 'Schüler, Geringverdiener, geringfügig Beschäftigte (über 18 Jahre, mit Nachweis)', 'price' => '45'],
+            ['id' => 'frei', 'label' => 'Kinder unter 8 Jahre (beitragsfrei)', 'price' => '0'],
+        ],
+        'monthly_enabled' => true,
+        'monthly_label' => 'Monatliche Zahlung: 12 Monate à 7,50 €',
+        'monthly_fee' => 'erwachsen',
+        'fee_note' => 'Kinder unter 8 Jahre sind von der Beitragszahlung befreit. Der ermäßigte Beitrag gilt nur mit Nachweis.',
+        'rules' => ['Satzung', 'Bahnordnung', 'Geländeordnung'],
+        'rules_note' => 'Die Ordnungen findest du oben zum Herunterladen oder bekommst sie beim Training.',
+        'accept_text' => 'Ich erkenne die Satzung, Gelände- und Platzordnungen sowie die Beitragsordnung als für mich verbindlich an.',
+        'guardian_text' => 'Mit der Unterschrift erklären sich die gesetzlichen Vertreter bereit, für Forderungen des Vereins aus dem Mitgliedschaftsverhältnis einzutreten.',
+        'bank_holder' => 'RC Bande Zwickau e.V.',
+        'bank_iban' => 'DE90 8705 5000 1020 0383 10',
+        'bank_bic' => 'WELADED1ZWI',
+        'bank_purpose' => 'Mitgliedernummer(n), Beitragsjahr (z. B. 50, 52 // 2026)',
+        'print_footer' => 'Vereinsregister Chemnitz · VR 4910 RC-Bande Zwickau e.V.',
     ];
+}
+
+/** Gespeicherte Einstellungen (JSON) über die Standardinhalte legen. */
+function rcb_membership_config_from_json(string $json): array
+{
+    $config = rcb_membership_defaults();
+    $stored = json_decode($json, true);
+    if (is_array($stored)) {
+        foreach ($config as $key => $default) {
+            if (!array_key_exists($key, $stored)) {
+                continue;
+            }
+            $config[$key] = is_bool($default) ? (bool)$stored[$key] : (is_array($default) ? (array)$stored[$key] : (string)$stored[$key]);
+        }
+    }
+    return $config;
+}
+
+/** Beitragsstufen als Schlüssel => [Bezeichnung, Preis-Text]. */
+function rcb_fee_options(?array $config = null): array
+{
+    $options = [];
+    foreach (($config ?? rcb_membership_defaults())['fees'] as $fee) {
+        $options[(string)$fee['id']] = [(string)$fee['label'], (string)$fee['price']];
+    }
+    return $options;
+}
+
+/** Preis für die Anzeige: „90 €“, „7,50 €“ oder „frei“. */
+function rcb_price_label(string $price): string
+{
+    $value = (float)str_replace(',', '.', $price);
+    if ($value <= 0) {
+        return 'frei';
+    }
+    return (floor($value) == $value ? number_format($value, 0, ',', '.') : number_format($value, 2, ',', '.')) . ' €';
 }
 
 /** Alter in Jahren zu einem Datum JJJJ-MM-TT, sonst null. */
@@ -41,15 +97,30 @@ function rcb_membership_details(array $row): array
 
 /**
  * Alle Angaben eines Antrags als Liste [Bezeichnung, Wert] – für E-Mail, Adminbereich und Druckansicht.
- * Leere Angaben werden ausgelassen.
+ * Beitrag und Ordnungen werden beim Absenden mit ihrem damaligen Wortlaut gespeichert,
+ * damit spätere Änderungen im Admin alte Anträge nicht verfälschen.
  */
 function rcb_membership_summary(array $row): array
 {
     $d = rcb_membership_details($row);
     $isChange = ($d['kind'] ?? '') === 'aenderung';
-    $fees = rcb_fee_options();
     $yesNo = static fn($v) => $v === 'ja' ? 'Ja' : ($v === 'nein' ? 'Nein' : '');
     $age = rcb_age((string)($row['birth_date'] ?? ''));
+
+    $feeText = '';
+    if (($d['fee_label'] ?? '') !== '') {
+        $feeText = $d['fee_label'] . ' – ' . rcb_price_label((string)($d['fee_price'] ?? '0'));
+    } elseif (isset(rcb_fee_options()[$d['fee'] ?? ''])) {
+        [$label, $price] = rcb_fee_options()[$d['fee']];
+        $feeText = $label . ' – ' . rcb_price_label($price);
+    }
+    $payment = '';
+    if (!empty($d['monthly'])) {
+        $payment = ($d['monthly_label'] ?? '') !== '' ? (string)$d['monthly_label'] : 'monatlich (12 Monate à 7,50 €)';
+    } elseif ($feeText !== '' && !str_ends_with($feeText, 'frei')) {
+        $payment = 'jährlich';
+    }
+
     $lines = [
         ['Art', $isChange ? 'Änderung meiner Mitgliedsdaten' : 'Antrag auf Aufnahme in die RC Bande Zwickau e.V.'],
         ['Mitgliedernummer', (string)($d['member_no'] ?? '')],
@@ -62,13 +133,19 @@ function rcb_membership_summary(array $row): array
         ['E-Mail', (string)($row['email'] ?? '')],
         ['Andere Familienmitglieder bereits Mitglied', $yesNo($d['family'] ?? '')],
         ['Name des Familienmitglieds', ($d['family'] ?? '') === 'ja' ? (string)($d['family_name'] ?? '') : ''],
-        ['Jahresbeitrag', isset($fees[$d['fee'] ?? '']) ? $fees[$d['fee']][0] . ' – ' . $fees[$d['fee']][1] . ' €' : ''],
-        ['Zahlungsweise', !empty($d['monthly']) ? 'monatlich (12 Monate à 7,50 €)' : (isset($fees[$d['fee'] ?? '']) && $fees[$d['fee']][1] > 0 ? 'jährlich' : '')],
+        ['Jahresbeitrag', $feeText],
+        ['Zahlungsweise', $payment],
         ['Gesetzliche(r) Vertreter', (string)($d['guardian'] ?? '')],
-        ['Satzung gelesen und verstanden', $yesNo($d['satzung'] ?? '')],
-        ['Bahnordnung gelesen und verstanden', $yesNo($d['bahnordnung'] ?? '')],
-        ['Geländeordnung gelesen und verstanden', $yesNo($d['gelaendeordnung'] ?? '')],
-        ['Bemerkung', trim((string)($row['message'] ?? ''))],
     ];
+    if (isset($d['rules']) && is_array($d['rules'])) {
+        foreach ($d['rules'] as $rule) {
+            $lines[] = [(string)($rule['name'] ?? '') . ' gelesen und verstanden', $yesNo($rule['answer'] ?? '') ?: '–'];
+        }
+    } else {
+        foreach (['satzung' => 'Satzung', 'bahnordnung' => 'Bahnordnung', 'gelaendeordnung' => 'Geländeordnung'] as $key => $name) {
+            $lines[] = [$name . ' gelesen und verstanden', $yesNo($d[$key] ?? '')];
+        }
+    }
+    $lines[] = ['Bemerkung', trim((string)($row['message'] ?? ''))];
     return array_values(array_filter($lines, static fn($line) => $line[1] !== ''));
 }

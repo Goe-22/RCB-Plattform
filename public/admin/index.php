@@ -464,7 +464,7 @@ if ($isEditorRequest) {
                     $target = describe_block_key($db, (string)$draft['block_key'], $hidden);
                     if ($target && !isset($announced[$target[1]])) {
                         $announced[$target[1]] = true;
-                        add_site_update($db, $target[0] . ' wurde aktualisiert', $target[1]);
+                        add_site_update($db, $target[0] . (in_array($target[0], ['Ergebnisse', 'Termine', 'Downloads'], true) ? ' wurden' : ' wurde') . ' aktualisiert', $target[1]);
                     }
                 }
             }

@@ -56,7 +56,7 @@ function rcb_track_page(string $kind): void
 <div class="rcb-gallery"><?= $gallery ?></div>
 <?php endif; ?>
 <div class="rcb-grid" id="besuch" style="margin-top:34px">
-<article class="rcb-card"><div class="rcb-card-body"><?= rcb_rich('strecken.hinweis', '<h2>Wichtig vor dem Besuch</h2><ul><li>Trainiert werden kann nach Absprache und unter Einhaltung der Fahrzeiten fast immer.</li><li>Organisierte Trainings finden bei passendem Wetter statt – bitte vorher anmelden.</li><li>Gastfahrer sind willkommen, bitte meldet euch vorher über <a href="/kontakt.php">Kontakt</a> oder Facebook.</li></ul>') ?></div></article>
+<article class="rcb-card"><div class="rcb-card-body"><?= rcb_rich('strecken.hinweis', '<h2>Wichtig vor dem Besuch</h2><ul><li>Trainiert werden kann fast immer – nach Absprache und unter Einhaltung der Fahrzeiten.</li><li>Organisierte Trainings finden bei passendem Wetter statt – bitte vorher anmelden.</li><li>Gastfahrer sind willkommen – bitte meldet euch vorher über <a href="/kontakt.php">Kontakt</a> oder Facebook.</li></ul>') ?></div></article>
 <article class="rcb-card"><div class="rcb-card-body"><?= rcb_rich($kind . '.anfahrt', $defaults['anfahrt']) ?></div></article>
 </div>
 <?php $other = $kind === 'onroad' ? 'offroad' : 'onroad'; ?>

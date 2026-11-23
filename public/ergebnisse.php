@@ -3,7 +3,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/inc/bootstrap.php';
 $results = rcb_rows("SELECT r.id, r.event_id, r.title, r.content, r.updated_at, e.title AS event_title, e.event_date FROM results r LEFT JOIN events e ON e.id=r.event_id WHERE r.published = 1 ORDER BY COALESCE(e.event_date, r.updated_at) DESC, r.id DESC");
 rcb_header('results');
-echo rcb_page_hero('ergebnisse', 'Rennergebnisse', 'Meisterschaftswertungen und Ergebnisse der Rennen bei der RC Bande Zwickau.');
+echo rcb_page_hero('ergebnisse', 'Rennergebnisse', 'Ergebnisse der Rennen mit der RC Bande Zwickau.');
 ?>
 <section class="rcb-section"><div class="rcb-wrap">
 <?php if ($results): ?>
@@ -33,7 +33,7 @@ echo rcb_page_hero('ergebnisse', 'Rennergebnisse', 'Meisterschaftswertungen und 
 <li><a href="https://www.myrcm.ch/myrcm/main?pLa=de&amp;dFi=zwickau&amp;dId[E]=81233&amp;hId[1]=search">22.09.2024 RCK-Kleinserie</a></li>
 <li><a href="https://www.myrcm.ch/myrcm/main?pLa=de&amp;dFi=Zwickau&amp;dId%5BE%5D=81217&amp;hId%5B1%5D=search">18.08.2024 RCK-Challenge</a></li>
 <li><a href="https://www.myrcm.ch/myrcm/main?pLa=de&amp;dFi=zwickau&amp;dId[E]=75500&amp;hId[1]=search">16.06.2024 Tamiya Euro Cup</a></li>
-<li>21.01.2024 Chemnitzer Clubrennen No. 1</li>
+<li>21.01.2024 Chemnitzer Clubrennen Nr. 1</li>
 <li><a href="https://www.myrcm.ch/myrcm/main?dId[O]=51129&amp;pLa=de&amp;dId[E]=74592&amp;tId=E&amp;hId[1]=org">19.11.2023 TT-02 Cup in Chemnitz</a></li>
 <li><a href="https://www.myrcm.ch/myrcm/main?pLa=de&amp;dFi=Zwickau+&amp;dId[E]=69680&amp;hId[1]=search">17.09.2023 3. Lauf Offroad Cup</a></li>
 <li><a href="https://www.myrcm.ch/myrcm/main?pLa=de&amp;dFi=Zwickau+&amp;dId[E]=69677&amp;hId[1]=search">13.08.2023 3. Lauf Onroad Cup</a></li>

@@ -777,7 +777,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $location = post_string('location_text', 180);
                 } else {
                     $selected = (int)($_POST['location_track'] ?? 0);
-                    $location = 'Vereinsgelände RC Bande Zwickau';
+                    $location = 'Strecken der RC Bande Zwickau';
                     if ($selected > 0) {
                         $stmt = $db->prepare('SELECT name FROM tracks WHERE id = ?');
                         $stmt->execute([$selected]);
@@ -785,7 +785,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         if (is_string($trackName)) {
                             $trackId = $selected;
                             $label = stripos($trackName, 'strecke') !== false ? $trackName : $trackName . '-Strecke';
-                            $location = $label . ', Vereinsgelände RC Bande Zwickau';
+                            $location = $label . ' der RC Bande Zwickau';
                         }
                     }
                 }
@@ -1521,7 +1521,7 @@ $eventClasses = is_array($eventClasses) ? $eventClasses : [];
 $classRows = array_merge($eventClasses, array_fill(0, max(2, 4 - count($eventClasses)), ['name' => '', 'guest' => false, 'url' => '']));
 $trackOptions = $db->query('SELECT id, name FROM tracks ORDER BY name')->fetchAll();
 $itemTrack = (int)($item['track_id'] ?? 0);
-$isClubLocation = !$editItem || $itemTrack > 0 || str_starts_with((string)$item['location'], 'Vereinsgelände') || (string)$item['location'] === '';
+$isClubLocation = !$editItem || $itemTrack > 0 || (str_starts_with((string)$item['location'], 'Vereinsgelände') || str_ends_with((string)$item['location'], 'der RC Bande Zwickau')) || (string)$item['location'] === '';
 $ruleTitles = array_map(static fn($c) => admin_rule_class_title($db, $c), admin_rule_classes($db));
 $classRow = static fn(int $i, array $c): string => '<div class="class-row"><input name="class[' . $i . '][name]" list="rule-classes" maxlength="120" placeholder="Klasse, z. B. TT02 Cup" value="' . h($c['name'] ?? '') . '" aria-label="Klasse"><label class="check"><input type="checkbox" name="class[' . $i . '][guest]" value="1"' . (!empty($c['guest']) ? ' checked' : '') . '> Gastklasse</label><input name="class[' . $i . '][url]" type="url" maxlength="1000" placeholder="Nennung für diese Klasse (optional)" value="' . h($c['url'] ?? '') . '" aria-label="Nennungslink der Klasse"></div>';
 ?>
@@ -1533,7 +1533,7 @@ $classRow = static fn(int $i, array $c): string => '<div class="class-row"><inpu
 <div class="loc-tabs" role="group" aria-label="Ort"><span class="loc-title">Ort</span>
 <input type="radio" id="loc-club" name="location_mode" value="club"<?= $isClubLocation ? ' checked' : '' ?>><label for="loc-club">Unsere Strecken</label>
 <input type="radio" id="loc-other" name="location_mode" value="other"<?= $isClubLocation ? '' : ' checked' ?>><label for="loc-other">Anderer Ort</label>
-<div class="loc-panel loc-panel-club"><label for="location_track" class="sr-only">Strecke</label><select id="location_track" name="location_track"><option value="0">Vereinsgelände (beide Strecken)</option><?php foreach ($trackOptions as $t): ?><option value="<?= (int)$t['id'] ?>"<?= $itemTrack === (int)$t['id'] ? ' selected' : '' ?>><?= h(stripos((string)$t['name'], 'strecke') !== false ? $t['name'] : $t['name'] . '-Strecke') ?></option><?php endforeach; ?></select><p class="hint">Reichenbacher Straße 125A, 08056 Zwickau. Auf der Terminseite wird die Strecke verlinkt.</p></div>
+<div class="loc-panel loc-panel-club"><label for="location_track" class="sr-only">Strecke</label><select id="location_track" name="location_track"><option value="0">Beide Strecken (Onroad und Offroad)</option><?php foreach ($trackOptions as $t): ?><option value="<?= (int)$t['id'] ?>"<?= $itemTrack === (int)$t['id'] ? ' selected' : '' ?>><?= h(stripos((string)$t['name'], 'strecke') !== false ? $t['name'] : $t['name'] . '-Strecke') ?></option><?php endforeach; ?></select><p class="hint">Reichenbacher Straße 125A, 08056 Zwickau. Auf der Terminseite wird die Strecke verlinkt.</p></div>
 <div class="loc-panel loc-panel-other"><label for="location_text" class="sr-only">Ort</label><input id="location_text" name="location_text" maxlength="180" placeholder="z. B. Messe Chemnitz, Halle 2" value="<?= $isClubLocation ? '' : h($item['location']) ?>"></div>
 </div>
 <fieldset><legend>Nennung</legend><label for="registration_url">Link zur Nennung</label><input id="registration_url" name="registration_url" type="url" maxlength="1000" placeholder="https://www.myrcm.ch/…" value="<?= h($item['registration_url'] ?? '') ?>"><p class="hint">Erscheint als Knopf „Nennung bei myRCM ↗“ bzw. mit dem Namen der Seite.</p></fieldset>

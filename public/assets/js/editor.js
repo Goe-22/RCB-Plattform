@@ -212,6 +212,66 @@
     if (node.tagName === 'IMG') node.insertAdjacentElement('afterend', btn); else holder.prepend(btn);
   });
 
+  /* ---------- Videos (Clips) ---------- */
+  document.querySelectorAll('[data-rcb-type="video"]').forEach((node) => {
+    const holder = node.tagName === 'VIDEO' ? node.parentElement : node;
+    holder.classList.add('rcb-ed-imgholder');
+    const btn = el('button', { type: 'button', class: 'rcb-ed-imgbtn', text: node.tagName === 'VIDEO' ? '🎬 Video ändern' : '🎬 Video wählen', onclick: (e) => {
+      e.preventDefault(); e.stopPropagation();
+      openVideoPicker((url) => {
+        holder.classList.remove('rcb-ed-removed', 'rcb-gallery-empty');
+        let v = holder.querySelector('video');
+        if (!v) { holder.textContent = ''; v = el('video', { class: 'rcb-gallery-vid', muted: 'muted', playsinline: 'playsinline', preload: 'metadata' }); holder.append(v, btn); }
+        v.src = url + '#t=0.5';
+        markDirty(node.dataset.rcbKey, 'video', url);
+      }, () => { markDirty(node.dataset.rcbKey, 'video', ''); holder.classList.add('rcb-ed-removed'); });
+    } });
+    holder.append(btn);
+  });
+
+  function openVideoPicker(onPick, onRemove) {
+    const MAX = 50 * 1024 * 1024;
+    modal.innerHTML = '';
+    const close = () => { modal.hidden = true; };
+    const grid = el('div', { class: 'rcb-ed-grid', text: 'Videos werden geladen …' });
+    const file = el('input', { type: 'file', accept: 'video/mp4,video/webm,video/quicktime' });
+    const info = el('p', { class: 'rcb-ed-hint', text: 'MP4, WebM oder MOV, höchstens 50 MB – ideal sind 10 bis 40 Sekunden, quer gefilmt. iPhone: Einstellungen › Kamera › Formate › „Maximale Kompatibilität“, sonst laufen Videos nicht in jedem Browser.' });
+    const bar = el('progress', { max: '100', value: '0', hidden: 'hidden', style: 'width:100%' });
+    file.addEventListener('change', () => {
+      const f = file.files[0];
+      if (!f) return;
+      if (f.size > MAX) { info.textContent = 'Das Video ist ' + Math.round(f.size / 1048576) + ' MB groß – erlaubt sind höchstens 50 MB. Bitte kürzen oder in geringerer Auflösung (z. B. 1080p) exportieren.'; file.value = ''; return; }
+      const fd = new FormData();
+      fd.append('action', 'upload_block_video'); fd.append('csrf_token', csrf); fd.append('media_file', f);
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', adminUrl + '?editor=upload_block_video');
+      xhr.setRequestHeader('X-Requested-With', 'rcb-editor');
+      xhr.upload.onprogress = (e) => { if (e.lengthComputable) { bar.value = Math.round(e.loaded / e.total * 100); info.textContent = 'Wird hochgeladen … ' + bar.value + ' %'; } };
+      xhr.onload = () => {
+        let data; try { data = JSON.parse(xhr.responseText); } catch (_) { data = { ok: false, error: xhr.status === 413 ? 'Das Video ist zu groß für den Server.' : 'Unerwartete Antwort vom Server.' }; }
+        bar.hidden = true;
+        if (data.ok) { onPick(data.url); close(); } else { info.textContent = data.error || 'Upload fehlgeschlagen.'; }
+      };
+      xhr.onerror = () => { bar.hidden = true; info.textContent = 'Upload abgebrochen – bitte Verbindung prüfen und erneut versuchen.'; };
+      bar.hidden = false; info.textContent = 'Wird hochgeladen …';
+      xhr.send(fd);
+    });
+    const box = el('div', { class: 'rcb-ed-modal-box' }, [
+      el('div', { class: 'rcb-ed-modal-head' }, [el('h2', { text: 'Video auswählen' }), el('button', { type: 'button', class: 'rcb-ed-btn', text: 'Schließen', onclick: close })]),
+      el('h3', { text: 'Neues Video hochladen' }), file, bar, info,
+      el('h3', { text: 'Oder vorhandenes Video wählen' }), grid,
+      el('button', { type: 'button', class: 'rcb-ed-btn', text: 'Video aus der Galerie entfernen', onclick: () => { onRemove(); close(); setStatus('Das Video wird nach dem Speichern entfernt.', 'dirty'); } }),
+    ]);
+    modal.append(box);
+    modal.hidden = false;
+    modal.onclick = (e) => { if (e.target === modal) close(); };
+    fetch(adminUrl + '?page=mediajson&type=video', { credentials: 'same-origin' }).then((r) => r.json()).then((items) => {
+      grid.textContent = '';
+      if (!items.length) grid.textContent = 'Noch keine Videos vorhanden.';
+      items.forEach((it) => grid.append(el('button', { type: 'button', title: it.title || it.url, onclick: () => { onPick(it.url); close(); } }, [el('video', { src: it.url + '#t=0.5', muted: 'muted', preload: 'metadata', playsinline: 'playsinline' })])));
+    }).catch(() => { grid.textContent = 'Videos konnten nicht geladen werden.'; });
+  }
+
   const modal = el('div', { class: 'rcb-ed-modal', hidden: 'hidden', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Bild auswählen' });
   document.body.append(modal);
   function openImagePicker(onPick, onReset, isGallery) {

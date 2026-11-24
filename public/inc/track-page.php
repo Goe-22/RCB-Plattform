@@ -66,10 +66,20 @@ $statusInfo = rcb_track_status_labels()[(string)$track['status']] ?? null;
         }
         $gallery .= rcb_img_slot($key, $defaults['titel'] . ' – Bild ' . $i);
     }
+    // Bis zu 6 kurze Clips (max. 50 MB je Video), gleiche Logik wie bei den Bildern.
+    $emptyShown = false;
+    for ($i = 1; $i <= 6; $i++) {
+        $key = $kind . '.clip.' . $i;
+        if (trim(rcb_block($key, '')) === '') {
+            if ($emptyShown || !rcb_can_edit($key)) { continue; }
+            $emptyShown = true;
+        }
+        $gallery .= rcb_video_slot($key, $defaults['titel'] . ' – Video ' . $i);
+    }
     if ($gallery !== ''): ?>
-<h2 style="margin-top:34px"><?= rcb_text($kind . '.galerie.titel', 'Bilder') ?></h2>
+<h2 style="margin-top:34px"><?= rcb_text($kind . '.galerie.titel', 'Bilder & Videos') ?></h2>
 <div class="rcb-gallery"><?= $gallery ?></div>
-<div class="rcb-credit"><?= rcb_rich($kind . '.galerie.quelle', '<p>Fotos: RC Bande Zwickau e.V. · Luftbild: <a href="https://www.geodaten.sachsen.de/" target="_blank" rel="noopener">GeoSN</a>, <a href="https://www.govdata.de/dl-de/by-2-0" target="_blank" rel="noopener">dl-de/by-2-0</a></p>') ?></div>
+<div class="rcb-credit"><?= rcb_rich($kind . '.galerie.quelle', '<p>Fotos und Videos: RC Bande Zwickau e.V. · Luftbild: <a href="https://www.geodaten.sachsen.de/" target="_blank" rel="noopener">GeoSN</a>, <a href="https://www.govdata.de/dl-de/by-2-0" target="_blank" rel="noopener">dl-de/by-2-0</a></p>') ?></div>
 <?php endif; ?>
 <div class="rcb-grid" id="besuch" style="margin-top:34px">
 <article class="rcb-card"><div class="rcb-card-body"><?= rcb_rich('strecken.hinweis', '<h2>Wichtig vor dem Besuch</h2><ul><li>Trainiert werden kann fast immer – nach Absprache und unter Einhaltung der Fahrzeiten.</li><li>Organisierte Trainings finden bei passendem Wetter statt – bitte vorher anmelden.</li><li>Gastfahrer sind willkommen – bitte meldet euch vorher über <a href="/kontakt.php">Kontakt</a> oder Facebook.</li></ul>') ?></div></article>

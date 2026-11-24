@@ -48,15 +48,27 @@ document.addEventListener('click', (event) => {
 
 // Galerie: Bild per Klick groß anzeigen (nicht im Bearbeiten-Modus)
 document.addEventListener('click', (event) => {
+  if (document.body.classList.contains('rcb-editing')) return;
   const img = event.target.closest('.rcb-gallery-img');
-  if (!img || document.body.classList.contains('rcb-editing')) return;
+  const clip = event.target.closest('.rcb-gallery-video');
+  if (!img && !clip) return;
   const box = document.createElement('div');
   box.className = 'rcb-lightbox';
   box.setAttribute('role', 'dialog');
-  box.setAttribute('aria-label', img.alt || 'Bild');
-  const big = document.createElement('img');
-  big.src = img.currentSrc || img.src;
-  big.alt = img.alt;
+  let big;
+  if (clip) {
+    const vid = clip.querySelector('video');
+    big = document.createElement('video');
+    big.src = (vid.currentSrc || vid.src).replace(/#.*$/, '');
+    big.controls = true; big.autoplay = true; big.playsInline = true;
+    big.addEventListener('click', (e) => e.stopPropagation());
+    box.setAttribute('aria-label', vid.getAttribute('aria-label') || 'Video');
+  } else {
+    big = document.createElement('img');
+    big.src = img.currentSrc || img.src;
+    big.alt = img.alt;
+    box.setAttribute('aria-label', img.alt || 'Bild');
+  }
   box.appendChild(big);
   const close = () => { box.remove(); document.removeEventListener('keydown', onKey); };
   const onKey = (e) => { if (e.key === 'Escape') close(); };

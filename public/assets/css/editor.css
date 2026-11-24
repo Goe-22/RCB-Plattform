@@ -49,3 +49,4 @@ body.rcb-previewing a:not(.rcb-ed-btn), body.rcb-previewing button:not(.rcb-ed-b
 .rcb-ed-preview .rcb-ed-status[data-kind="error"] { color: #ffd38a; }
 
 .rcb-ed-removed{opacity:.3;outline:2px dashed #c9272c}
+.rcb-ed-grid video { display: block; width: 100%; height: 100px; object-fit: cover; background: #000; }

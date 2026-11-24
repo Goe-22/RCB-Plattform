@@ -148,6 +148,20 @@ function rcb_img_attr(string $key): string
     return rcb_can_edit($key) ? ' data-rcb-key="' . rcb_h($key) . '" data-rcb-type="image"' : '';
 }
 
+/** Videofeld (Clip) für Galerien: zeigt den Clip als Kachel; im Bearbeitungsmodus leer zum Hinzufügen. */
+function rcb_video_slot(string $key, string $label): string
+{
+    $url = trim(rcb_block($key, ''));
+    $attr = rcb_can_edit($key) ? ' data-rcb-key="' . rcb_h($key) . '" data-rcb-type="video"' : '';
+    if ($url !== '') {
+        return '<div class="rcb-gallery-item rcb-gallery-video"><video class="rcb-gallery-vid" src="' . rcb_h($url) . '#t=0.5" preload="metadata" muted playsinline aria-label="' . rcb_h($label) . '"' . $attr . '></video><span class="rcb-play" aria-hidden="true"></span></div>';
+    }
+    if ($attr !== '') {
+        return '<div class="rcb-gallery-item rcb-gallery-empty"' . $attr . '><span>🎬 Video hinzufügen</span></div>';
+    }
+    return '';
+}
+
 /** Neuestes veröffentlichtes Bild einer Medienkategorie, sonst der mitgelieferte Standard. */
 function rcb_media_url(string $category, string $fallback): string
 {

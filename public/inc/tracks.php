@@ -59,7 +59,7 @@ function rcb_track_pay_url_ok(string $url): bool
     return (bool)preg_match('#^https://(www\.)?(paypal\.me|paypal\.com)/[^\s"<>]*$#i', $url);
 }
 
-/** Bezahl-Links einer Strecke: Liste von ['label' => …, 'url' => …], höchstens zwei. */
+/** Bezahl-Links einer Strecke: Liste von ['label' => …, 'url' => …], höchstens drei. */
 function rcb_track_pay_links(array $track): array
 {
     $list = json_decode((string)($track['pay_json'] ?? ''), true);
@@ -71,5 +71,5 @@ function rcb_track_pay_links(array $track): array
             $out[] = ['label' => $label !== '' ? $label : 'Tagesgebühr mit PayPal bezahlen', 'url' => $url];
         }
     }
-    return array_slice($out, 0, 2);
+    return array_slice($out, 0, 3);
 }

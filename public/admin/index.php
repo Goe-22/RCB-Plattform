@@ -919,7 +919,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!array_key_exists($guestMode, rcb_track_guest_modes())) { $guestMode = ''; }
                 $equipment = array_values(array_intersect(array_keys(rcb_track_equipment_options()), (array)($_POST['equipment'] ?? [])));
                 $payLinks = [];
-                foreach ([1, 2] as $n) {
+                foreach ([1, 2, 3] as $n) {
                     $payUrl = post_string('pay_url_' . $n, 500);
                     if ($payUrl === '') { continue; }
                     if (!str_starts_with(strtolower($payUrl), 'http')) { $payUrl = 'https://' . ltrim($payUrl, '/'); }
@@ -1737,9 +1737,9 @@ $contrast = static fn(string $hex): string => rcb_design_contrast_white($hex) < 
 <fieldset><legend>Tagesgebühr &amp; Bezahlen (optional)</legend>
 <?php $itemPay = rcb_track_pay_links($item); ?>
 <label for="day_fee">Tagesgebühr</label><input id="day_fee" name="day_fee" maxlength="120" placeholder="z. B. 5 € pro Tag, Jugendliche 3 €" value="<?= h($item['day_fee'] ?? '') ?>">
-<p class="hint">Bezahl-Knöpfe erscheinen nur, wenn ein Link eingetragen ist. Am einfachsten ist ein PayPal.Me-Link des Vereinskontos mit Betrag, z. B. <code>https://paypal.me/RCBandeZwickau/5EUR</code> – dann ist der Betrag beim Bezahlen schon eingetragen. Zwei Links z. B. für Erwachsene und Jugendliche.</p>
-<?php foreach ([1, 2] as $n): $pl = $itemPay[$n - 1] ?? ['label' => '', 'url' => '']; ?>
-<div class="pay-row"><div><label for="pay_label_<?= $n ?>">Knopf <?= $n ?> – Beschriftung</label><input id="pay_label_<?= $n ?>" name="pay_label_<?= $n ?>" maxlength="80" placeholder="<?= $n === 1 ? 'z. B. Tagesgebühr 5 € bezahlen' : 'z. B. Jugendliche 3 € bezahlen' ?>" value="<?= h($pl['label']) ?>"></div><div><label for="pay_url_<?= $n ?>">Knopf <?= $n ?> – PayPal-Link</label><input id="pay_url_<?= $n ?>" name="pay_url_<?= $n ?>" maxlength="500" inputmode="url" placeholder="https://paypal.me/…" value="<?= h($pl['url']) ?>"></div></div>
+<p class="hint">Bezahl-Knöpfe erscheinen nur, wenn ein Link eingetragen ist. Am einfachsten ist ein PayPal.Me-Link des Vereinskontos mit Betrag, z. B. <code>https://paypal.me/RCBandeZwickau/5EUR</code> – dann ist der Betrag beim Bezahlen schon eingetragen. Bis zu drei Knöpfe, z. B. für Erwachsene, Jugendliche und Kinder.</p>
+<?php foreach ([1, 2, 3] as $n): $pl = $itemPay[$n - 1] ?? ['label' => '', 'url' => '']; ?>
+<div class="pay-row"><div><label for="pay_label_<?= $n ?>">Knopf <?= $n ?> – Beschriftung</label><input id="pay_label_<?= $n ?>" name="pay_label_<?= $n ?>" maxlength="80" placeholder="<?= ['', 'z. B. Erwachsene 5 € bezahlen', 'z. B. Jugendliche 3 € bezahlen', 'z. B. Kinder 2 € bezahlen'][$n] ?>" value="<?= h($pl['label']) ?>"></div><div><label for="pay_url_<?= $n ?>">Knopf <?= $n ?> – PayPal-Link</label><input id="pay_url_<?= $n ?>" name="pay_url_<?= $n ?>" maxlength="500" inputmode="url" placeholder="https://paypal.me/…" value="<?= h($pl['url']) ?>"></div></div>
 <?php endforeach; ?>
 <label for="pay_note">Hinweis zum Bezahlen</label><input id="pay_note" name="pay_note" maxlength="250" placeholder="z. B. Bitte Name und Datum als Nachricht angeben" value="<?= h($item['pay_note'] ?? '') ?>">
 </fieldset>

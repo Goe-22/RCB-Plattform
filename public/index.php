@@ -35,7 +35,7 @@ rcb_header('home');
 <p><strong>willkommen auf der Webseite der RC Bande Zwickau e.V.</strong></p>
 <p>Wir sind ein gemeinnütziger Verein zur Förderung des Modellbaus. Unter anderem haben wir das Ziel, Kindern und Jugendlichen eine sinnvolle Freizeitbeschäftigung zu bieten. Dank unserer zahlreichen Mitglieder haben wir ein weites Spektrum an Wissen im Bereich Modellbau, das an euch weitergegeben werden kann.</p>
 <p>Zu unserem Verein gehören zwei Bereiche: <strong>Offroad</strong> und <strong>Onroad</strong> mit den jeweiligen Strecken.</p>
-<p>Die Anmeldung zum Fahren erfolgt über <a href="/kontakt.php">Kontakt</a> oder <a href="https://de-de.facebook.com/RCBandeZwickau/" target="_blank" rel="noopener noreferrer">Facebook</a>.</p>
+<p>Die Anmeldung zum Fahren erfolgt über <a href="/kontakt.php">Kontakt</a> oder <a href="https://www.facebook.com/profile.php?id=100064826495065" target="_blank" rel="noopener noreferrer">Facebook</a>.</p>
 <p><strong>Wir freuen uns auf euren Besuch.</strong></p>') ?>
 </div></section>
 <?php endif; ?>

@@ -56,6 +56,13 @@ final class DatabaseSchema
             'published' => ["TINYINT NOT NULL DEFAULT 0", "INTEGER DEFAULT 0"],
             'show_status' => ["TINYINT NOT NULL DEFAULT 0", "INTEGER DEFAULT 0"],
             'status' => ["VARCHAR(32) NOT NULL DEFAULT 'closed'", "TEXT DEFAULT 'closed'"],
+            'status_note' => ["VARCHAR(255) NOT NULL DEFAULT ''", "TEXT DEFAULT ''"],
+            'driver_spots' => ["VARCHAR(50) NOT NULL DEFAULT ''", "TEXT DEFAULT ''"],
+            'equipment_json' => ["MEDIUMTEXT NULL", "TEXT DEFAULT ''"],
+            'equipment_extra' => ["VARCHAR(255) NOT NULL DEFAULT ''", "TEXT DEFAULT ''"],
+            'guest_mode' => ["VARCHAR(20) NOT NULL DEFAULT ''", "TEXT DEFAULT ''"],
+            'guest_note' => ["VARCHAR(255) NOT NULL DEFAULT ''", "TEXT DEFAULT ''"],
+            'driving_times' => ["MEDIUMTEXT NULL", "TEXT DEFAULT ''"],
             'updated_at' => ["TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP", "TEXT DEFAULT CURRENT_TIMESTAMP"],
         ],
         'sponsors' => [

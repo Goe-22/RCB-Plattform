@@ -33,23 +33,38 @@ function rcb_track_page(string $kind): void
 <aside class="rcb-card rcb-steckbrief"><div class="rcb-card-body">
 <h2><?= rcb_text($kind . '.steckbrief.titel', 'Steckbrief') ?></h2>
 <?php if ($track): ?>
+<?php
+$equipment = array_map(static fn($k) => rcb_track_equipment_options()[$k], rcb_track_equipment($track));
+if ((string)($track['equipment_extra'] ?? '') !== '') { $equipment[] = (string)$track['equipment_extra']; }
+$guest = rcb_track_guest_modes()[(string)($track['guest_mode'] ?? '')] ?? '';
+$statusInfo = rcb_track_status_labels()[(string)$track['status']] ?? null;
+?>
+<?php if ((int)$track['show_status'] === 1 && $statusInfo): ?><p class="rcb-track-status rcb-track-status-<?= rcb_h($statusInfo[1]) ?>"><span class="rcb-track-dot"></span><?= rcb_h($statusInfo[0]) ?><?php if ((string)($track['status_note'] ?? '') !== ''): ?><small><?= rcb_h($track['status_note']) ?></small><?php endif; ?></p><?php endif; ?>
 <dl>
 <?php if ((string)$track['length'] !== ''): ?><dt>Länge</dt><dd><?= rcb_h($track['length']) ?></dd><?php endif; ?>
 <?php if ((string)$track['surface'] !== ''): ?><dt>Belag</dt><dd><?= rcb_h($track['surface']) ?></dd><?php endif; ?>
 <?php if ((string)$track['classes'] !== ''): ?><dt>Maßstab / Klassen</dt><dd><?= rcb_h($track['classes']) ?></dd><?php endif; ?>
+<?php if ((string)($track['driver_spots'] ?? '') !== ''): ?><dt>Fahrerstand</dt><dd><?= rcb_h($track['driver_spots']) ?></dd><?php endif; ?>
+<?php if ($equipment): ?><dt>Ausstattung</dt><dd><?= rcb_h(implode(', ', $equipment)) ?></dd><?php endif; ?>
+<?php if ((string)($track['driving_times'] ?? '') !== ''): ?><dt>Fahrzeiten</dt><dd><?= nl2br(rcb_h($track['driving_times'])) ?></dd><?php endif; ?>
+<?php if ($guest !== ''): ?><dt>Fahren als Gast</dt><dd><?= rcb_h($guest) ?><?php if ((string)($track['guest_note'] ?? '') !== ''): ?><br><span class="rcb-muted"><?= rcb_h($track['guest_note']) ?></span><?php endif; ?></dd><?php endif; ?>
 <?php if ((string)$track['description'] !== ''): ?><dt>Hinweis</dt><dd><?= nl2br(rcb_h($track['description'])) ?></dd><?php endif; ?>
-<dt>Ausstattung</dt><dd><?= rcb_h(implode(', ', array_filter([(int)$track['electricity'] === 1 ? 'Strom' : '', (int)$track['toilet'] === 1 ? 'Toilette' : '', (int)$track['paddock'] === 1 ? 'Fahrerlager' : ''])) ?: '–') ?></dd>
-<dt>Gastfahrer</dt><dd><?= (int)$track['guest_drivers'] === 1 ? 'willkommen (bitte vorher anmelden)' : 'nach Absprache' ?></dd>
-<?php if ((int)$track['show_status'] === 1): ?><dt>Status</dt><dd><strong><?= rcb_h(['open' => 'Geöffnet', 'closed' => 'Geschlossen', 'maintenance' => 'Wartung'][(string)$track['status']] ?? 'Bitte beim Verein erfragen') ?></strong></dd><?php endif; ?>
 </dl>
 <?php else: ?><p class="rcb-muted">Die Streckendaten werden im Adminbereich unter „Strecken“ gepflegt.</p><?php endif; ?>
 <p><a class="rcb-btn" href="#besuch"><?= rcb_text($kind . '.steckbrief.button', 'Anfahrt & Besuch') ?></a></p>
 </div></aside>
 </div>
 <?php
+    // Bis zu 12 Galeriebilder. Im Bearbeiten-Modus erscheint nach dem letzten Bild ein freies Feld zum Hinzufügen.
     $gallery = '';
-    for ($i = 1; $i <= 6; $i++) {
-        $gallery .= rcb_img_slot($kind . '.galerie.' . $i, $defaults['titel'] . ' – Bild ' . $i);
+    $emptyShown = false;
+    for ($i = 1; $i <= 12; $i++) {
+        $key = $kind . '.galerie.' . $i;
+        if (trim(rcb_block($key, '')) === '') {
+            if ($emptyShown || !rcb_can_edit($key)) { continue; }
+            $emptyShown = true;
+        }
+        $gallery .= rcb_img_slot($key, $defaults['titel'] . ' – Bild ' . $i);
     }
     if ($gallery !== ''): ?>
 <h2 style="margin-top:34px"><?= rcb_text($kind . '.galerie.titel', 'Bilder') ?></h2>

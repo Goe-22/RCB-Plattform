@@ -200,20 +200,21 @@
   document.querySelectorAll('[data-rcb-type="image"]').forEach((node) => {
     const holder = node.tagName === 'IMG' ? node.parentElement : node;
     holder.classList.add('rcb-ed-imgholder');
+    const inGallery = !!holder.closest('.rcb-gallery');
     const btn = el('button', { type: 'button', class: 'rcb-ed-imgbtn', text: '🖼 Bild ändern', onclick: (e) => {
       e.preventDefault(); e.stopPropagation();
       openImagePicker((url) => {
         if (node.tagName === 'IMG') node.src = url;
         else node.style.backgroundImage = 'linear-gradient(125deg,rgba(4,29,58,.78),rgba(13,71,119,.55)),url("' + url.replace(/"/g, '%22') + '")';
         markDirty(node.dataset.rcbKey, 'image', url);
-      }, () => markDirty(node.dataset.rcbKey, 'image', ''));
+      }, () => { markDirty(node.dataset.rcbKey, 'image', ''); if (inGallery) holder.classList.add('rcb-ed-removed'); }, inGallery);
     } });
     if (node.tagName === 'IMG') node.insertAdjacentElement('afterend', btn); else holder.prepend(btn);
   });
 
   const modal = el('div', { class: 'rcb-ed-modal', hidden: 'hidden', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Bild auswählen' });
   document.body.append(modal);
-  function openImagePicker(onPick, onReset) {
+  function openImagePicker(onPick, onReset, isGallery) {
     modal.innerHTML = '';
     const grid = el('div', { class: 'rcb-ed-grid', text: 'Bilder werden geladen …' });
     const file = el('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp' });
@@ -236,7 +237,7 @@
       el('h3', { text: 'Neues Bild hochladen' }), file, info,
       el('h3', { text: 'Oder vorhandenes Bild wählen' }), grid,
     ]);
-    if (onReset) box.append(el('button', { type: 'button', class: 'rcb-ed-btn', text: 'Ursprüngliches Bild wiederherstellen', onclick: () => { onReset(); close(); setStatus('Ursprüngliches Bild wird nach dem Speichern wieder angezeigt.', 'dirty'); } }));
+    if (onReset) box.append(el('button', { type: 'button', class: 'rcb-ed-btn', text: isGallery ? 'Bild aus der Galerie entfernen' : 'Ursprüngliches Bild wiederherstellen', onclick: () => { onReset(); close(); setStatus(isGallery ? 'Das Bild wird nach dem Speichern aus der Galerie entfernt.' : 'Ursprüngliches Bild wird nach dem Speichern wieder angezeigt.', 'dirty'); } }));
     modal.append(box);
     modal.hidden = false;
     modal.onclick = (e) => { if (e.target === modal) close(); };

@@ -53,3 +53,32 @@ body.rcb-previewing a:not(.rcb-ed-btn), body.rcb-previewing button:not(.rcb-ed-b
 .rcb-ed-format { flex-wrap: wrap; max-width: min(760px, calc(100vw - 16px)); }
 .rcb-ed-sep { width: 1px; align-self: stretch; margin: 2px 4px; background: rgba(255,255,255,.25); }
 .rcb-ed-format .rcb-ed-swatch { width: 24px; min-width: 24px; height: 24px; padding: 0; border-radius: 50%; border: 2px solid #fff; }
+
+/* Bildbearbeitung */
+.rcb-ed-pick { position: relative; }
+.rcb-ed-pick > button:first-child { width: 100%; }
+.rcb-ed-grid .rcb-ed-pick-edit { position: absolute; top: 6px; right: 6px; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 50%; background: rgba(0,0,0,.7); color: #fff; font-size: 15px; cursor: pointer; }
+.rcb-ed-grid .rcb-ed-pick-edit:hover { background: #c9272c; }
+.rcb-crop-modal { width: min(900px, 100%); }
+.rcb-crop-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 12px 0; }
+.rcb-crop-tools label { display: inline-flex; align-items: center; gap: 6px; }
+.rcb-ed-btn.rcb-ed-on { background: #c9272c; border-color: #c9272c; color: #fff; }
+.rcb-crop-stage { position: relative; margin: 0 auto; overflow: hidden; touch-action: none; user-select: none; background: #000; }
+.rcb-crop-canvas { display: block; }
+.rcb-crop-box { position: absolute; box-sizing: border-box; border: 2px solid #fff; box-shadow: 0 0 0 9999px rgba(0,0,0,.55); cursor: move; touch-action: none;
+  background-image: linear-gradient(rgba(255,255,255,.35) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.35) 1px, transparent 1px);
+  background-size: 33.333% 33.333%; background-position: -1px -1px; }
+.rcb-crop-h { position: absolute; width: 18px; height: 18px; border: 2px solid #fff; background: #c9272c; border-radius: 50%; }
+.rcb-crop-nw { left: -10px; top: -10px; cursor: nwse-resize; } .rcb-crop-ne { right: -10px; top: -10px; cursor: nesw-resize; }
+.rcb-crop-sw { left: -10px; bottom: -10px; cursor: nesw-resize; } .rcb-crop-se { right: -10px; bottom: -10px; cursor: nwse-resize; }
+.rcb-crop-actions { display: flex; justify-content: flex-end; }
+
+/* Bildmittelpunkt */
+.rcb-focus-pick { position: relative; width: fit-content; max-width: 100%; margin: 0 auto; cursor: crosshair; touch-action: none; user-select: none; }
+.rcb-focus-pick img { display: block; max-width: 100%; max-height: 46vh; }
+.rcb-focus-dot { position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px; border: 3px solid #fff; border-radius: 50%; background: rgba(201,39,44,.85); box-shadow: 0 0 0 2px rgba(0,0,0,.5), 0 0 0 9999px rgba(0,0,0,.12); pointer-events: none; }
+.rcb-focus-prevs { display: grid; grid-template-columns: 2.2fr 1fr .8fr; gap: 12px; align-items: end; margin: 14px 0; }
+.rcb-focus-prev { margin: 0; }
+.rcb-focus-prev div { width: 100%; border-radius: 8px; background-size: cover; border: 1px solid rgba(255,255,255,.25); }
+.rcb-focus-prev figcaption { margin-top: 4px; font-size: 12px; color: #c9ccd3; }
+.rcb-crop-actions { gap: 8px; }

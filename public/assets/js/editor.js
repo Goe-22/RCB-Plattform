@@ -239,11 +239,14 @@
     const inGallery = !!holder.closest('.rcb-gallery');
     const btn = el('button', { type: 'button', class: 'rcb-ed-imgbtn', text: '🖼 Bild ändern', onclick: (e) => {
       e.preventDefault(); e.stopPropagation();
+      const current = node.dataset.rcbCurrent || (node.tagName === 'IMG' ? (node.dataset.rcbSrc || node.getAttribute('src')) : (((node.style.backgroundImage.match(/url\(["']?([^"')]+)["']?\)\s*$/) || [])[1] || '') + posHash(node.style.backgroundPosition)));
       openImagePicker((url) => {
-        if (node.tagName === 'IMG') node.src = url;
-        else node.style.backgroundImage = 'linear-gradient(125deg,rgba(4,29,58,.78),rgba(13,71,119,.55)),url("' + url.replace(/"/g, '%22') + '")';
+        const [clean, pos] = splitPos(url);
+        if (node.tagName === 'IMG') { node.src = clean; node.style.objectPosition = pos; }
+        else { node.style.backgroundImage = node.style.backgroundImage.replace(/url\([^)]*\)\s*$/, 'url("' + clean.replace(/"/g, '%22') + '")') || 'linear-gradient(125deg,var(--rcb-ov1,rgba(4,29,58,.78)),var(--rcb-ov2,rgba(13,71,119,.55))),url("' + clean.replace(/"/g, '%22') + '")'; node.style.backgroundPosition = pos; }
+        node.dataset.rcbCurrent = url;
         markDirty(node.dataset.rcbKey, 'image', url);
-      }, () => { markDirty(node.dataset.rcbKey, 'image', ''); if (inGallery) holder.classList.add('rcb-ed-removed'); }, inGallery);
+      }, () => { markDirty(node.dataset.rcbKey, 'image', ''); if (inGallery) holder.classList.add('rcb-ed-removed'); }, inGallery, current);
     } });
     if (node.tagName === 'IMG') node.insertAdjacentElement('afterend', btn); else holder.prepend(btn);
   });
@@ -310,27 +313,25 @@
 
   const modal = el('div', { class: 'rcb-ed-modal', hidden: 'hidden', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Bild auswählen' });
   document.body.append(modal);
-  function openImagePicker(onPick, onReset, isGallery) {
+  function openImagePicker(onPick, onReset, isGallery, currentUrl) {
     modal.innerHTML = '';
     const grid = el('div', { class: 'rcb-ed-grid', text: 'Bilder werden geladen …' });
     const file = el('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp' });
     const info = el('p', { class: 'rcb-ed-hint', text: 'JPG, PNG oder WebP, höchstens 8 MB. Das Bild wird auch unter „Bilder“ im Admin gespeichert.' });
     const close = () => { modal.hidden = true; };
-    file.addEventListener('change', async () => {
-      if (!file.files[0]) return;
-      info.textContent = 'Wird hochgeladen …';
-      const fd = new FormData();
-      fd.append('action', 'upload_block_image'); fd.append('csrf_token', csrf); fd.append('media_file', file.files[0]);
-      try {
-        const res = await fetch(adminUrl, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'rcb-editor' }, credentials: 'same-origin' });
-        const data = await res.json().catch(() => ({ ok: false, error: 'Unerwartete Antwort vom Server.' }));
-        if (!data.ok) throw new Error(data.error || 'Upload fehlgeschlagen.');
-        onPick(data.url); close();
-      } catch (err) { info.textContent = err.message; }
+    file.addEventListener('change', () => {
+      const f = file.files[0];
+      if (!f) return;
+      if (!/^image\/(jpeg|png|webp)$/.test(f.type)) { info.textContent = 'Dieses Format geht leider nicht. Bitte JPG, PNG oder WebP wählen (iPhone: Einstellungen › Kamera › Formate › „Maximale Kompatibilität“).'; file.value = ''; return; }
+      openImageEditor(URL.createObjectURL(f), f, onPick, f.name);
     });
     const box = el('div', { class: 'rcb-ed-modal-box' }, [
       el('div', { class: 'rcb-ed-modal-head' }, [el('h2', { text: 'Bild auswählen' }), el('button', { type: 'button', class: 'rcb-ed-btn', text: 'Schließen', onclick: close })]),
       el('h3', { text: 'Neues Bild hochladen' }), file, info,
+      ...(currentUrl ? [el('h3', { text: 'Aktuelles Bild' }), el('div', { class: 'rcb-crop-tools' }, [
+        el('button', { type: 'button', class: 'rcb-ed-btn rcb-ed-primary', text: '✂ Bearbeiten (zuschneiden, drehen, aufhellen)', onclick: () => openImageEditor(splitPos(currentUrl)[0], null, onPick, (splitPos(currentUrl)[0].split('/').pop() || 'bild')) }),
+        el('button', { type: 'button', class: 'rcb-ed-btn rcb-ed-primary', text: '◎ Sichtbaren Ausschnitt festlegen', onclick: () => openFocusPicker(currentUrl, onPick) }),
+      ])] : []),
       el('h3', { text: 'Oder vorhandenes Bild wählen' }), grid,
     ]);
     if (onReset) box.append(el('button', { type: 'button', class: 'rcb-ed-btn', text: isGallery ? 'Bild aus der Galerie entfernen' : 'Ursprüngliches Bild wiederherstellen', onclick: () => { onReset(); close(); setStatus(isGallery ? 'Das Bild wird nach dem Speichern aus der Galerie entfernt.' : 'Ursprüngliches Bild wird nach dem Speichern wieder angezeigt.', 'dirty'); } }));
@@ -340,8 +341,183 @@
     fetch(adminUrl + '?page=mediajson', { credentials: 'same-origin' }).then((r) => r.json()).then((items) => {
       grid.textContent = '';
       if (!items.length) grid.textContent = 'Noch keine Bilder vorhanden.';
-      items.forEach((it) => grid.append(el('button', { type: 'button', title: it.title || it.url, onclick: () => { onPick(it.url); close(); } }, [el('img', { src: it.url, alt: it.title || '' })])));
+      items.forEach((it) => grid.append(el('div', { class: 'rcb-ed-pick' }, [
+        el('button', { type: 'button', title: (it.title || it.url) + ' – übernehmen', onclick: () => { onPick(it.url); close(); } }, [el('img', { src: it.url, alt: it.title || '' })]),
+        el('button', { type: 'button', class: 'rcb-ed-pick-edit', title: 'Zuschneiden und übernehmen', 'aria-label': 'Zuschneiden und übernehmen', text: '✂', onclick: () => openImageEditor(it.url, null, onPick, it.title || 'bild') }),
+      ])));
     }).catch(() => { grid.textContent = 'Bilder konnten nicht geladen werden.'; });
+  }
+
+  /* ---------- Bildmittelpunkt: welcher Teil bei beschnittenen Ansichten sichtbar bleibt ---------- */
+  // Wird als „#p=x,y“ (Prozent) an die Bildadresse gehängt; das Bild selbst bleibt unverändert.
+  function splitPos(url) {
+    const m = String(url || '').match(/^(.*)#p=(\d{1,3}),(\d{1,3})$/);
+    return m ? [m[1], m[2] + '% ' + m[3] + '%', +m[2], +m[3]] : [String(url || ''), 'center', 50, 50];
+  }
+  function posHash(cssPos) {
+    const m = String(cssPos || '').match(/^(\d+(?:\.\d+)?)% (\d+(?:\.\d+)?)%$/);
+    return m && !(m[1] === '50' && m[2] === '50') ? '#p=' + Math.round(m[1]) + ',' + Math.round(m[2]) : '';
+  }
+  function openFocusPicker(url, onPick) {
+    modal.innerHTML = '';
+    const close = () => { modal.hidden = true; };
+    let [clean, , px, py] = splitPos(url);
+    const dot = el('span', { class: 'rcb-focus-dot' });
+    const full = el('img', { src: clean, alt: '', draggable: 'false' });
+    const pick = el('div', { class: 'rcb-focus-pick' }, [full, dot]);
+    const previews = [['Titelbild (breit)', '21 / 7'], ['Kachel', '4 / 3'], ['Handy (hoch)', '3 / 4']].map(([label, ar]) =>
+      el('figure', { class: 'rcb-focus-prev' }, [el('div', { style: 'aspect-ratio:' + ar + ';background-image:url("' + clean.replace(/"/g, '%22') + '")' }), el('figcaption', { text: label })]));
+    const update = () => {
+      dot.style.left = px + '%'; dot.style.top = py + '%';
+      previews.forEach((f) => { f.firstChild.style.backgroundPosition = px + '% ' + py + '%'; });
+    };
+    const setFrom = (e) => { const r = full.getBoundingClientRect(); px = Math.round(Math.min(100, Math.max(0, (e.clientX - r.left) / r.width * 100))); py = Math.round(Math.min(100, Math.max(0, (e.clientY - r.top) / r.height * 100))); update(); };
+    pick.addEventListener('pointerdown', (e) => { e.preventDefault(); pick.setPointerCapture(e.pointerId); setFrom(e); const mv = (ev) => setFrom(ev); pick.addEventListener('pointermove', mv); pick.addEventListener('pointerup', () => pick.removeEventListener('pointermove', mv), { once: true }); });
+    modal.append(el('div', { class: 'rcb-ed-modal-box rcb-crop-modal' }, [
+      el('div', { class: 'rcb-ed-modal-head' }, [el('h2', { text: 'Sichtbaren Ausschnitt festlegen' }), el('button', { type: 'button', class: 'rcb-ed-btn', text: 'Abbrechen', onclick: close })]),
+      el('p', { class: 'rcb-ed-hint', text: 'Klicke auf den wichtigsten Teil des Bildes (z. B. Fahrerstand oder Auto). Je nach Bildschirm wird das Bild beschnitten – dieser Punkt bleibt immer sichtbar. Das Bild selbst wird nicht verändert.' }),
+      pick,
+      el('div', { class: 'rcb-focus-prevs' }, previews),
+      el('div', { class: 'rcb-crop-actions' }, [
+        el('button', { type: 'button', class: 'rcb-ed-btn', text: 'Mitte (Standard)', onclick: () => { px = 50; py = 50; update(); } }),
+        el('button', { type: 'button', class: 'rcb-ed-btn rcb-ed-primary', text: '✓ Übernehmen', onclick: () => { onPick(clean + (px === 50 && py === 50 ? '' : '#p=' + px + ',' + py)); close(); setStatus('Ausschnitt geändert – zum Veröffentlichen speichern.', 'dirty'); } }),
+      ]),
+    ]));
+    modal.hidden = false;
+    modal.onclick = null;
+    update();
+  }
+
+  /* ---------- Bild bearbeiten: zuschneiden, drehen, Helligkeit/Kontrast ---------- */
+  // Arbeitet komplett im Browser. Gespeichert wird eine bearbeitete Kopie, das Original bleibt erhalten.
+  function openImageEditor(src, originalFile, onPick, name) {
+    modal.innerHTML = '';
+    const close = () => { modal.hidden = true; if (originalFile) URL.revokeObjectURL(src); };
+    const MAXW = 2400; // längste Seite des Ergebnisses
+    const img = new Image();
+    let rot = null;            // gedrehte Arbeitskopie (Canvas)
+    let angle = 0;             // 0, 90, 180, 270
+    let crop = null;           // Ausschnitt in Arbeitskopie-Pixeln {x,y,w,h}
+    let ratio = 0;             // 0 = frei
+    let scale = 1;             // Anzeige-Pixel je Arbeitskopie-Pixel
+    let changed = false;
+    const view = el('canvas', { class: 'rcb-crop-canvas' });
+    const box = el('div', { class: 'rcb-crop-box' }, ['nw', 'ne', 'sw', 'se'].map((h) => el('span', { class: 'rcb-crop-h rcb-crop-' + h, 'data-h': h })));
+    const stage = el('div', { class: 'rcb-crop-stage' }, [view, box]);
+    const status = el('p', { class: 'rcb-ed-hint', text: 'Bild wird geladen …' });
+    const bright = el('input', { type: 'range', min: '60', max: '150', value: '100', 'aria-label': 'Helligkeit' });
+    const contrast = el('input', { type: 'range', min: '60', max: '150', value: '100', 'aria-label': 'Kontrast' });
+    const ratios = [['Frei', 0], ['Titelbild 16:9', 16 / 9], ['Galerie 4:3', 4 / 3], ['Quadrat', 1], ['Hochformat 3:4', 3 / 4]];
+    const ratioBtns = ratios.map(([label, r]) => el('button', { type: 'button', class: 'rcb-ed-btn' + (r === 0 ? ' rcb-ed-on' : ''), text: label, onclick: (e) => { ratio = r; ratioBtns.forEach((b) => b.classList.remove('rcb-ed-on')); e.currentTarget.classList.add('rcb-ed-on'); fitCrop(); changed = true; } }));
+    const applyFilter = () => { view.style.filter = 'brightness(' + bright.value / 100 + ') contrast(' + contrast.value / 100 + ')'; changed = true; };
+    bright.addEventListener('input', applyFilter); contrast.addEventListener('input', applyFilter);
+
+    function buildRot() {
+      const s = Math.min(1, MAXW / Math.max(img.naturalWidth, img.naturalHeight));
+      const w = Math.round(img.naturalWidth * s), h = Math.round(img.naturalHeight * s);
+      rot = document.createElement('canvas');
+      const turn = angle % 180 !== 0;
+      rot.width = turn ? h : w; rot.height = turn ? w : h;
+      const c = rot.getContext('2d');
+      c.translate(rot.width / 2, rot.height / 2); c.rotate(angle * Math.PI / 180); c.drawImage(img, -w / 2, -h / 2, w, h);
+      const maxW = Math.min(820, window.innerWidth - 80), maxH = Math.min(520, window.innerHeight - 330);
+      scale = Math.min(maxW / rot.width, maxH / rot.height, 1);
+      view.width = Math.round(rot.width * scale); view.height = Math.round(rot.height * scale);
+      view.getContext('2d').drawImage(rot, 0, 0, view.width, view.height);
+      stage.style.width = view.width + 'px'; stage.style.height = view.height + 'px';
+      fitCrop();
+    }
+    function fitCrop() {
+      if (!rot) return;
+      let w = rot.width, h = rot.height;
+      if (ratio) { if (w / h > ratio) w = h * ratio; else h = w / ratio; }
+      crop = { x: (rot.width - w) / 2, y: (rot.height - h) / 2, w, h };
+      drawBox();
+    }
+    function drawBox() {
+      Object.assign(box.style, { left: crop.x * scale + 'px', top: crop.y * scale + 'px', width: crop.w * scale + 'px', height: crop.h * scale + 'px' });
+      status.textContent = 'Ausschnitt: ' + Math.round(crop.w) + ' × ' + Math.round(crop.h) + ' Pixel' + (crop.w < 1000 ? ' – etwas klein, für Titelbilder besser größer wählen' : '');
+    }
+    // Ausschnitt verschieben bzw. an den Ecken größer/kleiner ziehen (Maus und Touch)
+    box.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      const handle = e.target.dataset.h || 'move';
+      const start = { x: e.clientX, y: e.clientY, c: { ...crop } };
+      box.setPointerCapture(e.pointerId);
+      const move = (ev) => {
+        const dx = (ev.clientX - start.x) / scale, dy = (ev.clientY - start.y) / scale, o = start.c;
+        let { x, y, w, h } = o;
+        if (handle === 'move') {
+          x = Math.min(Math.max(0, o.x + dx), rot.width - o.w); y = Math.min(Math.max(0, o.y + dy), rot.height - o.h);
+        } else {
+          const left = handle.includes('w'), top = handle.includes('n');
+          w = Math.max(40, o.w + (left ? -dx : dx)); h = Math.max(40, o.h + (top ? -dy : dy));
+          if (ratio) { if (Math.abs(dx) > Math.abs(dy)) h = w / ratio; else w = h * ratio; }
+          const maxW = left ? o.x + o.w : rot.width - o.x, maxH = top ? o.y + o.h : rot.height - o.y;
+          if (w > maxW) { w = maxW; if (ratio) h = w / ratio; }
+          if (h > maxH) { h = maxH; if (ratio) w = h * ratio; }
+          x = left ? o.x + o.w - w : o.x; y = top ? o.y + o.h - h : o.y;
+        }
+        crop = { x, y, w, h }; changed = true; drawBox();
+      };
+      const up = () => { box.removeEventListener('pointermove', move); box.removeEventListener('pointerup', up); box.removeEventListener('pointercancel', up); };
+      box.addEventListener('pointermove', move); box.addEventListener('pointerup', up); box.addEventListener('pointercancel', up);
+    });
+
+    async function apply(btn) {
+      const isPng = originalFile ? originalFile.type === 'image/png' : /\.png$/i.test(src);
+      let blob;
+      if (!changed && originalFile) {
+        blob = originalFile; // unverändert: Original hochladen (z. B. PNG mit Transparenz)
+      } else if (!changed && !originalFile) {
+        onPick(src); close(); return;
+      } else {
+        const out = document.createElement('canvas');
+        out.width = Math.round(crop.w); out.height = Math.round(crop.h);
+        const c = out.getContext('2d');
+        c.drawImage(rot, crop.x, crop.y, crop.w, crop.h, 0, 0, out.width, out.height);
+        const b = bright.value / 100, k = contrast.value / 100;
+        if (b !== 1 || k !== 1) { // Helligkeit/Kontrast pixelweise – funktioniert in jedem Browser
+          const d = c.getImageData(0, 0, out.width, out.height), px = d.data;
+          for (let i = 0; i < px.length; i += 4) for (let j = 0; j < 3; j++) px[i + j] = Math.max(0, Math.min(255, ((px[i + j] * b) - 128) * k + 128));
+          c.putImageData(d, 0, 0);
+        }
+        blob = await new Promise((r) => out.toBlob(r, isPng ? 'image/png' : 'image/jpeg', 0.86));
+      }
+      btn.disabled = true; status.textContent = 'Wird gespeichert …';
+      const fd = new FormData();
+      const base = String(name || 'bild').replace(/\.[a-z0-9]+$/i, '').slice(0, 80) || 'bild';
+      fd.append('action', 'upload_block_image'); fd.append('csrf_token', csrf);
+      fd.append('media_file', new File([blob], base + (changed ? ' (bearbeitet)' : '') + (blob.type === 'image/png' ? '.png' : blob.type === 'image/webp' ? '.webp' : '.jpg'), { type: blob.type }));
+      try {
+        const res = await fetch(adminUrl, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'rcb-editor' }, credentials: 'same-origin' });
+        const data = await res.json().catch(() => ({ ok: false, error: 'Unerwartete Antwort vom Server.' }));
+        if (!data.ok) throw new Error(data.error || 'Speichern fehlgeschlagen.');
+        onPick(data.url); close();
+        setStatus('Bild übernommen – zum Veröffentlichen speichern.', 'dirty');
+      } catch (err) { status.textContent = err.message; btn.disabled = false; }
+    }
+
+    const applyBtn = el('button', { type: 'button', class: 'rcb-ed-btn rcb-ed-primary', text: '✓ Übernehmen', onclick: (e) => apply(e.currentTarget) });
+    modal.append(el('div', { class: 'rcb-ed-modal-box rcb-crop-modal' }, [
+      el('div', { class: 'rcb-ed-modal-head' }, [el('h2', { text: 'Bild bearbeiten' }), el('button', { type: 'button', class: 'rcb-ed-btn', text: 'Abbrechen', onclick: close })]),
+      el('div', { class: 'rcb-crop-tools' }, [
+        ...ratioBtns,
+        el('button', { type: 'button', class: 'rcb-ed-btn', text: '⟲ Drehen', title: '90° nach links drehen', onclick: () => { angle = (angle + 270) % 360; changed = true; buildRot(); } }),
+        el('button', { type: 'button', class: 'rcb-ed-btn', text: '⟳ Drehen', title: '90° nach rechts drehen', onclick: () => { angle = (angle + 90) % 360; changed = true; buildRot(); } }),
+      ]),
+      stage,
+      el('div', { class: 'rcb-crop-tools' }, [el('label', {}, ['☀ Helligkeit ', bright]), el('label', {}, ['◐ Kontrast ', contrast]),
+        el('button', { type: 'button', class: 'rcb-ed-btn', text: 'Zurücksetzen', onclick: () => { angle = 0; ratio = 0; bright.value = 100; contrast.value = 100; view.style.filter = ''; ratioBtns.forEach((b, i) => b.classList.toggle('rcb-ed-on', i === 0)); buildRot(); changed = false; } })]),
+      status,
+      el('p', { class: 'rcb-ed-hint', text: 'Rahmen verschieben oder an den Ecken ziehen. Gespeichert wird eine bearbeitete Kopie – das Original bleibt unter „Bilder & Videos“ erhalten.' }),
+      el('div', { class: 'rcb-crop-actions' }, [applyBtn]),
+    ]));
+    modal.hidden = false;
+    modal.onclick = null;
+    img.onload = () => buildRot();
+    img.onerror = () => { status.textContent = 'Das Bild konnte nicht geladen werden.'; };
+    img.src = src;
   }
 
   document.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); save(); } });

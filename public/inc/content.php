@@ -173,10 +173,23 @@ function rcb_media_url(string $category, string $fallback): string
     return $cache[$category] ?? $fallback;
 }
 
+/**
+ * Bildmittelpunkt: Der Editor hängt ihn als „#p=x,y“ (Prozent) an die Bildadresse.
+ * Gibt [Adresse ohne Mittelpunkt, CSS-Position wie "30% 70%"] zurück.
+ */
+function rcb_img_pos(string $url): array
+{
+    if (preg_match('/^(.*)#p=(\d{1,3}),(\d{1,3})$/', $url, $m)) {
+        return [$m[1], min(100, (int)$m[2]) . '% ' . min(100, (int)$m[3]) . '%'];
+    }
+    return [$url, 'center'];
+}
+
 /** Hintergrundbild für Titelbereiche mit dunklem Verlauf. */
 function rcb_hero_style(string $url): string
 {
-    return "background-image:linear-gradient(125deg,var(--rcb-ov1,rgba(4,29,58,.78)),var(--rcb-ov2,rgba(13,71,119,.55))),url('" . rcb_h($url) . "');background-size:cover;background-position:center";
+    [$url, $pos] = rcb_img_pos($url);
+    return "background-image:linear-gradient(125deg,var(--rcb-ov1,rgba(4,29,58,.78)),var(--rcb-ov2,rgba(13,71,119,.55))),url('" . rcb_h($url) . "');background-size:cover;background-position:" . $pos;
 }
 
 /** Einheitlicher Titelbereich einer Unterseite mit bearbeitbarem Titel, Text und optionalem Bild. */
@@ -235,7 +248,9 @@ function rcb_img_slot(string $key, string $alt, string $class = 'rcb-gallery-img
 {
     $url = trim(rcb_block($key, ''));
     if ($url !== '') {
-        return '<div class="rcb-gallery-item"><img class="' . rcb_h($class) . '" src="' . rcb_h($url) . '" alt="' . rcb_h($alt) . '" loading="lazy"' . rcb_img_attr($key) . '></div>';
+        [$src, $pos] = rcb_img_pos($url);
+        $style = $pos !== 'center' ? ' style="object-position:' . $pos . '"' : '';
+        return '<div class="rcb-gallery-item"><img class="' . rcb_h($class) . '" src="' . rcb_h($src) . '" data-rcb-src="' . rcb_h($url) . '" alt="' . rcb_h($alt) . '" loading="lazy"' . $style . rcb_img_attr($key) . '></div>';
     }
     if (rcb_can_edit($key)) {
         return '<div class="rcb-gallery-item rcb-gallery-empty"' . rcb_img_attr($key) . '><span>Bild hinzufügen</span></div>';

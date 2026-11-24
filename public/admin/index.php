@@ -544,7 +544,7 @@ if ($isEditorRequest) {
             } elseif ($type === 'image') {
                 $value = trim($value);
                 if ($value === '') { $upsert->execute([$key, null, (int)$editorUser['id']]); continue; }
-                if (!preg_match('#^/(uploads|assets/images)/[A-Za-z0-9._%-]+$#', $value)) { throw new RuntimeException('Ungültige Bildadresse.'); }
+                if (!preg_match('#^/(uploads|assets/images)/[A-Za-z0-9._%-]+(\#p=\d{1,3},\d{1,3})?$#', $value)) { throw new RuntimeException('Ungültige Bildadresse.'); }
             } elseif ($type === 'video') {
                 $value = trim($value);
                 if ($value === '') { $upsert->execute([$key, null, (int)$editorUser['id']]); continue; }

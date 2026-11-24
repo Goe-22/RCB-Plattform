@@ -71,7 +71,7 @@ rcb_header('home');
     <div class="rcb-track-tiles">
     <?php foreach (['onroad' => ['Onroad', 'Asphalt · 210 m · Tourenwagen 1:10'], 'offroad' => ['Offroad', 'Kunstrasen · 270 m · Buggys bis 1:8']] as $kind => [$label, $line]): ?>
     <?php if (!rcb_page_published($kind) && !rcb_admin_viewer()) { continue; } ?>
-        <a class="rcb-track-tile" href="/<?= $kind ?>.php"<?= rcb_img_attr('strecke.' . $kind . '.bild') ?> style="background-image:linear-gradient(180deg,rgba(0,0,0,0) 35%,var(--rcb-ov3,rgba(4,29,58,.88))),url('<?= rcb_h(rcb_track_image($kind)) ?>')">
+        <a class="rcb-track-tile" href="/<?= $kind ?>.php"<?= rcb_img_attr('strecke.' . $kind . '.bild') ?> style="background-image:linear-gradient(180deg,rgba(0,0,0,0) 35%,var(--rcb-ov3,rgba(4,29,58,.88))),url('<?= rcb_h(rcb_img_pos(rcb_track_image($kind))[0]) ?>');background-position:<?= rcb_img_pos(rcb_track_image($kind))[1] ?>">
             <span class="rcb-track-tile-text"><strong><?= rcb_text('startseite.' . $kind . '.titel', $label) ?></strong><span><?= rcb_text('startseite.' . $kind . '.text', $line) ?></span></span>
             <span class="rcb-btn"><?= rcb_text('startseite.' . $kind . '.button', 'Strecke & Daten ansehen') ?></span>
         </a>

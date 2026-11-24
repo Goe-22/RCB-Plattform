@@ -132,7 +132,7 @@ echo rcb_page_hero('reglement', 'Reglement & Ranglisten', 'Regeln dienen der Sic
 <p><strong>Streichergebnisse</strong></p>
 <ul><li>bis 4 Läufe: 1</li><li>5 und 6 Läufe: 2</li><li>ab 7 Läufen: 3</li></ul>') ?>
 <?= rcb_rich('reglement.intro', '<p>Ergebnisse vergangener Meisterschaften und Rennen findest du unter <a href="/ergebnisse.php">Ergebnisse</a>.</p>') ?>
-<h3 style="margin-top:26px;color:#062b55;font-size:1.35rem"><?= rcb_text('reglement.klassen.titel', 'Rennen & Klassen im Fun Cup 2026') ?></h3>
+<h3 style="margin-top:26px;color:var(--rcb-blue);font-size:1.35rem"><?= rcb_text('reglement.klassen.titel', 'Rennen & Klassen im Fun Cup 2026') ?></h3>
 <p class="rcb-muted"><?= rcb_text('reglement.klassen.text', 'Wähle ein Rennen bzw. eine Klasse, um das vollständige Regelwerk zu öffnen.') ?></p>
 <div class="rcb-class-list">
 <?php foreach ($sections as $key => [$title, , $published]): ?>

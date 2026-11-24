@@ -176,7 +176,7 @@ function rcb_media_url(string $category, string $fallback): string
 /** Hintergrundbild für Titelbereiche mit dunklem Verlauf. */
 function rcb_hero_style(string $url): string
 {
-    return "background-image:linear-gradient(125deg,rgba(4,29,58,.78),rgba(13,71,119,.55)),url('" . rcb_h($url) . "');background-size:cover;background-position:center";
+    return "background-image:linear-gradient(125deg,var(--rcb-ov1,rgba(4,29,58,.78)),var(--rcb-ov2,rgba(13,71,119,.55))),url('" . rcb_h($url) . "');background-size:cover;background-position:center";
 }
 
 /** Einheitlicher Titelbereich einer Unterseite mit bearbeitbarem Titel, Text und optionalem Bild. */

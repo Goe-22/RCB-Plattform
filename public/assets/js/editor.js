@@ -155,6 +155,24 @@
   });
 
   /* ---------- Formatierte Texte ---------- */
+  // Feste Vereinsfarben für Text (die Webseite zeigt sie in den Farben aus Admin → Design).
+  const TEXT_COLORS = [['#1d2733', 'Standard'], ['#c9272c', 'Rot'], ['#062b55', 'Blau'], ['#17703a', 'Grün'], ['#657383', 'Grau']];
+  const SIZE_OF = { 'rcb-fs-s': '2', 'rcb-fs-l': '4', 'rcb-fs-xl': '5' };
+  const COLOR_OF = { 'rcb-c-red': '#c9272c', 'rcb-c-blue': '#062b55', 'rcb-c-green': '#17703a', 'rcb-c-gray': '#657383' };
+  function fontCmd(cmd, value) { document.execCommand('styleWithCSS', false, false); document.execCommand(cmd, false, value); }
+  // Gespeicherte Gestaltungsklassen in die Form bringen, die der Browser-Editor versteht (<font>, text-align).
+  function toEditable(root) {
+    root.querySelectorAll('span[class*="rcb-"]').forEach((span) => {
+      const font = document.createElement('font');
+      span.classList.forEach((c) => { if (SIZE_OF[c]) font.setAttribute('size', SIZE_OF[c]); if (COLOR_OF[c]) font.setAttribute('color', COLOR_OF[c]); });
+      while (span.firstChild) font.append(span.firstChild);
+      span.replaceWith(font);
+    });
+    root.querySelectorAll('[class*="rcb-al-"]').forEach((block) => {
+      ['left', 'center', 'right'].forEach((a) => { if (block.classList.contains('rcb-al-' + a)) { block.style.textAlign = a; block.classList.remove('rcb-al-' + a); } });
+      if (!block.className) block.removeAttribute('class');
+    });
+  }
   const fmt = el('div', { class: 'rcb-ed-format', hidden: 'hidden' });
   let activeRich = null;
   const fmtButtons = [
@@ -168,12 +186,29 @@
     ['🔗', 'Link einfügen', () => { const url = prompt('Adresse des Links (z. B. https://… oder /termine.php):'); if (url) document.execCommand('createLink', false, url.trim()); }],
     ['🖼', 'Bild einfügen', () => { const saved = saveSelection(); openImagePicker((url) => { restoreSelection(saved); document.execCommand('insertImage', false, url); richChanged(activeRich); }); }],
     ['⌫', 'Formatierung entfernen', () => { document.execCommand('removeFormat'); document.execCommand('unlink'); }],
+    '|',
+    ['⇤', 'Linksbündig', () => document.execCommand('justifyLeft')],
+    ['⇔', 'Zentriert', () => document.execCommand('justifyCenter')],
+    ['⇥', 'Rechtsbündig', () => document.execCommand('justifyRight')],
+    '|',
+    ['A−', 'Kleine Schrift', () => fontCmd('fontSize', '2')],
+    ['A', 'Normale Schriftgröße', () => fontCmd('fontSize', '3')],
+    ['A+', 'Große Schrift', () => fontCmd('fontSize', '4')],
+    ['A++', 'Sehr große Schrift', () => fontCmd('fontSize', '5')],
+    '|',
+    ...TEXT_COLORS.map(([hex, name]) => ({ swatch: hex, title: 'Textfarbe: ' + name, fn: () => fontCmd('foreColor', hex) })),
   ];
-  fmtButtons.forEach(([label, title, fn]) => fmt.append(el('button', {
-    type: 'button', title, 'aria-label': title, text: label,
-    onmousedown: (e) => e.preventDefault(),
-    onclick: () => { if (activeRich) { activeRich.focus(); fn(); richChanged(activeRich); } },
-  })));
+  fmtButtons.forEach((b) => {
+    if (b === '|') { fmt.append(el('span', { class: 'rcb-ed-sep', 'aria-hidden': 'true' })); return; }
+    const [label, title, fn] = Array.isArray(b) ? b : ['', b.title, b.fn];
+    const btn = el('button', {
+      type: 'button', title, 'aria-label': title, text: label,
+      onmousedown: (e) => e.preventDefault(),
+      onclick: () => { if (activeRich) { activeRich.focus(); fn(); richChanged(activeRich); } },
+    });
+    if (b.swatch) { btn.classList.add('rcb-ed-swatch'); btn.style.background = b.swatch; }
+    fmt.append(btn);
+  });
   document.body.append(fmt);
 
   function richChanged(node) { if (node) markDirty(node.dataset.rcbKey, 'rich', node.innerHTML); }
@@ -186,6 +221,7 @@
   document.querySelectorAll('[data-rcb-type="rich"]').forEach((node) => {
     node.contentEditable = 'true';
     node.title = 'Text bearbeiten';
+    toEditable(node);
     if (!node.innerHTML.trim()) node.innerHTML = '<p><br></p>';
     node.addEventListener('focus', () => { activeRich = node; placeFormatBar(node); });
     node.addEventListener('input', () => richChanged(node));

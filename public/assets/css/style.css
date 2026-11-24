@@ -18,7 +18,7 @@ body{
 
 .header{
 
-    background:#002f6c;
+    background:var(--rcb-blue);
 
     color:white;
 
@@ -82,7 +82,7 @@ main{
 
 footer{
 
-    background:#002f6c;
+    background:var(--rcb-blue);
 
     color:white;
 
@@ -98,7 +98,7 @@ footer{
 
 .hero{
 
-    background:linear-gradient(135deg,#062b55,#0b467c);
+    background:linear-gradient(135deg,var(--rcb-blue),var(--rcb-blue-mid));
 
     background-size:cover;
 
@@ -152,7 +152,7 @@ footer{
 
     margin-top:30px;
 
-    background:#d50000;
+    background:var(--rcb-red);
 
     color:white;
 
@@ -356,7 +356,7 @@ footer{
 
 .page-header{
 
-    background:#002f6c;
+    background:var(--rcb-blue);
 
     color:white;
 
@@ -390,7 +390,7 @@ footer{
 
     margin-bottom:20px;
 
-    color:#002f6c;
+    color:var(--rcb-blue);
 
 }
 
@@ -426,7 +426,7 @@ footer{
 
 .offer-card h3{
 
-    color:#002f6c;
+    color:var(--rcb-blue);
 
     margin-bottom:15px;
 
@@ -614,7 +614,7 @@ grid-template-columns:1fr;
 
 .event-date{
 
-    color:#d50000;
+    color:var(--rcb-red);
 
     font-weight:bold;
 
@@ -652,7 +652,7 @@ grid-template-columns:1fr;
 
 .result-card h3{
 
-    color:#002f6c;
+    color:var(--rcb-blue);
 
     margin-bottom:20px;
 
@@ -674,7 +674,7 @@ grid-template-columns:1fr;
 
 .result-table th{
 
-    background:#002f6c;
+    background:var(--rcb-blue);
 
     color:white;
 
@@ -728,7 +728,7 @@ grid-template-columns:1fr;
 
 .live-disabled h2{
 
-    color:#d50000;
+    color:var(--rcb-red);
 
     margin-bottom:20px;
 
@@ -806,7 +806,7 @@ grid-template-columns:1fr;
 
     margin:20px 0 10px;
 
-    color:#002f6c;
+    color:var(--rcb-blue);
 
 }
 
@@ -884,7 +884,7 @@ grid-template-columns:1fr;
 /* ==========================================================
    Gemeinsames Erscheinungsbild der öffentlichen HTML-Seiten
    ========================================================== */
-:root{--rcb-blue:#062b55;--rcb-blue-dark:#041d3a;--rcb-red:#c9272c;--rcb-light:#f3f6f9;--rcb-text:#1d2733;--rcb-muted:#657383;--rcb-border:#dce3ea}
+:root{--rcb-blue:#062b55;--rcb-blue-dark:#041d3a;--rcb-red:#c9272c;--rcb-red-dark:#a81d22;--rcb-blue-mid:#0d4777;--rcb-tint:#e8eef5;--rcb-light:#f3f6f9;--rcb-text:#1d2733;--rcb-muted:#657383;--rcb-border:#dce3ea}
 html{scroll-behavior:smooth}
 body{font-family:Arial,Helvetica,sans-serif;color:var(--rcb-text);background:var(--rcb-light);line-height:1.65}
 img{max-width:100%}
@@ -935,3 +935,10 @@ button,input,textarea,select{font:inherit}
 .rcb-hero-inner .rcb-btn{text-shadow:none}
 .rcb-card-image{display:block;width:100%;height:clamp(180px,22vw,240px);object-fit:cover}
 @media(max-width:600px){.rcb-hero{min-height:340px;background-position:58% center!important}.rcb-hero-inner{padding:22px 12px}.rcb-section{padding:40px 0}.rcb-card-image{height:210px}}
+
+/* Gestaltung aus dem Seiten-Editor: Ausrichtung, Farben, Textgrößen */
+.rcb-al-left{text-align:left}.rcb-al-center{text-align:center}.rcb-al-right{text-align:right}
+.rcb-c-red{color:var(--rcb-red)}.rcb-c-blue{color:var(--rcb-blue)}.rcb-c-green{color:#17703a}.rcb-c-gray{color:var(--rcb-muted)}
+.rcb-fs-s{font-size:.875em}.rcb-fs-l{font-size:1.25em}.rcb-fs-xl{font-size:1.5em;line-height:1.35}
+.rcb-section-off{position:relative;opacity:.45;outline:2px dashed #c9272c;outline-offset:-6px}
+.rcb-section-off::before{content:"Ausgeblendet – nur im Bearbeiten-Modus sichtbar";position:absolute;top:10px;right:14px;z-index:5;padding:3px 9px;border-radius:6px;background:#c9272c;color:#fff;font:700 12px system-ui,sans-serif}

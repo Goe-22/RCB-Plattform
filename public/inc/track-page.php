@@ -26,11 +26,13 @@ function rcb_track_page(string $kind): void
     rcb_header('tracks');
     echo rcb_page_hero($kind, $defaults['titel'], $defaults['zeile'], rcb_track_image($kind));
     ?>
-<section class="rcb-section"><div class="rcb-wrap"><div class="rcb-detail">
+<?php $showFacts = rcb_section_show($kind . '.steckbrief'); ?>
+<section class="rcb-section"><div class="rcb-wrap"><div class="rcb-detail"<?= $showFacts ? '' : ' style="grid-template-columns:1fr"' ?>>
 <div class="rcb-detail-main">
 <?= rcb_rich($kind . '.inhalt', $defaults['inhalt']) ?>
 </div>
-<aside class="rcb-card rcb-steckbrief"><div class="rcb-card-body">
+<?php if ($showFacts): ?>
+<aside class="rcb-card rcb-steckbrief<?= rcb_section_mark($kind . '.steckbrief') ?>"><div class="rcb-card-body">
 <h2><?= rcb_text($kind . '.steckbrief.titel', 'Steckbrief') ?></h2>
 <?php if ($track): ?>
 <?php
@@ -51,8 +53,9 @@ $statusInfo = rcb_track_status_labels()[(string)$track['status']] ?? null;
 <?php if ((string)$track['description'] !== ''): ?><dt>Hinweis</dt><dd><?= nl2br(rcb_h($track['description'])) ?></dd><?php endif; ?>
 </dl>
 <?php else: ?><p class="rcb-muted">Die Streckendaten werden im Adminbereich unter „Strecken“ gepflegt.</p><?php endif; ?>
-<p><a class="rcb-btn" href="#besuch"><?= rcb_text($kind . '.steckbrief.button', 'Anfahrt & Besuch') ?></a></p>
+<?php if (rcb_section_show($kind . '.anfahrt')): ?><p><a class="rcb-btn" href="#besuch"><?= rcb_text($kind . '.steckbrief.button', 'Anfahrt & Besuch') ?></a></p><?php endif; ?>
 </div></aside>
+<?php endif; ?>
 </div>
 <?php
     // Bis zu 12 Galeriebilder. Im Bearbeiten-Modus erscheint nach dem letzten Bild ein freies Feld zum Hinzufügen.
@@ -76,15 +79,19 @@ $statusInfo = rcb_track_status_labels()[(string)$track['status']] ?? null;
         }
         $gallery .= rcb_video_slot($key, $defaults['titel'] . ' – Video ' . $i);
     }
-    if ($gallery !== ''): ?>
+    if ($gallery !== '' && rcb_section_show($kind . '.galerie')): ?>
+<div class="<?= trim(rcb_section_mark($kind . '.galerie')) ?>">
 <h2 style="margin-top:34px"><?= rcb_text($kind . '.galerie.titel', 'Bilder & Videos') ?></h2>
 <div class="rcb-gallery"><?= $gallery ?></div>
 <div class="rcb-credit"><?= rcb_rich($kind . '.galerie.quelle', '<p>Fotos und Videos: RC Bande Zwickau e.V. · Luftbild: <a href="https://www.geodaten.sachsen.de/" target="_blank" rel="noopener">GeoSN</a>, <a href="https://www.govdata.de/dl-de/by-2-0" target="_blank" rel="noopener">dl-de/by-2-0</a></p>') ?></div>
+</div>
 <?php endif; ?>
-<div class="rcb-grid" id="besuch" style="margin-top:34px">
+<?php if (rcb_section_show($kind . '.anfahrt')): ?>
+<div class="rcb-grid<?= rcb_section_mark($kind . '.anfahrt') ?>" id="besuch" style="margin-top:34px">
 <article class="rcb-card"><div class="rcb-card-body"><?= rcb_rich('strecken.hinweis', '<h2>Wichtig vor dem Besuch</h2><ul><li>Trainiert werden kann fast immer – nach Absprache und unter Einhaltung der Fahrzeiten.</li><li>Organisierte Trainings finden bei passendem Wetter statt – bitte vorher anmelden.</li><li>Gastfahrer sind willkommen – bitte meldet euch vorher über <a href="/kontakt.php">Kontakt</a> oder Facebook.</li></ul>') ?></div></article>
 <article class="rcb-card"><div class="rcb-card-body"><?= rcb_rich($kind . '.anfahrt', $defaults['anfahrt']) ?></div></article>
 </div>
+<?php endif; ?>
 <?php $other = $kind === 'onroad' ? 'offroad' : 'onroad'; ?>
 <div class="rcb-rule-nav" style="margin-top:28px"><a class="rcb-btn rcb-btn-light" href="/#strecken">← Zur Startseite</a><?php if (rcb_page_published($other) || rcb_admin_viewer()): ?><a class="rcb-btn" href="/<?= $other ?>.php">Zur <?= $other === 'onroad' ? 'Onroad' : 'Offroad' ?>-Strecke →</a><?php endif; ?></div>
 </div></section>

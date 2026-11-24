@@ -15,9 +15,11 @@ echo rcb_page_hero('termine', 'Termine & Veranstaltungen', 'Rennen, Trainings un
 <?php if ($upcoming): ?><div class="rcb-events"><?php foreach ($upcoming as $event) { echo rcb_event_card($event, 'full'); } ?></div>
 <?php else: ?><div class="rcb-empty"><?= rcb_text('termine.kommend.leer', 'Aktuell sind keine kommenden Veranstaltungen veröffentlicht.') ?></div><?php endif; ?>
 </div></section>
-<section class="rcb-section" style="background:#eaf0f5"><div class="rcb-wrap">
+<?php if (rcb_section_show('termine.vergangen')): ?>
+<section class="rcb-section<?= rcb_section_mark('termine.vergangen') ?>" style="background:var(--rcb-tint)"><div class="rcb-wrap">
 <h2><?= rcb_text('termine.vergangen.titel', 'Vergangene Veranstaltungen') ?></h2>
 <?php if ($past): ?><div class="rcb-events"><?php foreach ($past as $event) { echo rcb_event_card($event, 'past'); } ?></div>
 <?php else: ?><p class="rcb-muted">Im Archiv sind noch keine vergangenen Veranstaltungen vorhanden.</p><?php endif; ?>
 </div></section>
+<?php endif; ?>
 <?php rcb_footer(); ?>

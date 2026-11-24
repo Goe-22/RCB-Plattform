@@ -45,3 +45,13 @@ document.addEventListener('click', async (event) => {
   const old = button.textContent; button.textContent = 'Kopiert ✓';
   setTimeout(() => { button.textContent = old; }, 2000);
 });
+
+// Design: Farbvorschau live aktualisieren
+document.querySelectorAll('.design-form input[type="color"]').forEach((input) => {
+  input.addEventListener('input', () => {
+    const code = input.parentElement.querySelector('code');
+    if (code) code.textContent = input.value;
+    const preview = document.querySelector('.design-preview');
+    if (preview) preview.style.setProperty(input.name === 'red' ? '--p-red' : '--p-blue', input.value);
+  });
+});

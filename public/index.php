@@ -29,8 +29,8 @@ rcb_header('home');
     <a class="rcb-btn" href="#strecken"><?= rcb_text('startseite.hero.button', 'Unsere Strecken entdecken') ?></a>
 </div></section>
 
-<?php if (rcb_filled('startseite.intro', '-')): ?>
-<section class="rcb-section"><div class="rcb-wrap">
+<?php if (rcb_filled('startseite.intro', '-') && rcb_section_show('home.intro')): ?>
+<section class="rcb-section<?= rcb_section_mark('home.intro') ?>"><div class="rcb-wrap">
     <?= rcb_rich('startseite.intro', '<h2>Liebe Besucher,</h2>
 <p><strong>willkommen auf der Webseite der RC Bande Zwickau e.V.</strong></p>
 <p>Wir sind ein gemeinnütziger Verein zur Förderung des Modellbaus. Unter anderem haben wir das Ziel, Kindern und Jugendlichen eine sinnvolle Freizeitbeschäftigung zu bieten. Dank unserer zahlreichen Mitglieder haben wir ein weites Spektrum an Wissen im Bereich Modellbau, das an euch weitergegeben werden kann.</p>
@@ -40,8 +40,8 @@ rcb_header('home');
 </div></section>
 <?php endif; ?>
 
-<?php if ($newsCount > 0): ?>
-<section class="rcb-section" id="neuigkeiten" style="background:#eaf0f5"><div class="rcb-wrap">
+<?php if ($newsCount > 0 && rcb_section_show('home.neuigkeiten')): ?>
+<section class="rcb-section<?= rcb_section_mark('home.neuigkeiten') ?>" id="neuigkeiten" style="background:var(--rcb-tint)"><div class="rcb-wrap">
     <h2><?= rcb_text('startseite.news.titel', 'Neuigkeiten – hier hat sich was getan') ?></h2>
     <?php if ($feed): ?><div class="rcb-news-list">
         <?php foreach ($feed as $entry): $item = $entry['item']; ?>
@@ -64,22 +64,24 @@ rcb_header('home');
 </div></section>
 <?php endif; ?>
 
-<section class="rcb-section" id="strecken"><div class="rcb-wrap">
+<?php if (rcb_section_show('home.strecken')): ?>
+<section class="rcb-section<?= rcb_section_mark('home.strecken') ?>" id="strecken"><div class="rcb-wrap">
     <h2><?= rcb_text('startseite.strecken.titel', 'Unsere Strecken') ?></h2>
     <p class="rcb-muted"><?= rcb_text('startseite.strecken.text', 'Zwei Strecken an der Reichenbacher Straße – mitten in Zwickau.') ?></p>
     <div class="rcb-track-tiles">
     <?php foreach (['onroad' => ['Onroad', 'Asphalt · 210 m · Tourenwagen 1:10'], 'offroad' => ['Offroad', 'Kunstrasen · 270 m · Buggys bis 1:8']] as $kind => [$label, $line]): ?>
     <?php if (!rcb_page_published($kind) && !rcb_admin_viewer()) { continue; } ?>
-        <a class="rcb-track-tile" href="/<?= $kind ?>.php"<?= rcb_img_attr('strecke.' . $kind . '.bild') ?> style="background-image:linear-gradient(180deg,rgba(4,29,58,0) 35%,rgba(4,29,58,.88)),url('<?= rcb_h(rcb_track_image($kind)) ?>')">
+        <a class="rcb-track-tile" href="/<?= $kind ?>.php"<?= rcb_img_attr('strecke.' . $kind . '.bild') ?> style="background-image:linear-gradient(180deg,rgba(0,0,0,0) 35%,var(--rcb-ov3,rgba(4,29,58,.88))),url('<?= rcb_h(rcb_track_image($kind)) ?>')">
             <span class="rcb-track-tile-text"><strong><?= rcb_text('startseite.' . $kind . '.titel', $label) ?></strong><span><?= rcb_text('startseite.' . $kind . '.text', $line) ?></span></span>
             <span class="rcb-btn"><?= rcb_text('startseite.' . $kind . '.button', 'Strecke & Daten ansehen') ?></span>
         </a>
     <?php endforeach; ?>
     </div>
 </div></section>
+<?php endif; ?>
 
-<?php if ($eventsCount > 0): ?>
-<section class="rcb-section" style="background:#eaf0f5"><div class="rcb-wrap">
+<?php if ($eventsCount > 0 && rcb_section_show('home.termine')): ?>
+<section class="rcb-section<?= rcb_section_mark('home.termine') ?>" style="background:var(--rcb-tint)"><div class="rcb-wrap">
     <h2><?= rcb_text('startseite.termine.titel', 'Kommende Termine') ?></h2>
     <p class="rcb-muted"><?= rcb_text('startseite.termine.text', 'Rennen, Trainings und Vereinsveranstaltungen.') ?></p>
     <?php if ($events): ?><div class="rcb-events"><?php foreach ($events as $event) { echo rcb_event_card($event, 'compact'); } ?></div>
@@ -88,8 +90,8 @@ rcb_header('home');
 </div></section>
 <?php endif; ?>
 
-<?php if ($sponsors): ?>
-<section class="rcb-section"><div class="rcb-wrap">
+<?php if ($sponsors && rcb_section_show('home.sponsoren')): ?>
+<section class="rcb-section<?= rcb_section_mark('home.sponsoren') ?>"><div class="rcb-wrap">
     <h2><?= rcb_text('startseite.sponsoren.titel', 'Unsere Unterstützer') ?></h2><div class="rcb-grid">
     <?php foreach ($sponsors as $sponsor): ?>
         <article class="rcb-card"><div class="rcb-card-body">

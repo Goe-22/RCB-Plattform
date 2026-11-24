@@ -51,3 +51,25 @@ function rcb_track_status_labels(): array
 {
     return ['open' => ['Geöffnet', 'open'], 'closed' => ['Geschlossen', 'closed'], 'maintenance' => ['Wartung / Umbau', 'maintenance'], 'winter' => ['Winterpause', 'closed']];
 }
+
+
+/** Ist das ein erlaubter PayPal-Link (paypal.me oder paypal.com, nur https)? */
+function rcb_track_pay_url_ok(string $url): bool
+{
+    return (bool)preg_match('#^https://(www\.)?(paypal\.me|paypal\.com)/[^\s"<>]*$#i', $url);
+}
+
+/** Bezahl-Links einer Strecke: Liste von ['label' => …, 'url' => …], höchstens zwei. */
+function rcb_track_pay_links(array $track): array
+{
+    $list = json_decode((string)($track['pay_json'] ?? ''), true);
+    $out = [];
+    foreach (is_array($list) ? $list : [] as $item) {
+        $url = trim((string)($item['url'] ?? ''));
+        if ($url !== '' && rcb_track_pay_url_ok($url)) {
+            $label = trim((string)($item['label'] ?? ''));
+            $out[] = ['label' => $label !== '' ? $label : 'Tagesgebühr mit PayPal bezahlen', 'url' => $url];
+        }
+    }
+    return array_slice($out, 0, 2);
+}

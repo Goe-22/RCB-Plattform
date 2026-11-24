@@ -50,9 +50,11 @@ $statusInfo = rcb_track_status_labels()[(string)$track['status']] ?? null;
 <?php if ($equipment): ?><dt>Ausstattung</dt><dd><?= rcb_h(implode(', ', $equipment)) ?></dd><?php endif; ?>
 <?php if ((string)($track['driving_times'] ?? '') !== ''): ?><dt>Fahrzeiten</dt><dd><?= nl2br(rcb_h($track['driving_times'])) ?></dd><?php endif; ?>
 <?php if ($guest !== ''): ?><dt>Fahren als Gast</dt><dd><?= rcb_h($guest) ?><?php if ((string)($track['guest_note'] ?? '') !== ''): ?><br><span class="rcb-muted"><?= rcb_h($track['guest_note']) ?></span><?php endif; ?></dd><?php endif; ?>
+<?php if ((string)($track['day_fee'] ?? '') !== ''): ?><dt>Tagesgebühr</dt><dd><?= rcb_h($track['day_fee']) ?></dd><?php endif; ?>
 <?php if ((string)$track['description'] !== ''): ?><dt>Hinweis</dt><dd><?= nl2br(rcb_h($track['description'])) ?></dd><?php endif; ?>
 </dl>
 <?php else: ?><p class="rcb-muted">Die Streckendaten werden im Adminbereich unter „Strecken“ gepflegt.</p><?php endif; ?>
+<?php $payLinks = rcb_track_pay_links($track); if ($payLinks): ?><div class="rcb-pay"><?php foreach ($payLinks as $pl): ?><a class="rcb-btn rcb-btn-pay" href="<?= rcb_h($pl['url']) ?>" target="_blank" rel="noopener"><?= rcb_h($pl['label']) ?></a><?php endforeach; ?><?php if ((string)($track['pay_note'] ?? '') !== ''): ?><p class="rcb-muted"><?= rcb_h($track['pay_note']) ?></p><?php endif; ?><p class="rcb-pay-info">Zahlung über PayPal – du verlässt dafür unsere Webseite.</p></div><?php endif; ?>
 <?php if (rcb_section_show($kind . '.anfahrt')): ?><p><a class="rcb-btn" href="#besuch"><?= rcb_text($kind . '.steckbrief.button', 'Anfahrt & Besuch') ?></a></p><?php endif; ?>
 </div></aside>
 <?php endif; ?>

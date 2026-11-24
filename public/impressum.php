@@ -19,5 +19,10 @@ rcb_header();
 <h3>Streckengelände</h3>
 <p>Reichenbacher Straße 125A<br>08056 Zwickau</p>
 HTML) ?>
+<?= rcb_rich('impressum.bildnachweis', <<<'HTML'
+<h3>Bildnachweis</h3>
+<p>Fotos: RC Bande Zwickau e.V.</p>
+<p>Luftbilder der Strecken: Landesamt für Geobasisinformation Sachsen (GeoSN), Digitale Orthophotos (DOP20), <a href="https://www.govdata.de/dl-de/by-2-0" target="_blank" rel="noopener">Datenlizenz Deutschland – Namensnennung – Version 2.0</a>. Die Bildausschnitte wurden zugeschnitten.</p>
+HTML) ?>
 </div></section>
 <?php rcb_footer(); ?>

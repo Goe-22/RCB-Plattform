@@ -54,6 +54,7 @@ function rcb_track_page(string $kind): void
     if ($gallery !== ''): ?>
 <h2 style="margin-top:34px"><?= rcb_text($kind . '.galerie.titel', 'Bilder') ?></h2>
 <div class="rcb-gallery"><?= $gallery ?></div>
+<div class="rcb-credit"><?= rcb_rich($kind . '.galerie.quelle', '<p>Fotos: RC Bande Zwickau e.V. · Luftbild: <a href="https://www.geodaten.sachsen.de/" target="_blank" rel="noopener">GeoSN</a>, <a href="https://www.govdata.de/dl-de/by-2-0" target="_blank" rel="noopener">dl-de/by-2-0</a></p>') ?></div>
 <?php endif; ?>
 <div class="rcb-grid" id="besuch" style="margin-top:34px">
 <article class="rcb-card"><div class="rcb-card-body"><?= rcb_rich('strecken.hinweis', '<h2>Wichtig vor dem Besuch</h2><ul><li>Trainiert werden kann fast immer – nach Absprache und unter Einhaltung der Fahrzeiten.</li><li>Organisierte Trainings finden bei passendem Wetter statt – bitte vorher anmelden.</li><li>Gastfahrer sind willkommen – bitte meldet euch vorher über <a href="/kontakt.php">Kontakt</a> oder Facebook.</li></ul>') ?></div></article>

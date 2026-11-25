@@ -65,6 +65,7 @@ final class DatabaseSchema
             'day_fee' => ["VARCHAR(120) NOT NULL DEFAULT ''", "TEXT DEFAULT ''"],
             'pay_json' => ["MEDIUMTEXT NULL", "TEXT DEFAULT ''"],
             'pay_note' => ["VARCHAR(255) NOT NULL DEFAULT ''", "TEXT DEFAULT ''"],
+            'facts_json' => ["MEDIUMTEXT NULL", "TEXT DEFAULT ''"],
             'driving_times' => ["MEDIUMTEXT NULL", "TEXT DEFAULT ''"],
             'updated_at' => ["TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP", "TEXT DEFAULT CURRENT_TIMESTAMP"],
         ],

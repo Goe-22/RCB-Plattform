@@ -73,3 +73,30 @@ function rcb_track_pay_links(array $track): array
     }
     return array_slice($out, 0, 3);
 }
+
+
+/** Standard-Zeilen des Steckbriefs (Schlüssel => Bezeichnung), in Anzeigereihenfolge. */
+function rcb_track_fact_fields(): array
+{
+    return [
+        'length' => 'Länge', 'surface' => 'Belag', 'classes' => 'Maßstab / Klassen', 'custom' => 'Eigene Zeilen',
+        'driver_spots' => 'Fahrerstand', 'equipment' => 'Ausstattung', 'driving_times' => 'Fahrzeiten',
+        'guest' => 'Fahren als Gast', 'day_fee' => 'Tagesgebühr', 'description' => 'Hinweis',
+    ];
+}
+
+/** Steckbrief-Einstellungen: ['custom' => [[label, value, show]], 'hide' => [Standard-Schlüssel]] */
+function rcb_track_facts(array $track): array
+{
+    $data = json_decode((string)($track['facts_json'] ?? ''), true);
+    $custom = [];
+    foreach ((is_array($data) && is_array($data['custom'] ?? null)) ? $data['custom'] : [] as $row) {
+        $label = trim((string)($row['label'] ?? ''));
+        $value = trim((string)($row['value'] ?? ''));
+        if ($label !== '' || $value !== '') {
+            $custom[] = ['label' => $label, 'value' => $value, 'show' => !empty($row['show'])];
+        }
+    }
+    $hide = (is_array($data) && is_array($data['hide'] ?? null)) ? array_values(array_intersect(array_keys(rcb_track_fact_fields()), $data['hide'])) : [];
+    return ['custom' => $custom, 'hide' => $hide];
+}

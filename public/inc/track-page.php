@@ -42,16 +42,27 @@ $guest = rcb_track_guest_modes()[(string)($track['guest_mode'] ?? '')] ?? '';
 $statusInfo = rcb_track_status_labels()[(string)$track['status']] ?? null;
 ?>
 <?php if ((int)$track['show_status'] === 1 && $statusInfo): ?><p class="rcb-track-status rcb-track-status-<?= rcb_h($statusInfo[1]) ?>"><span class="rcb-track-dot"></span><?= rcb_h($statusInfo[0]) ?><?php if ((string)($track['status_note'] ?? '') !== ''): ?><small><?= rcb_h($track['status_note']) ?></small><?php endif; ?></p><?php endif; ?>
+<?php
+$facts = rcb_track_facts($track);
+$rows = [];
+$add = static function (string $key, string $label, string $html) use (&$rows, $facts): void {
+    if ($html !== '' && !in_array($key, $facts['hide'], true)) { $rows[] = [$label, $html]; }
+};
+$add('length', 'Länge', rcb_h((string)$track['length']));
+$add('surface', 'Belag', rcb_h((string)$track['surface']));
+$add('classes', 'Maßstab / Klassen', rcb_h((string)$track['classes']));
+if (!in_array('custom', $facts['hide'], true)) {
+    foreach ($facts['custom'] as $f) { if ($f['show'] && $f['value'] !== '') { $rows[] = [$f['label'], nl2br(rcb_h($f['value']))]; } }
+}
+$add('driver_spots', 'Fahrerstand', rcb_h((string)($track['driver_spots'] ?? '')));
+$add('equipment', 'Ausstattung', rcb_h(implode(', ', $equipment)));
+$add('driving_times', 'Fahrzeiten', nl2br(rcb_h((string)($track['driving_times'] ?? ''))));
+$add('guest', 'Fahren als Gast', $guest === '' ? '' : rcb_h($guest) . ((string)($track['guest_note'] ?? '') !== '' ? '<br><span class="rcb-muted">' . rcb_h($track['guest_note']) . '</span>' : ''));
+$add('day_fee', 'Tagesgebühr', rcb_h((string)($track['day_fee'] ?? '')));
+$add('description', 'Hinweis', nl2br(rcb_h((string)$track['description'])));
+?>
 <dl>
-<?php if ((string)$track['length'] !== ''): ?><dt>Länge</dt><dd><?= rcb_h($track['length']) ?></dd><?php endif; ?>
-<?php if ((string)$track['surface'] !== ''): ?><dt>Belag</dt><dd><?= rcb_h($track['surface']) ?></dd><?php endif; ?>
-<?php if ((string)$track['classes'] !== ''): ?><dt>Maßstab / Klassen</dt><dd><?= rcb_h($track['classes']) ?></dd><?php endif; ?>
-<?php if ((string)($track['driver_spots'] ?? '') !== ''): ?><dt>Fahrerstand</dt><dd><?= rcb_h($track['driver_spots']) ?></dd><?php endif; ?>
-<?php if ($equipment): ?><dt>Ausstattung</dt><dd><?= rcb_h(implode(', ', $equipment)) ?></dd><?php endif; ?>
-<?php if ((string)($track['driving_times'] ?? '') !== ''): ?><dt>Fahrzeiten</dt><dd><?= nl2br(rcb_h($track['driving_times'])) ?></dd><?php endif; ?>
-<?php if ($guest !== ''): ?><dt>Fahren als Gast</dt><dd><?= rcb_h($guest) ?><?php if ((string)($track['guest_note'] ?? '') !== ''): ?><br><span class="rcb-muted"><?= rcb_h($track['guest_note']) ?></span><?php endif; ?></dd><?php endif; ?>
-<?php if ((string)($track['day_fee'] ?? '') !== ''): ?><dt>Tagesgebühr</dt><dd><?= rcb_h($track['day_fee']) ?></dd><?php endif; ?>
-<?php if ((string)$track['description'] !== ''): ?><dt>Hinweis</dt><dd><?= nl2br(rcb_h($track['description'])) ?></dd><?php endif; ?>
+<?php foreach ($rows as [$label, $html]): ?><dt><?= rcb_h($label) ?></dt><dd><?= $html ?></dd><?php endforeach; ?>
 </dl>
 <?php else: ?><p class="rcb-muted">Die Streckendaten werden im Adminbereich unter „Strecken“ gepflegt.</p><?php endif; ?>
 <?php $payLinks = rcb_track_pay_links($track); if ($payLinks): ?><div class="rcb-pay"><?php foreach ($payLinks as $pl): ?><a class="rcb-btn rcb-btn-pay" href="<?= rcb_h($pl['url']) ?>" target="_blank" rel="noopener"><?= rcb_h($pl['label']) ?></a><?php endforeach; ?><?php if ((string)($track['pay_note'] ?? '') !== ''): ?><p class="rcb-muted"><?= rcb_h($track['pay_note']) ?></p><?php endif; ?><p class="rcb-pay-info">Zahlung über PayPal – du verlässt dafür unsere Webseite.</p></div><?php endif; ?>

@@ -55,3 +55,30 @@ document.querySelectorAll('.design-form input[type="color"]').forEach((input) =>
     if (preview) preview.style.setProperty(input.name === 'red' ? '--p-red' : '--p-blue', input.value);
   });
 });
+
+
+// Strecken: eigene Steckbrief-Zeilen hinzufügen, sortieren, entfernen, ein-/ausblenden
+document.querySelectorAll('[data-facts]').forEach((list) => {
+  const form = list.closest('form');
+  form.querySelector('[data-fact-add]')?.addEventListener('click', () => {
+    const row = list.querySelector('.fact-row').cloneNode(true);
+    row.querySelectorAll('input[name="fact_label[]"], input[name="fact_value[]"]').forEach((i) => { i.value = ''; });
+    row.querySelector('input[name="fact_show[]"]').value = '1';
+    row.querySelector('[data-fact-show]').checked = true;
+    list.append(row);
+    row.querySelector('input[name="fact_label[]"]').focus();
+  });
+  list.addEventListener('click', (e) => {
+    const row = e.target.closest('.fact-row');
+    if (!row) return;
+    if (e.target.closest('[data-fact-up]') && row.previousElementSibling) row.previousElementSibling.before(row);
+    if (e.target.closest('[data-fact-down]') && row.nextElementSibling) row.nextElementSibling.after(row);
+    if (e.target.closest('[data-fact-del]')) {
+      if (list.querySelectorAll('.fact-row').length > 1) row.remove();
+      else row.querySelectorAll('input[name="fact_label[]"], input[name="fact_value[]"]').forEach((i) => { i.value = ''; });
+    }
+  });
+  list.addEventListener('change', (e) => {
+    if (e.target.matches('[data-fact-show]')) e.target.closest('.fact-row').querySelector('input[name="fact_show[]"]').value = e.target.checked ? '1' : '0';
+  });
+});

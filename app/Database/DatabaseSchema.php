@@ -37,6 +37,7 @@ final class DatabaseSchema
             'track_id' => ["INT UNSIGNED NULL", "INTEGER"],
             'registration_url' => ["VARCHAR(1000) NOT NULL DEFAULT ''", "TEXT DEFAULT ''"],
             'announcement_url' => ["VARCHAR(1000) NOT NULL DEFAULT ''", "TEXT DEFAULT ''"],
+            'results_url' => ["VARCHAR(1000) NOT NULL DEFAULT ''", "TEXT DEFAULT ''"],
             'announcement_text' => ["MEDIUMTEXT NULL", "TEXT DEFAULT ''"],
             'classes_json' => ["MEDIUMTEXT NULL", "TEXT DEFAULT ''"],
             'location' => ["VARCHAR(255) NOT NULL DEFAULT ''", "TEXT DEFAULT ''"],

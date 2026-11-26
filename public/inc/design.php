@@ -73,6 +73,7 @@ function rcb_design_sections(): array
         'onroad' => $track,
         'offroad' => $track,
         'termine' => ['vergangen' => 'Vergangene Termine'],
+        'ergebnisse' => ['veranstaltungen' => 'Ergebnisse unserer Veranstaltungen (automatisch)', 'archiv' => 'Ergebnis-Liste (von Hand gepflegt)'],
         'kontakt' => ['bildquelle' => 'Bildquelle unter den Kästen'],
     ];
 }

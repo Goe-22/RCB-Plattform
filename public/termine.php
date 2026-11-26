@@ -5,7 +5,11 @@ require_once __DIR__ . '/inc/bootstrap.php';
 $lastDay = "CASE WHEN end_date IS NOT NULL AND CAST(end_date AS CHAR) <> '' THEN end_date ELSE event_date END";
 $noDate = "(event_date IS NULL OR CAST(event_date AS CHAR) = '')";
 $upcoming = rcb_rows("SELECT * FROM events WHERE published = 1 AND ($noDate OR $lastDay >= ?) ORDER BY CASE WHEN $noDate THEN 1 ELSE 0 END, event_date ASC, start_time ASC", [rcb_today()]);
-$past = rcb_rows("SELECT * FROM events WHERE published = 1 AND NOT $noDate AND $lastDay < ? ORDER BY event_date DESC, start_time DESC LIMIT 30", [rcb_today()]);
+// Vergangene Termine: Anzahl und Zeitraum stellt man im Admin unter „Termine“ ein (Standard: 12 Termine aus 12 Monaten).
+$pastMax = max(0, min(100, (int)rcb_setting('past_events_max', '12')));
+$pastMonths = max(0, min(120, (int)rcb_setting('past_events_months', '12')));
+$pastFrom = $pastMonths > 0 ? date('Y-m-d', strtotime('-' . $pastMonths . ' months')) : '0000-00-00';
+$past = $pastMax > 0 ? rcb_rows("SELECT * FROM events WHERE published = 1 AND NOT $noDate AND $lastDay < ? AND $lastDay >= ? ORDER BY event_date DESC, start_time DESC LIMIT " . $pastMax, [rcb_today(), $pastFrom]) : [];
 rcb_header('events');
 echo rcb_page_hero('termine', 'Termine & Veranstaltungen', 'Rennen, Trainings und Vereinsaktivitäten der RC Bande Zwickau.');
 ?>

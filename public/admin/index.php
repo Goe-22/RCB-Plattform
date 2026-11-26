@@ -415,7 +415,7 @@ function admin_draft_banner(PDO $db, string $returnPage, string $previewUrl, boo
         . '<form method="post" data-confirm="Alle unveröffentlichten Änderungen verwerfen?">' . $hidden . '<input type="hidden" name="action" value="discard_drafts"><button class="danger" type="submit">Entwurf verwerfen</button></form></div></section>';
 }
 function admin_area_for_action(string $action): string {
-    $map = ['save_event'=>'events','delete_event'=>'events','save_track'=>'tracks','delete_track'=>'tracks','save_page'=>'pages','delete_page'=>'pages','save_sponsor'=>'sponsors','delete_sponsor'=>'sponsors','upload_media'=>'media','delete_media'=>'media','save_result'=>'results','delete_result'=>'results','save_news'=>'news','delete_news'=>'news','save_settings'=>'settings','toggle_user'=>'users','delete_user'=>'users','backup_export'=>'backup','page_visibility'=>'pages','page_move'=>'pages','rule_class_add'=>'reglement','rule_class_move'=>'reglement','rule_class_toggle'=>'reglement','rule_class_delete'=>'reglement','delete_site_update'=>'news','custom_page_add'=>'pages','custom_page_menu'=>'pages','clear_site_updates'=>'news','toggle_auto_updates'=>'news','create_invite'=>'users','save_membership'=>'membership','save_design'=>'design','reset_design'=>'design','request_status'=>'requests','request_delete'=>'requests','file_upload'=>'files','file_delete'=>'files','file_toggle'=>'files','file_move'=>'files','update_user'=>'users','create_reset_link'=>'users','revoke_token'=>'users'];
+    $map = ['save_event'=>'events','save_event_settings'=>'events','delete_event'=>'events','save_track'=>'tracks','delete_track'=>'tracks','save_page'=>'pages','delete_page'=>'pages','save_sponsor'=>'sponsors','delete_sponsor'=>'sponsors','upload_media'=>'media','delete_media'=>'media','save_result'=>'results','delete_result'=>'results','save_news'=>'news','delete_news'=>'news','save_settings'=>'settings','toggle_user'=>'users','delete_user'=>'users','backup_export'=>'backup','page_visibility'=>'pages','page_move'=>'pages','rule_class_add'=>'reglement','rule_class_move'=>'reglement','rule_class_toggle'=>'reglement','rule_class_delete'=>'reglement','delete_site_update'=>'news','custom_page_add'=>'pages','custom_page_menu'=>'pages','clear_site_updates'=>'news','toggle_auto_updates'=>'news','create_invite'=>'users','save_membership'=>'membership','save_design'=>'design','reset_design'=>'design','request_status'=>'requests','request_delete'=>'requests','file_upload'=>'files','file_delete'=>'files','file_toggle'=>'files','file_move'=>'files','update_user'=>'users','create_reset_link'=>'users','revoke_token'=>'users'];
     return $map[$action] ?? 'dashboard';
 }
 
@@ -840,6 +840,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $registration = admin_url_or_empty(post_string('registration_url', 1000), 'Link zur Nennung');
                 $announcementUrl = admin_url_or_empty(post_string('announcement_url', 1000), 'Link zur Ausschreibung');
+                $resultsUrl = admin_url_or_empty(post_string('results_url', 1000), 'Link zu den Ergebnissen');
                 $old = null;
                 if ($id > 0) { $stmt = $db->prepare('SELECT announcement_url FROM events WHERE id = ?'); $stmt->execute([$id]); $old = $stmt->fetchColumn(); }
                 $oldPdf = is_string($old) && str_starts_with($old, '/uploads/ausschreibungen/') ? $old : '';
@@ -858,9 +859,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $values = [$title, post_string('description', 5000), $eventDate !== '' ? $eventDate : null, $endDate !== '' ? $endDate : null, $startTime !== '' ? $startTime : null, $location, $registration, $announcementUrl, post_string('announcement_text', 30000), json_encode($classes, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), isset($_POST['published']) ? 1 : 0];
                 if ($id > 0) {
-                    $db->prepare('UPDATE events SET title=?, description=?, event_date=?, end_date=?, start_time=?, location=?, registration_url=?, announcement_url=?, announcement_text=?, classes_json=?, published=?, track_id=?, updated_at=CURRENT_TIMESTAMP WHERE id=?')->execute([...array_slice($values, 0, 11), $trackId, $id]);
+                    $db->prepare('UPDATE events SET title=?, description=?, event_date=?, end_date=?, start_time=?, location=?, registration_url=?, announcement_url=?, announcement_text=?, classes_json=?, published=?, track_id=?, results_url=?, updated_at=CURRENT_TIMESTAMP WHERE id=?')->execute([...array_slice($values, 0, 11), $trackId, $resultsUrl, $id]);
                 } else {
-                    $db->prepare('INSERT INTO events (title, description, event_date, end_date, start_time, location, registration_url, announcement_url, announcement_text, classes_json, published, track_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')->execute([...$values, $trackId]);
+                    $db->prepare('INSERT INTO events (title, description, event_date, end_date, start_time, location, registration_url, announcement_url, announcement_text, classes_json, published, track_id, results_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')->execute([...$values, $trackId, $resultsUrl]);
                     $newId = (int)$db->lastInsertId();
                     if ($values[10] === 1 && !in_array('termine', rcb_hidden_pages(admin_setting($db, 'pages_hidden', '[]'), admin_setting($db, 'live_enabled', '0')), true)) {
                         add_site_update($db, 'Neuer Termin: ' . $title . ($eventDate !== '' ? ' am ' . date('d.m.Y', strtotime($eventDate)) : ''), '/termine.php#termin-' . $newId);
@@ -908,6 +909,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 admin_set_setting($db, 'design', json_encode($reset, JSON_UNESCAPED_SLASHES));
                 log_action($db, $uid, 'design_reset', post_string('what', 20));
                 redirect_to('design', 'Auf die Vereinsfarben zurückgesetzt');
+            }
+            if ($action === 'save_event_settings') {
+                $max = max(0, min(100, (int)($_POST['past_events_max'] ?? 12)));
+                $months = max(0, min(120, (int)($_POST['past_events_months'] ?? 12)));
+                admin_set_setting($db, 'past_events_max', (string)$max);
+                admin_set_setting($db, 'past_events_months', (string)$months);
+                log_action($db, $uid, 'event_settings', "Vergangene Termine: max $max, $months Monate");
+                redirect_to('events', 'Einstellungen gespeichert');
             }
             if ($action === 'save_track') {
                 $id = (int)($_POST['id'] ?? 0);
@@ -1641,7 +1650,7 @@ if ($loggedIn) {
 <section class="card"><h2>Backup herunterladen</h2><p>Der Export enthält Tabellenstruktur und gespeicherte Daten der SQLite-Datenbank. Die Datei wird direkt erzeugt und nicht öffentlich auf dem Webserver abgelegt.</p><div class="notice">Wichtig: Bewahre die Datei sicher auf, da sie personenbezogene Verwaltungsdaten und Zugangsdaten-Hashes enthalten kann. Ein Import ist nur in eine frische/leere SQLite-Datenbank vorgesehen. Die Wiederherstellung erfolgt über den Hosting-Anbieter oder eine lokale SQLite-Umgebung; es gibt bewusst keinen öffentlich erreichbaren Restore-Upload.</div><form method="post" class="stack" style="margin-top:18px"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="backup_export"><button type="submit">SQL-Backup herunterladen</button></form></section>
 <?php elseif ($page === 'events'): ?>
 <?php
-$item = $editItem ?: ['id'=>0,'title'=>'','description'=>'','event_date'=>'','end_date'=>'','start_time'=>'','location'=>'','registration_url'=>'','announcement_url'=>'','announcement_text'=>'','classes_json'=>'[]','published'=>0];
+$item = $editItem ?: ['id'=>0,'title'=>'','description'=>'','event_date'=>'','end_date'=>'','start_time'=>'','location'=>'','registration_url'=>'','announcement_url'=>'','announcement_text'=>'','classes_json'=>'[]','published'=>0,'results_url'=>''];
 $rows = $db->query('SELECT * FROM events ORDER BY event_date DESC, id DESC')->fetchAll();
 $uploadedPdf = str_starts_with((string)$item['announcement_url'], '/uploads/ausschreibungen/') ? (string)$item['announcement_url'] : '';
 $eventClasses = json_decode((string)($item['classes_json'] ?? '[]'), true);
@@ -1671,6 +1680,7 @@ $classRow = static fn(int $i, array $c): string => '<div class="class-row"><inpu
 <?php if ($uploadedPdf !== ''): ?><p class="hint">Aktuell: <a href="<?= h($uploadedPdf) ?>" target="_blank" rel="noopener">hochgeladene Ausschreibung (PDF)</a> – bleibt erhalten, solange du nichts anderes einträgst.</p><label class="check"><input type="checkbox" name="remove_announcement" value="1"> PDF entfernen</label><?php endif; ?>
 <label for="announcement_text">oder Ausschreibungstext</label><textarea id="announcement_text" name="announcement_text" maxlength="30000" rows="5" placeholder="Wird auf der Terminseite zum Aufklappen angezeigt."><?= h($item['announcement_text'] ?? '') ?></textarea>
 </fieldset>
+<fieldset><legend>Ergebnisse</legend><label for="results_url">Link zu den Ergebnissen</label><input id="results_url" name="results_url" type="url" maxlength="1000" placeholder="https://www.myrcm.ch/… (nach dem Rennen eintragen)" value="<?= h($item['results_url'] ?? '') ?>"><p class="hint">Sobald der Termin vorbei ist, erscheint er automatisch oben auf der Seite „Ergebnisse“ – mit diesem Link als Knopf. Ohne Link steht dort bei Rennen bis 3 Wochen nach dem Termin „Ergebnisse folgen“.</p></fieldset>
 <fieldset><legend>Klassen</legend><p class="hint">Ausgeschriebene Klassen. Stimmt der Name mit einer Reglement-Klasse überein, wird das Regelwerk automatisch verlinkt. Leere Zeilen werden ignoriert.</p>
 <datalist id="rule-classes"><?php foreach ($ruleTitles as $t): ?><option value="<?= h($t) ?>"><?php endforeach; ?></datalist>
 <div id="class-rows"><?php foreach ($classRows as $i => $c) { echo $classRow($i, $c); } ?></div>
@@ -1680,6 +1690,11 @@ $classRow = static fn(int $i, array $c): string => '<div class="class-row"><inpu
 <label class="check"><input type="checkbox" name="published" value="1"<?= checked($item['published']) ?>> Veröffentlicht</label>
 <div class="form-actions"><button type="submit">Speichern</button><?php if ($editItem): ?><a class="button secondary" href="<?= h($script) ?>?page=events">Abbrechen</a><?php endif; ?></div></form></section>
 <section class="card"><h2>Vorhandene Termine</h2><div class="table-wrap"><table class="table"><thead><tr><th>Termin</th><th>Status</th><th>Aktion</th></tr></thead><tbody><?php foreach ($rows as $row): $rc = json_decode((string)($row['classes_json'] ?? ''), true); ?><tr><td><strong><?= h($row['title']) ?></strong><br><span class="muted"><?= h($row['event_date'] ? date('d.m.Y', strtotime((string)$row['event_date'])) : 'ohne Datum') ?><?= !empty($row['end_date']) ? '–' . h(date('d.m.Y', strtotime((string)$row['end_date']))) : '' ?></span><br><?php if (!empty($row['registration_url'])): ?><span class="badge">Nennung</span> <?php endif; ?><?php if (!empty($row['announcement_url']) || !empty($row['announcement_text'])): ?><span class="badge">Ausschreibung</span> <?php endif; ?><?php if (is_array($rc) && $rc): ?><span class="badge"><?= count($rc) ?> <?= count($rc) === 1 ? 'Klasse' : 'Klassen' ?></span><?php endif; ?></td><td><span class="badge <?= $row['published'] ? 'yes' : 'no' ?>"><?= $row['published'] ? 'Veröffentlicht' : 'Entwurf' ?></span></td><td class="actions"><a class="button secondary" href="<?= h($script) ?>?page=events&amp;edit=<?= (int)$row['id'] ?>">Bearbeiten</a><form method="post" data-confirm="Diesen Termin wirklich löschen?"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="delete_event"><input type="hidden" name="id" value="<?= (int)$row['id'] ?>"><button class="danger" type="submit">Löschen</button></form></td></tr><?php endforeach; ?><?php if (!$rows): ?><tr><td colspan="3" class="empty">Noch keine Termine angelegt.</td></tr><?php endif; ?></tbody></table></div></section></div>
+<?php $pastMax = (int)admin_setting($db, 'past_events_max', '12'); $pastMonths = (int)admin_setting($db, 'past_events_months', '12'); ?>
+<section class="card" style="margin-top:22px"><h2>Vergangene Veranstaltungen auf der Terminseite</h2><form method="post" class="stack"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="save_event_settings">
+<div class="field-row"><div><label for="past_events_max">Höchstens anzeigen</label><input id="past_events_max" name="past_events_max" type="number" min="0" max="100" value="<?= $pastMax ?>"></div><div><label for="past_events_months">Zeitraum in Monaten</label><input id="past_events_months" name="past_events_months" type="number" min="0" max="120" value="<?= $pastMonths ?>"></div></div>
+<p class="hint">Zeigt die neuesten vergangenen Termine, die nicht älter als der Zeitraum sind. 0 Monate = ohne zeitliche Grenze, 0 Termine = Bereich bleibt leer. Die Termine selbst werden nicht gelöscht.</p>
+<div class="form-actions"><button type="submit">Speichern</button></div></form></section>
 <?php elseif ($page === 'design'): ?>
 <?php
 $design = rcb_design_from_json((string)($db->query("SELECT setting_value FROM settings WHERE setting_key='design'")->fetchColumn() ?: ''));
@@ -1688,7 +1703,7 @@ $designPages = [];
 foreach (rcb_site_pages() as $slug => [$label]) { if (!in_array($slug, ['live', 'downloads'], true)) { $designPages[$slug] = $label; } }
 foreach ($db->query('SELECT slug, title FROM pages ORDER BY title')->fetchAll() as $cp) { $designPages['seite:' . $cp['slug']] = 'Eigene Seite: ' . $cp['title']; }
 $bgImages = $db->query("SELECT filename, title FROM media WHERE published = 1 AND category <> 'video' ORDER BY id DESC")->fetchAll();
-$sectionLabels = ['home' => 'Startseite', 'onroad' => 'Onroad-Strecke', 'offroad' => 'Offroad-Strecke', 'termine' => 'Termine', 'kontakt' => 'Kontakt'];
+$sectionLabels = ['home' => 'Startseite', 'onroad' => 'Onroad-Strecke', 'offroad' => 'Offroad-Strecke', 'termine' => 'Termine', 'ergebnisse' => 'Ergebnisse', 'kontakt' => 'Kontakt'];
 $contrast = static fn(string $hex): string => rcb_design_contrast_white($hex) < 4.5 ? '<p class="hint" style="color:#f6c76b">⚠ Weiße Schrift ist auf dieser Farbe schlecht lesbar (Kontrast ' . number_format(rcb_design_contrast_white($hex), 1, ',', '') . ':1, empfohlen mindestens 4,5:1). Bitte eine dunklere Farbe wählen.</p>' : '';
 ?>
 <div class="page-head"><div><p class="eyebrow">Website</p><h1>Design</h1><p>Farben, Schriftgröße, Hintergründe und sichtbare Abschnitte. Änderungen gelten sofort nach dem Speichern für die ganze Webseite. Texte selbst gestaltest du direkt auf der Seite: im Bearbeiten-Modus gibt es dafür Ausrichtung, Textgröße und Textfarben.</p></div></div>

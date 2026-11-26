@@ -151,8 +151,12 @@ function rcb_event_card(array $event, string $variant = 'full'): string
         $isPdf = str_ends_with(strtolower((string)parse_url($announcementUrl, PHP_URL_PATH)), '.pdf');
         $actions .= '<a class="rcb-btn rcb-btn-doc" href="' . rcb_h($announcementUrl) . '" target="_blank" rel="noopener"><span class="rcb-btn-icon" aria-hidden="true">📄</span><span>Ausschreibung<small>' . ($isPdf ? 'PDF öffnen' : 'öffnen ↗') . '</small></span></a>';
     }
+    $resultsUrl = (string)($event['results_url'] ?? '');
+    if ($variant === 'past' && rcb_safe_url($resultsUrl)) {
+        $actions .= '<a class="rcb-btn rcb-btn-result" href="' . rcb_h($resultsUrl) . '" target="_blank" rel="noopener noreferrer"><span class="rcb-btn-icon" aria-hidden="true">🏁</span><span>Ergebnisse<small>bei ' . rcb_h(rcb_link_label($resultsUrl)) . ' ↗</small></span></a>';
+    }
     if ($hasResult) {
-        $actions .= '<a class="rcb-btn rcb-btn-light" href="/ergebnisse.php#termin-' . (int)$event['id'] . '">Ergebnis</a>';
+        $actions .= '<a class="rcb-btn rcb-btn-light" href="/ergebnisse.php#bericht-' . (int)$event['id'] . '">Rennbericht</a>';
     }
     if ($variant === 'compact') {
         $actions .= '<a class="rcb-btn rcb-btn-light" href="/termine.php#termin-' . (int)$event['id'] . '">Details</a>';
@@ -187,4 +191,12 @@ function rcb_event_card(array $event, string $variant = 'full'): string
         $html .= '<div class="rcb-event-actions">' . $actions . '</div>';
     }
     return $html . '</article>';
+}
+
+
+/** War der Termin ein Rennen? (Klassen ausgeschrieben, Nennung, Ergebnis-Link oder Rennbericht vorhanden) */
+function rcb_event_is_race(array $event): bool
+{
+    return rcb_event_classes($event) !== [] || (string)($event['registration_url'] ?? '') !== ''
+        || (string)($event['results_url'] ?? '') !== '' || in_array((int)$event['id'], rcb_event_result_ids(), true);
 }

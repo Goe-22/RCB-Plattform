@@ -45,6 +45,7 @@ function rcb_db_write(callable $write): bool
 require_once __DIR__ . '/pages.php';
 require_once __DIR__ . '/tracks.php';
 require_once __DIR__ . '/design.php';
+require_once __DIR__ . '/notify.php';
 require_once __DIR__ . '/content.php';
 require_once __DIR__ . '/events.php';
 
@@ -422,6 +423,8 @@ function rcb_header(string $active = 'home'): void
 
 function rcb_footer(): void
 {
+    // Fällige Änderungs-Benachrichtigungen an Admins (höchstens einmal pro Minute geprüft, Fehler werden nur protokolliert).
+    rcb_db_write(static fn(PDO $db) => rcb_notify_dispatch($db));
     $email = rcb_setting('contact_email');
     $phone = rcb_setting('contact_phone');
     // Dateien, die dieser Seite zugeordnet sind, erscheinen automatisch unten auf der Seite.

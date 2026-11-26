@@ -20,6 +20,9 @@ final class DatabaseSchema
             'password_hash' => ["VARCHAR(255) NOT NULL", "TEXT NOT NULL"],
             'role' => ["VARCHAR(32) NOT NULL DEFAULT 'subadmin'", "TEXT NOT NULL DEFAULT 'subadmin'"],
             'permissions' => ["VARCHAR(500) NOT NULL DEFAULT '[]'", "TEXT NOT NULL DEFAULT '[]'"],
+            'notify_mode' => ["VARCHAR(20) NOT NULL DEFAULT ''", "TEXT DEFAULT ''"],
+            'notify_last_log_id' => ["INT UNSIGNED NOT NULL DEFAULT 0", "INTEGER DEFAULT 0"],
+            'notify_last_sent' => ["INT UNSIGNED NOT NULL DEFAULT 0", "INTEGER DEFAULT 0"],
             'active' => ["TINYINT NOT NULL DEFAULT 1", "INTEGER NOT NULL DEFAULT 1"],
             'created_at' => ["TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP", "TEXT DEFAULT CURRENT_TIMESTAMP"],
         ],
@@ -115,6 +118,7 @@ final class DatabaseSchema
             'action' => ["VARCHAR(100) NOT NULL", "TEXT NOT NULL"],
             'details' => ["MEDIUMTEXT NULL", "TEXT DEFAULT ''"],
             'created_at' => ["TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP", "TEXT DEFAULT CURRENT_TIMESTAMP"],
+            'logged_at' => ["VARCHAR(19) NOT NULL DEFAULT ''", "TEXT DEFAULT ''"],
         ],
         'content_blocks' => [
             'block_key' => ["VARCHAR(190) NOT NULL UNIQUE", "TEXT NOT NULL UNIQUE"],

@@ -38,6 +38,7 @@ require_once $publicRoot . '/inc/pages.php';
 require_once $publicRoot . '/inc/membership.php';
 require_once $publicRoot . '/inc/tracks.php';
 require_once $publicRoot . '/inc/design.php';
+require_once $publicRoot . '/inc/notify.php';
 try {
     $db = Database::connect();
     DatabaseSchema::ensure($db);
@@ -52,6 +53,8 @@ try {
             $db->exec("UPDATE users SET role='subadmin', permissions='[\"events\",\"tracks\",\"pages\",\"sponsors\",\"media\",\"results\",\"news\"]' WHERE id <> " . (int)$firstAdminId . " AND role NOT IN ('superadmin','subadmin')");
         }
     }
+    // Fällige Änderungs-Benachrichtigungen verschicken (höchstens einmal pro Minute geprüft).
+    try { rcb_notify_dispatch($db); } catch (Throwable $e) { error_log('RCB notify: ' . $e->getMessage()); }
     // Klarnamen aus angenommenen Einladungen nachtragen (Einladungen vor Einführung des Namensfelds).
     foreach ($db->query("SELECT id, username FROM users WHERE display_name = '' OR display_name IS NULL")->fetchAll() as $u) {
         $stmt = $db->prepare("SELECT details FROM logs WHERE action = 'invite_accepted' AND user_id = ? ORDER BY id DESC LIMIT 1");
@@ -159,8 +162,8 @@ function describe_block_key(PDO $db, string $key, array $hidden): ?array {
     return [$label, $url];
 }
 function log_action(PDO $db, ?int $userId, string $action, string $details = ''): void {
-    $stmt = $db->prepare('INSERT INTO logs (user_id, action, details) VALUES (?, ?, ?)');
-    $stmt->execute([$userId, $action, (function_exists('mb_substr') ? mb_substr($details, 0, 500) : substr($details, 0, 500))]);
+    $stmt = $db->prepare('INSERT INTO logs (user_id, action, details, logged_at) VALUES (?, ?, ?, ?)');
+    $stmt->execute([$userId, $action, (function_exists('mb_substr') ? mb_substr($details, 0, 500) : substr($details, 0, 500)), date('Y-m-d H:i:s')]);
 }
 function redirect_to(string $page = 'dashboard', string $notice = 'Gespeichert'): never {
     $script = (string)($_SERVER['SCRIPT_NAME'] ?? '/admin/index.php');
@@ -415,7 +418,7 @@ function admin_draft_banner(PDO $db, string $returnPage, string $previewUrl, boo
         . '<form method="post" data-confirm="Alle unveröffentlichten Änderungen verwerfen?">' . $hidden . '<input type="hidden" name="action" value="discard_drafts"><button class="danger" type="submit">Entwurf verwerfen</button></form></div></section>';
 }
 function admin_area_for_action(string $action): string {
-    $map = ['save_event'=>'events','save_event_settings'=>'events','delete_event'=>'events','save_track'=>'tracks','delete_track'=>'tracks','save_page'=>'pages','delete_page'=>'pages','save_sponsor'=>'sponsors','delete_sponsor'=>'sponsors','upload_media'=>'media','delete_media'=>'media','save_result'=>'results','delete_result'=>'results','save_news'=>'news','delete_news'=>'news','save_settings'=>'settings','toggle_user'=>'users','delete_user'=>'users','backup_export'=>'backup','page_visibility'=>'pages','page_move'=>'pages','rule_class_add'=>'reglement','rule_class_move'=>'reglement','rule_class_toggle'=>'reglement','rule_class_delete'=>'reglement','delete_site_update'=>'news','custom_page_add'=>'pages','custom_page_menu'=>'pages','clear_site_updates'=>'news','toggle_auto_updates'=>'news','create_invite'=>'users','save_membership'=>'membership','save_design'=>'design','reset_design'=>'design','request_status'=>'requests','request_delete'=>'requests','file_upload'=>'files','file_delete'=>'files','file_toggle'=>'files','file_move'=>'files','update_user'=>'users','create_reset_link'=>'users','revoke_token'=>'users'];
+    $map = ['save_event'=>'events','save_event_settings'=>'events','delete_event'=>'events','save_track'=>'tracks','delete_track'=>'tracks','save_page'=>'pages','delete_page'=>'pages','save_sponsor'=>'sponsors','delete_sponsor'=>'sponsors','upload_media'=>'media','delete_media'=>'media','save_result'=>'results','delete_result'=>'results','save_news'=>'news','delete_news'=>'news','save_settings'=>'settings','toggle_user'=>'users','delete_user'=>'users','backup_export'=>'backup','page_visibility'=>'pages','page_move'=>'pages','rule_class_add'=>'reglement','rule_class_move'=>'reglement','rule_class_toggle'=>'reglement','rule_class_delete'=>'reglement','delete_site_update'=>'news','custom_page_add'=>'pages','custom_page_menu'=>'pages','clear_site_updates'=>'news','toggle_auto_updates'=>'news','create_invite'=>'users','save_membership'=>'membership','save_design'=>'design','save_notify'=>'dashboard','reset_design'=>'design','request_status'=>'requests','request_delete'=>'requests','file_upload'=>'files','file_delete'=>'files','file_toggle'=>'files','file_move'=>'files','update_user'=>'users','create_reset_link'=>'users','revoke_token'=>'users'];
     return $map[$action] ?? 'dashboard';
 }
 
@@ -740,7 +743,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } elseif (!empty($_SESSION['admin_user_id'])) {
         $uid = (int)$_SESSION['admin_user_id'];
-        $authStmt = $db->prepare('SELECT id, username, email, display_name, role, permissions, active FROM users WHERE id = ? LIMIT 1');
+        $authStmt = $db->prepare('SELECT id, username, email, display_name, role, permissions, active, notify_mode FROM users WHERE id = ? LIMIT 1');
         $authStmt->execute([$uid]);
         $currentUser = $authStmt->fetch();
         if (!$currentUser || (int)$currentUser['active'] !== 1) { http_response_code(403); exit('Benutzerkonto ist nicht aktiv.'); }
@@ -917,6 +920,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 admin_set_setting($db, 'past_events_months', (string)$months);
                 log_action($db, $uid, 'event_settings', "Vergangene Termine: max $max, $months Monate");
                 redirect_to('events', 'Einstellungen gespeichert');
+            }
+            if ($action === 'save_notify') {
+                $mode = post_string('notify_mode', 20);
+                if (!array_key_exists($mode, rcb_notify_modes())) { $mode = ''; }
+                if ($mode !== '' && trim((string)($currentUser['email'] ?? '')) === '') { throw new RuntimeException('Für Benachrichtigungen bitte zuerst oben eine E-Mail-Adresse eintragen.'); }
+                if ($mode !== '' && (string)($currentUser['notify_mode'] ?? '') === '') {
+                    // Beim Einschalten nur künftige Änderungen melden, nicht das ganze bisherige Protokoll.
+                    $maxLog = (int)$db->query('SELECT COALESCE(MAX(id), 0) FROM logs')->fetchColumn();
+                    $db->prepare('UPDATE users SET notify_mode = ?, notify_last_log_id = ?, notify_last_sent = ? WHERE id = ?')->execute([$mode, $maxLog, time(), $uid]);
+                } else {
+                    $db->prepare('UPDATE users SET notify_mode = ? WHERE id = ?')->execute([$mode, $uid]);
+                }
+                log_action($db, $uid, 'notify_settings', $mode === '' ? 'aus' : $mode);
+                redirect_to('dashboard', $mode === '' ? 'Benachrichtigungen ausgeschaltet' : 'Benachrichtigungen eingeschaltet');
             }
             if ($action === 'save_track') {
                 $id = (int)($_POST['id'] ?? 0);
@@ -1475,7 +1492,7 @@ $userCount = (int)$db->query('SELECT COUNT(*) FROM users')->fetchColumn();
 $setupMode = $userCount === 0;
 $loggedIn = !empty($_SESSION['admin_user_id']);
 if ($loggedIn) {
-    $stmt = $db->prepare('SELECT id, username, email, display_name, role, permissions, active FROM users WHERE id = ? LIMIT 1');
+    $stmt = $db->prepare('SELECT id, username, email, display_name, role, permissions, active, notify_mode FROM users WHERE id = ? LIMIT 1');
     $stmt->execute([(int)$_SESSION['admin_user_id']]);
     $currentUser = $stmt->fetch();
     if (!$currentUser || (int)$currentUser['active'] !== 1) {
@@ -1671,7 +1688,13 @@ endforeach; ?>
 <label for="own_password">Neues Passwort (leer lassen, wenn es bleiben soll)</label><input id="own_password" name="password" type="password" minlength="12" autocomplete="new-password">
 <label for="own_password_confirm">Neues Passwort wiederholen</label><input id="own_password_confirm" name="password_confirm" type="password" minlength="12" autocomplete="new-password">
 <label for="current_password">Aktuelles Passwort (zur Bestätigung)</label><input id="current_password" name="current_password" type="password" required autocomplete="current-password">
-<button type="submit">Speichern</button></form></section>
+<button type="submit">Speichern</button></form><form class="stack notify-form" method="post" style="margin-top:22px;padding-top:18px;border-top:1px solid var(--line)"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="save_notify">
+<h3 style="margin:0">🔔 Benachrichtigung bei Änderungen</h3>
+<p class="hint" style="margin:0">Bekomme eine E-Mail, wenn <strong>andere</strong> Admins etwas an der Webseite ändern – mit Name, Uhrzeit und was geändert wurde. Deine eigenen Änderungen werden nicht gemeldet.</p>
+<?php $myNotify = (string)($currentUser['notify_mode'] ?? ''); foreach (rcb_notify_modes() as $nk => $nl): ?><label class="check"><input type="radio" name="notify_mode" value="<?= h($nk) ?>"<?= $myNotify === $nk ? ' checked' : '' ?>> <?= h($nl) ?></label><?php endforeach; ?>
+<p class="hint" style="margin:0">Gesendet an <?= h((string)($currentUser['email'] ?? '') ?: '– bitte oben E-Mail eintragen –') ?>. Mehrere Änderungen hintereinander kommen gesammelt in einer E-Mail.</p>
+<div class="form-actions"><button type="submit" class="secondary">Benachrichtigung speichern</button></div></form>
+</section>
 <?php elseif ($page === 'backup'): ?>
 <div class="page-head"><div><p class="eyebrow">Datensicherung</p><h1>Datenbank-Backup</h1><p>Erstelle einen SQL-Export deiner Vereinsplattform.</p></div></div>
 <section class="card"><h2>Backup herunterladen</h2><p>Der Export enthält Tabellenstruktur und gespeicherte Daten der SQLite-Datenbank. Die Datei wird direkt erzeugt und nicht öffentlich auf dem Webserver abgelegt.</p><div class="notice">Wichtig: Bewahre die Datei sicher auf, da sie personenbezogene Verwaltungsdaten und Zugangsdaten-Hashes enthalten kann. Ein Import ist nur in eine frische/leere SQLite-Datenbank vorgesehen. Die Wiederherstellung erfolgt über den Hosting-Anbieter oder eine lokale SQLite-Umgebung; es gibt bewusst keinen öffentlich erreichbaren Restore-Upload.</div><form method="post" class="stack" style="margin-top:18px"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="backup_export"><button type="submit">SQL-Backup herunterladen</button></form></section>

@@ -922,6 +922,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 redirect_to('events', 'Einstellungen gespeichert');
             }
             if ($action === 'save_notify') {
+                if (($currentUser['role'] ?? '') !== 'superadmin') { throw new RuntimeException('Keine Berechtigung.'); }
                 $mode = post_string('notify_mode', 20);
                 if (!array_key_exists($mode, rcb_notify_modes())) { $mode = ''; }
                 if ($mode !== '' && trim((string)($currentUser['email'] ?? '')) === '') { throw new RuntimeException('Für Benachrichtigungen bitte zuerst oben eine E-Mail-Adresse eintragen.'); }
@@ -932,7 +933,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     $db->prepare('UPDATE users SET notify_mode = ? WHERE id = ?')->execute([$mode, $uid]);
                 }
-                log_action($db, $uid, 'notify_settings', $mode === '' ? 'aus' : $mode);
                 redirect_to('dashboard', $mode === '' ? 'Benachrichtigungen ausgeschaltet' : 'Benachrichtigungen eingeschaltet');
             }
             if ($action === 'save_track') {
@@ -1688,12 +1688,12 @@ endforeach; ?>
 <label for="own_password">Neues Passwort (leer lassen, wenn es bleiben soll)</label><input id="own_password" name="password" type="password" minlength="12" autocomplete="new-password">
 <label for="own_password_confirm">Neues Passwort wiederholen</label><input id="own_password_confirm" name="password_confirm" type="password" minlength="12" autocomplete="new-password">
 <label for="current_password">Aktuelles Passwort (zur Bestätigung)</label><input id="current_password" name="current_password" type="password" required autocomplete="current-password">
-<button type="submit">Speichern</button></form><form class="stack notify-form" method="post" style="margin-top:22px;padding-top:18px;border-top:1px solid var(--line)"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="save_notify">
+<button type="submit">Speichern</button></form><?php if (($currentUser['role'] ?? '') === 'superadmin'): ?><form class="stack notify-form" method="post" style="margin-top:22px;padding-top:18px;border-top:1px solid var(--line)"><input type="hidden" name="csrf_token" value="<?= h(csrf_token()) ?>"><input type="hidden" name="action" value="save_notify">
 <h3 style="margin:0">🔔 Benachrichtigung bei Änderungen</h3>
 <p class="hint" style="margin:0">Bekomme eine E-Mail, wenn <strong>andere</strong> Admins etwas an der Webseite ändern – mit Name, Uhrzeit und was geändert wurde. Deine eigenen Änderungen werden nicht gemeldet.</p>
 <?php $myNotify = (string)($currentUser['notify_mode'] ?? ''); foreach (rcb_notify_modes() as $nk => $nl): ?><label class="check"><input type="radio" name="notify_mode" value="<?= h($nk) ?>"<?= $myNotify === $nk ? ' checked' : '' ?>> <?= h($nl) ?></label><?php endforeach; ?>
 <p class="hint" style="margin:0">Gesendet an <?= h((string)($currentUser['email'] ?? '') ?: '– bitte oben E-Mail eintragen –') ?>. Mehrere Änderungen hintereinander kommen gesammelt in einer E-Mail.</p>
-<div class="form-actions"><button type="submit" class="secondary">Benachrichtigung speichern</button></div></form>
+<div class="form-actions"><button type="submit" class="secondary">Benachrichtigung speichern</button></div></form><?php endif; ?>
 </section>
 <?php elseif ($page === 'backup'): ?>
 <div class="page-head"><div><p class="eyebrow">Datensicherung</p><h1>Datenbank-Backup</h1><p>Erstelle einen SQL-Export deiner Vereinsplattform.</p></div></div>

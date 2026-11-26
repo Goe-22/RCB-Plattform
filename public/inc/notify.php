@@ -93,7 +93,7 @@ function rcb_notify_dispatch(PDO $db): void
     }
     $set('notify_last_check', (string)$now);
 
-    $recipients = $db->query("SELECT id, username, display_name, email, notify_mode, notify_last_log_id, notify_last_sent FROM users WHERE active = 1 AND notify_mode IN ('bundle','daily') AND email <> ''")->fetchAll(PDO::FETCH_ASSOC);
+    $recipients = $db->query("SELECT id, username, display_name, email, notify_mode, notify_last_log_id, notify_last_sent FROM users WHERE active = 1 AND role = 'superadmin' AND notify_mode IN ('bundle','daily') AND email <> ''")->fetchAll(PDO::FETCH_ASSOC);
     if (!$recipients) {
         return;
     }

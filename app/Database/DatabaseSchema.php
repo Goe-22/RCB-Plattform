@@ -107,6 +107,7 @@ final class DatabaseSchema
             'image_url' => ["VARCHAR(1000) NOT NULL DEFAULT ''", "TEXT DEFAULT ''"],
             'published' => ["TINYINT NOT NULL DEFAULT 0", "INTEGER NOT NULL DEFAULT 0"],
             'created_at' => ["TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP", "TEXT DEFAULT CURRENT_TIMESTAMP"],
+            'expires_at' => ["DATETIME NULL", "TEXT"],
             'updated_at' => ["TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP", "TEXT DEFAULT CURRENT_TIMESTAMP"],
         ],
         'logs' => [

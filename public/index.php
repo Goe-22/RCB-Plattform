@@ -5,18 +5,21 @@ require_once __DIR__ . '/inc/bootstrap.php';
 // Anzahl je Bereich (Admin → Einstellungen → Startseite), 0 blendet den Bereich aus.
 $newsCount = max(0, min(20, (int)rcb_setting('home_news_count', '6')));
 $eventsCount = max(0, min(20, (int)rcb_setting('home_events_count', '3')));
-// Neuigkeiten: eigene Meldungen (Admin → Neuigkeiten) und automatische Hinweise auf neue Inhalte, neueste zuerst.
+// Neuigkeiten: eigene Meldungen (Admin → Neuigkeiten) stehen immer oben, darunter die automatischen Hinweise auf neue Inhalte.
+// Abgelaufene Meldungen (Laufzeit im Admin) werden nicht mehr angezeigt.
 $feed = [];
-foreach (rcb_rows("SELECT id, title, summary, content, image_url, created_at FROM news WHERE published = 1 ORDER BY created_at DESC, id DESC LIMIT " . max(1, $newsCount)) as $item) {
+foreach (rcb_rows("SELECT id, title, summary, content, image_url, created_at FROM news WHERE published = 1 AND (expires_at IS NULL OR CAST(expires_at AS CHAR) = '' OR expires_at >= ?) ORDER BY created_at DESC, id DESC LIMIT 20", [date('Y-m-d H:i:s')]) as $item) {
     $feed[] = ['type' => 'news', 'date' => (string)$item['created_at'], 'item' => $item];
 }
 $autoDays = (int)rcb_setting('auto_updates_days', '30');
 $autoCutoff = $autoDays > 0 ? date('Y-m-d H:i:s', time() - $autoDays * 86400) : '1970-01-02 00:00:00';
-foreach (rcb_rows("SELECT id, title, url, created_at FROM site_updates WHERE created_at >= ? ORDER BY created_at DESC, id DESC LIMIT " . max(1, $newsCount), [$autoCutoff]) as $item) {
-    $feed[] = ['type' => 'update', 'date' => (string)$item['created_at'], 'item' => $item];
+$autoLeft = max(0, $newsCount - count($feed));
+if ($autoLeft > 0) {
+    foreach (rcb_rows("SELECT id, title, url, created_at FROM site_updates WHERE created_at >= ? ORDER BY created_at DESC, id DESC LIMIT " . $autoLeft, [$autoCutoff]) as $item) {
+        $feed[] = ['type' => 'update', 'date' => (string)$item['created_at'], 'item' => $item];
+    }
 }
-usort($feed, static fn(array $a, array $b): int => strcmp($b['date'], $a['date']));
-$feed = array_slice($feed, 0, $newsCount);
+$feed = array_slice($feed, 0, max($newsCount, count(array_filter($feed, static fn($e) => $e['type'] === 'news'))));
 $events = rcb_rows("SELECT * FROM events WHERE published = 1 AND (event_date IS NULL OR CAST(event_date AS CHAR) = '' OR (CASE WHEN end_date IS NOT NULL AND CAST(end_date AS CHAR) <> '' THEN end_date ELSE event_date END) >= ?) ORDER BY CASE WHEN event_date IS NULL OR CAST(event_date AS CHAR) = '' THEN 1 ELSE 0 END, event_date ASC, start_time ASC LIMIT " . max(1, $eventsCount), [rcb_today()]);
 $sponsors = rcb_rows("SELECT * FROM sponsors WHERE published = 1 ORDER BY name ASC");
 $heroImage = rcb_img('startseite.hero.bild', rcb_media_url('hero', '/assets/images/startseite.jpg'));
@@ -46,8 +49,8 @@ rcb_header('home');
     <?php if ($feed): ?><div class="rcb-news-list">
         <?php foreach ($feed as $entry): $item = $entry['item']; ?>
         <?php if ($entry['type'] === 'news'): ?>
-        <article class="rcb-news"><?php if ((string)($item['image_url'] ?? '') !== ''): ?><img src="<?= rcb_h($item['image_url']) ?>" alt="" loading="lazy"><?php endif; ?><div>
-            <span class="rcb-pill"><?= rcb_h(rcb_date(substr($entry['date'], 0, 10))) ?></span>
+        <article class="rcb-news rcb-news-own"><?php if ((string)($item['image_url'] ?? '') !== ''): ?><img src="<?= rcb_h($item['image_url']) ?>" alt="" loading="lazy"><?php endif; ?><div>
+            <span class="rcb-pill"><?= rcb_h(rcb_date(substr($entry['date'], 0, 10))) ?> · Aus dem Verein</span>
             <h3><?= rcb_h($item['title']) ?></h3>
             <?php if ((string)$item['summary'] !== ''): ?><p><?= nl2br(rcb_h($item['summary'])) ?></p><?php endif; ?>
             <?php if ((string)$item['content'] !== ''): ?><?php if ((string)$item['summary'] !== ''): ?><details><summary>Weiterlesen</summary><p><?= nl2br(rcb_h($item['content'])) ?></p></details><?php else: ?><p><?= nl2br(rcb_h($item['content'])) ?></p><?php endif; ?><?php endif; ?>

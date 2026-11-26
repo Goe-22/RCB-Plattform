@@ -82,3 +82,25 @@ document.querySelectorAll('[data-facts]').forEach((list) => {
     if (e.target.matches('[data-fact-show]')) e.target.closest('.fact-row').querySelector('input[name="fact_show[]"]').value = e.target.checked ? '1' : '0';
   });
 });
+
+
+// Neuigkeiten: Laufzeit-Auswahl – Datumsfeld nur bei „Bis Datum“, Hinweis mit Enddatum
+document.querySelectorAll('fieldset.expiry').forEach((box) => {
+  const info = box.querySelector('[data-expiry-info]');
+  const date = box.querySelector('input[name="expires_on"]');
+  const fmt = (d) => d.toLocaleDateString('de-DE', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
+  const update = () => {
+    const v = box.querySelector('input[name="expiry"]:checked')?.value;
+    box.classList.toggle('show-date', v === 'date');
+    const plus = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d; };
+    let text = 'Bleibt auf der Startseite, bis du sie löschst oder die Laufzeit änderst.';
+    if (v === '14d') text = 'Sichtbar bis ' + fmt(plus(14)) + ' – danach verschwindet sie von selbst.';
+    if (v === '28d') text = 'Sichtbar bis ' + fmt(plus(28)) + ' – danach verschwindet sie von selbst.';
+    if (v === 'date' && date.value) text = 'Sichtbar bis einschließlich ' + fmt(new Date(date.value + 'T12:00')) + '.';
+    if (v === 'keep') text = 'Die bisherige Laufzeit bleibt bestehen.';
+    info.textContent = text + ' Die Meldung bleibt hier gespeichert und lässt sich jederzeit verlängern.';
+  };
+  box.addEventListener('change', update);
+  date?.addEventListener('input', update);
+  update();
+});
